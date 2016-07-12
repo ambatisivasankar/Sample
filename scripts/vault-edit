@@ -1,0 +1,1 @@
+ansible-vault edit --vault-password $SQUARK_PASSWORD_FILE $1

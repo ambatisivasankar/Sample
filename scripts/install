@@ -1,0 +1,16 @@
+# Create a virtualenv.
+pyvenv-3.5 virt 
+pip=virt/bin/pip
+python=virt/bin/python
+
+pip install --upgrade pip
+
+# Clone the squark repo. 
+git clone https://github.com/massmutual/squark.git 
+
+# Install the dependencies. 
+$pip install -r squark/requirements.txt
+
+# Get the py4jdbc assembly jar and drivers added to the path. 
+source env.sh
+
