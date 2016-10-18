@@ -17,6 +17,15 @@ How to Use
 
 To use this Squark config repo, you'll need the Squark password file. Contact me (tneale@massmutual.com) and I'll email it to you. Next, save that file as ~/.squark-password or choose a different location and edit ~/.env.sh with that location as the SQUARK_PASSWORD_FILE environment variable. Now when you run Squark, it will use this repo for its config. 
 
+Assuming you have squark set up locally and can run the squark CLI, next you source this repo's env.sh file to tell squark where to look for its config, then try accessing the squark config from python:
+
+    $ python
+    >>> from squark.config.environment import Environment
+    >>> env = Environment()
+    >>> env.sources.tpp
+    JdbcSourceConfig([('type', 'jdbc'), ('user', 'moo'), ('password', '************'), ('schema', 'barn'),
+    ('url', '"jdbc:sqlserver://somehost;databaseName=cow;UID=moo;PWD=************"')])
+
 How to Edit
 +++++++++++++
 
