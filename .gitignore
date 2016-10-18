@@ -2,7 +2,6 @@
 .vault
 derby.log
 metastore_db/
-env.sh
 *.py[cod]
 .cache/
 etc/
