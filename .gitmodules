@@ -1,0 +1,6 @@
+[submodule "squark-classic"]
+	path = squark-classic
+	url = git@github.com:massmutual/squark-classic.git
+[submodule "squark"]
+	path = squark
+	url = git@github.com:massmutual/squark.git
