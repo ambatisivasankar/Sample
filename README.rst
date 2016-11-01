@@ -40,6 +40,11 @@ Please follow the steps below to run the squark-classic container:
    b. source jobs/<JOB_NAME>.sh (make sure the file has the CONNECTION_ID variable being set).
    c. ./run.sh
 
+Here is an example of a typical workflow once the squark-container is run:
+1. cd squark-classic/
+2. source jobs/test_psql.sh
+3. ./run.sh
+
 That should be it. Most environment variables are being set in the docker file, but can be overridden in the shell if needed.
 
 To add new jars: Just copy them into the .jars directory.
