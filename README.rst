@@ -25,3 +25,28 @@ Currently only the .squark/secrets.cfg file is encrypted. To edit it, use ansibl
     $ ansible-vault edit --vault-password-file ~/.squark-password .squark/secrets.cfg
 
 
+RUNNING SQUARK-CLASSIC 
+++++++++++++++++++++++++++++
+
+Please follow the steps below to run the squark-classic container:
+
+1. git submodule init; git submodule update
+2. cd squark/
+3. make build
+4. make up
+5. ./build-squark-classic.sh
+6. ./run-squark-classic.sh  (This will put you in a bash shell in the container)
+   a. cd squark-classic/
+   b. source jobs/<JOB_NAME>.sh (make sure the file has the CONNECTION_ID variable being set).
+   c. ./run.sh
+
+That should be it. Most environment variables are being set in the docker file, but can be overridden in the shell if needed.
+
+To add new jars: Just copy them into the .jars directory.
+
+BELOW ARE THE SHASUMS OF THE JAR FILES:
++++
+2ba2e5646d1d0fa6ca17e8b794a9e7b6b8607d18  .jars/postgresql-9.4.1211.jre6.jar
+18330ff836547c60dbf75d440a62d80b87671b45  .jars/py4jdbc-assembly-latest.jar
+de7e674823ec5010408859fa6b76961fa4fc49ac  .jars/vertica-jdbc-7.2.3-0.jar
+
