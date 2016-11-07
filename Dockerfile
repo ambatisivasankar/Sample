@@ -67,5 +67,12 @@ RUN /usr/local/src/squark-advana/bootstrap.sh
 
 RUN cp /usr/local/src/squark-advana/.jars/postgresql-9.4.1211.jre6.jar /usr/local/lib/postgresql-9.4.1211.jre6.jar
 RUN cp /usr/local/src/squark-advana/.jars/py4jdbc-assembly-latest.jar /usr/local/share/py4jdbc/py4jdbc-assembly-latest.jar
+
+# Set the locale
+RUN locale-gen en_US.UTF-8  
+ENV LANG en_US.UTF-8  
+ENV LANGUAGE en_US:en  
+ENV LC_ALL en_US.UTF-8  
+
 #ADD docker-entrypoint.sh / 
 #ENTRYPOINT ["/docker-entrypoint.sh"]
