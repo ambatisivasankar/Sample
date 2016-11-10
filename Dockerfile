@@ -55,7 +55,7 @@ ENV SQUARK_PASSWORD_FILE="/usr/local/src/squark-advana/.squark-password"
 ENV SQUARK_CONFIG_DIR="/usr/local/src/squark-advana/config"
 ENV PYSPARK_PYTHON="/usr/local/src/squark-advana/virt/bin/python3"
 ENV HADOOP_CONF_DIR="/etc/hadoop/conf/"
-
+ENV VERTICA_CONNECTION_ID="test_vertica"
 WORKDIR /usr/local/src/squark-advana
 ADD ./squark-classic/hadoop_confs/etc/hadoop /etc/hadoop
 ADD . /usr/local/src/squark-advana
