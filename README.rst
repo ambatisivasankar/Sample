@@ -25,8 +25,8 @@ Currently only the .squark/secrets.cfg file is encrypted. To edit it, use ansibl
     $ ansible-vault edit --vault-password-file ~/.squark-password .squark/secrets.cfg
 
 
-RUNNING SQUARK-CLASSIC 
-++++++++++++++++++++++++++++
+RUNNING SQUARK-CLASSIC IN CONTAINER 
++++++++++++++++++++++++++++++++++++
 
 Please follow the steps below to run the squark-classic container:
 
@@ -36,18 +36,36 @@ Please follow the steps below to run the squark-classic container:
 4. make up
 5. ./build-squark-classic.sh
 6. ./run-squark-classic.sh  (This will put you in a bash shell in the container)
-   a. cd squark-classic/
-   b. source jobs/<JOB_NAME>.sh (make sure the file has the CONNECTION_ID variable being set).
-   c. ./run.sh
+   a. ./docker-entrypoint.sh <JOB_NAME>
 
 Here is an example of a typical workflow once the squark-container is run:
-1. cd squark-classic/
-2. source jobs/test_psql.sh
-3. ./run.sh
+1. ./docker-entrypoint.sh test_psql
+
+This will source the job file with that name. 
 
 That should be it. Most environment variables are being set in the docker file, but can be overridden in the shell if needed.
 
 To add new jars: Just copy them into the .jars directory.
+
+RUNNING SQUARK-CLASSIC (No Docker)
+++++++++++++++++++++++++++++++++++
+
+To Run squark-classic locally - without containerization - then run:
+1. `./bootstrap.sh` - This will setup the virtual environment.
+2. Setup a environment file with the following values (see example for container env, env-container.sh):
+   a. VERTICA_HOST
+   b. VERTICA_USER
+   c. VERTICA_PASSWORD
+   d. VERTICA_DATABASE
+   e. VERTICA_VSQL (This is the path to the vsql binary)
+   f. HDFS_HOST
+   g. HDFS_PORT
+   h. HDFS_USER
+3. Source that new environment file.
+4. Source the job file that you are looking to run.
+5. `./run.sh`
+6. `./load_wh.sh <JOB_NAME>`
+
 
 BELOW ARE THE SHASUMS OF THE JAR FILES:
 +++

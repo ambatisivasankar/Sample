@@ -53,7 +53,7 @@ ENV PATH="$SPARK_HOME/bin:$PATH"
 ENV PYTHONPATH="$PYTHONPATH:$SPARK_HOME/python:/usr/local/src/squark-advana"
 ENV SQUARK_PASSWORD_FILE="/usr/local/src/squark-advana/.squark-password"
 ENV SQUARK_CONFIG_DIR="/usr/local/src/squark-advana/config"
-ENV PYSPARK_PYTHON="/usr/bin/python3.5"
+ENV PYSPARK_PYTHON="/usr/local/src/squark-advana/virt/bin/python3"
 ENV HADOOP_CONF_DIR="/etc/hadoop/conf/"
 
 WORKDIR /usr/local/src/squark-advana
