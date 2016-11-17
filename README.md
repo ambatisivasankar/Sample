@@ -20,9 +20,9 @@ To use this Squark config repo, you'll need the Squark password file. Contact me
 ---
 
 Currently only the .squark/secrets.cfg file is encrypted. To edit it, use ansible-vault:
-
+```
     $ ansible-vault edit --vault-password-file ~/.squark-password .squark/secrets.cfg
-
+```
 
 ###RUNNING SQUARK-CLASSIC IN CONTAINER 
 ---
@@ -35,7 +35,7 @@ Please follow the steps below to run the squark-classic container:
 4. make up
 5. ./build-squark-classic.sh
 6. ./run-squark-classic.sh  (This will put you in a bash shell in the container)
-   *. ./docker-entrypoint.sh <JOB_NAME>
+  *. ./docker-entrypoint.sh <JOB_NAME>
 
 Here is an example of a typical workflow once the squark-container is run:
 1. ./docker-entrypoint.sh test_psql
@@ -73,6 +73,7 @@ It has a few defaults that can be used:
 `develop`: 
 1. VERTICA_CONNECTION_ID='vertica_dev'
 2. WAREHOUSE_DIR='/_wh_dev/'
+
 `production`:
 1. VERTICA_CONNECTION_ID='vertica_prod'
 2. WAREHOUSE_DIR='/_wh/'
