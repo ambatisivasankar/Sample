@@ -90,7 +90,7 @@ It takes the following arguments:
 2. --prod | --production : This tells the script to use the default production variables.
 3. -w=* | --warehouse-dir=* : This tells the script to use the value after the equals sign as the warehouse-dir.
 4. -v=* | --vertica-id=* : This tells the script to use the value after the equals sign as the vertica-connection-id.
-5. <job_name> : This is a required arguement, and it tells the script which job to run.
+5. job_name : This is a required arguement, and it tells the script which job to run. Just pass the name of the job here.
 
 ###Example of running a job on the cluster:
 ---
