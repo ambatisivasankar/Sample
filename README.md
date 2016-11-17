@@ -35,7 +35,7 @@ Please follow the steps below to run the squark-classic container:
 4. make up
 5. ./build-squark-classic.sh
 6. ./run-squark-classic.sh  (This will put you in a bash shell in the container)
-  *. ./docker-entrypoint.sh <JOB_NAME>
+  * ./docker-entrypoint.sh <JOB_NAME>
 
 Here is an example of a typical workflow once the squark-container is run:
 1. ./docker-entrypoint.sh test_psql
