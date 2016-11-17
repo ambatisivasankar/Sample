@@ -38,6 +38,7 @@ Please follow the steps below to run the squark-classic container:
   * ./docker-entrypoint.sh <JOB_NAME>
 
 Here is an example of a typical workflow once the squark-container is run:
+
 1. ./docker-entrypoint.sh test_psql
 
 This will source the job file with that name. 
@@ -50,6 +51,7 @@ To add new jars: Just copy them into the .jars directory.
 ---
 
 To Run squark-classic locally - without containerization - then run:
+
 1. `source "./env-cluster.sh" - This will set the variables needed (related to the cluster setup).
 2. `./bootstrap-cluster.sh <dev|prod>` - This will setup the virtual environment and setup the git submodules according to the dev or prod setup.
 3. `/launch_squark_job.sh [--dev|--prod] <job_name> - This will set the standard variables for running the job and will source the proper job file and run the job.
@@ -57,28 +59,33 @@ To Run squark-classic locally - without containerization - then run:
 ###Notes on files:
 ---
 *bootstrap-cluster.sh* - This is the file which will take care of the following steps:
+
 1. Update the submodules and pull the selected branch.
 2. Check to make sure that the correct password variables are set.
 3. Create the .squark_password file.
 4. Create the virtual environment and install the correct libraries.
 
 bootstrap cluster takes a single argument, which can be any of the following:
-`dev` or `develop` - This tells the script to pull down the `develop` branch in each of the submodules.
-`prod` or `production` or `master` - This tells the script to pull down the `master` branch in the submodules.
 
-*launch_squark_job.sh* - This is the file which will run the squark job. It controls how the jobs are run by setting the correct warehouse and vertica connection variables.
+* `dev` or `develop` - This tells the script to pull down the `develop` branch in each of the submodules.
+* `prod` or `production` or `master` - This tells the script to pull down the `master` branch in the submodules.
+
+**launch_squark_job.sh** - This is the file which will run the squark job. It controls how the jobs are run by setting the correct warehouse and vertica connection variables.
 
 It has a few defaults that can be used:
 
 `develop`: 
+
 1. VERTICA_CONNECTION_ID='vertica_dev'
 2. WAREHOUSE_DIR='/_wh_dev/'
 
 `production`:
+
 1. VERTICA_CONNECTION_ID='vertica_prod'
 2. WAREHOUSE_DIR='/_wh/'
 
 It takes the following arguments:
+
 1. --dev | --develop : This tells the script to use default development variables.
 2. --prod | --production : This tells the script to use the default production variables.
 3. -w=* | --warehouse-dir=* : This tells the script to use the value after the equals sign as the warehouse-dir.
@@ -99,6 +106,7 @@ source "./env-cluster.sh"
 
 ###BELOW ARE THE SHASUMS OF THE JAR FILES:
 ---
+
 *. 2ba2e5646d1d0fa6ca17e8b794a9e7b6b8607d18  .jars/postgresql-9.4.1211.jre6.jar
 *. 18330ff836547c60dbf75d440a62d80b87671b45  .jars/py4jdbc-assembly-latest.jar
 *. de7e674823ec5010408859fa6b76961fa4fc49ac  .jars/vertica-jdbc-7.2.3-0.jar
