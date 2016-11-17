@@ -107,7 +107,7 @@ source "./env-cluster.sh"
 ###BELOW ARE THE SHASUMS OF THE JAR FILES:
 ---
 
-*. 2ba2e5646d1d0fa6ca17e8b794a9e7b6b8607d18  .jars/postgresql-9.4.1211.jre6.jar
-*. 18330ff836547c60dbf75d440a62d80b87671b45  .jars/py4jdbc-assembly-latest.jar
-*. de7e674823ec5010408859fa6b76961fa4fc49ac  .jars/vertica-jdbc-7.2.3-0.jar
+* 2ba2e5646d1d0fa6ca17e8b794a9e7b6b8607d18  .jars/postgresql-9.4.1211.jre6.jar
+* 18330ff836547c60dbf75d440a62d80b87671b45  .jars/py4jdbc-assembly-latest.jar
+* de7e674823ec5010408859fa6b76961fa4fc49ac  .jars/vertica-jdbc-7.2.3-0.jar
 
