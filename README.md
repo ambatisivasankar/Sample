@@ -52,13 +52,13 @@ To add new jars: Just copy them into the .jars directory.
 
 To Run squark-classic locally - without containerization - then run:
 
-1. `source "./env-cluster.sh" - This will set the variables needed (related to the cluster setup).
+1. `source "./env-cluster.sh"` - This will set the variables needed (related to the cluster setup).
 2. `./bootstrap-cluster.sh <dev|prod>` - This will setup the virtual environment and setup the git submodules according to the dev or prod setup.
-3. `/launch_squark_job.sh [--dev|--prod] <job_name> - This will set the standard variables for running the job and will source the proper job file and run the job.
+3. `/launch_squark_job.sh [--dev|--prod] <job_name>` - This will set the standard variables for running the job and will source the proper job file and run the job.
 
 ###Notes on files:
 ---
-*bootstrap-cluster.sh* - This is the file which will take care of the following steps:
+**bootstrap-cluster.sh** - This is the file which will take care of the following steps:
 
 1. Update the submodules and pull the selected branch.
 2. Check to make sure that the correct password variables are set.
