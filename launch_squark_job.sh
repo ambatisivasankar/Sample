@@ -69,5 +69,7 @@ echo " -- WAREHOUSE_DIR: $WAREHOUSE_DIR"
 echo " -- JOB_NAME: $JOB_NAME"
 echo "====================================================="
 
-#cd squark-classic
-#source jobs/${JOB_NAME}.sh
+cd squark-classic
+source jobs/${JOB_NAME}.sh
+./run.sh
+./load_wh.sh ${JOB_NAME}
