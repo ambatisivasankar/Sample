@@ -2,10 +2,13 @@
 # This script is used to launch a squark job.
 # it accepts and arg to determine whether this is prod or dev.
 # Setting a dev or prod will determine which WAREHOUSE_DIR and VERTICA_CONNECTION_ID are to be used.
+set -e
 
 VERTICA_CONNECTION_ID="vertica_dev"
 WAREHOUSE_DIR="/_wh_dev/"
 HELP=NO
+SKIP_HDFS_LOAD=NO
+SKIP_VERTICA_LOAD=NO
 for i in "$@"; do
     case $i in
         --dev|--develop)
@@ -24,6 +27,12 @@ for i in "$@"; do
         ;;
         -v=*|--vertica-id=*)
             VERTICA_CONNECTION_ID="${i#*=}"
+        ;;
+        --skip-hdfs-load)
+            SKIP_HDFS_LOAD=YES
+        ;;
+        --skip-vertica-load)
+            SKIP_VERTICA_LOAD=YES
         ;;
         *)
             # Unknown option -- assume to be job_name
@@ -49,6 +58,8 @@ if [ $HELP == YES ]; then
     echo " -w | --warehouse-dir  : Override the default warehouse_dir with the value passed."
     echo " --dev | --develop     : Set default values for a dev job."
     echo " --prod | --production : Set default values for a prod job." 
+    echo " --skip-hdfs-load      : Skip the loading of the data into hdfs."
+    echo " --skip-vertica-load   : Skip the loading of the data into vertica.":
     exit 0
 fi
 
@@ -71,5 +82,18 @@ echo "====================================================="
 
 cd squark-classic
 source jobs/${JOB_NAME}.sh
-./run.sh
-./load_wh.sh ${JOB_NAME}
+
+if [ $SKIP_HDFS_LOAD == YES ]; then
+    echo " --- SKIPPING LOADING DATA INTO HDFS!"
+fi
+if [ $SKIP_HDFS_LOAD == NO ]; then
+    ./run.sh
+fi
+
+if [ $SKIP_VERTICA_LOAD == YES ]; then
+    echo " --- SKIPPING LOADING DATA INTO VERTICA!"
+fi
+if [ $SKIP_VERTICA_LOAD == NO ]; then
+    ./load_wh.sh ${JOB_NAME}
+fi
+
