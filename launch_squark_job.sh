@@ -4,29 +4,29 @@
 # Setting a dev or prod will determine which WAREHOUSE_DIR and VERTICA_CONNECTION_ID are to be used.
 set -e
 
-VERTICA_CONNECTION_ID="vertica_dev"
-WAREHOUSE_DIR="/_wh_dev/"
+CONNECTION_ID="vertica_dev"
+WH_DIR="/_wh_dev/"
 HELP=NO
 SKIP_HDFS_LOAD=NO
 SKIP_VERTICA_LOAD=NO
 for i in "$@"; do
     case $i in
         --dev|--develop)
-            VERTICA_CONNECTION_ID="vertica_dev"
-            WAREHOUSE_DIR="/_wh_dev/"
+            CONNECTION_ID="vertica_dev"
+            WH_DIR="/_wh_dev/"
         ;;
         --prod|--production)
-            VERTICA_CONNECTION_ID="vertica_prod"
-            WAREHOUSE_DIR="/_wh/"
+            CONNECTION_ID="vertica_prod"
+            WH_DIR="/_wh/"
         ;;
         -h|--help|help)
             HELP=YES
         ;;
         -w=*|--warehouse-dir=*)
-            WAREHOUSE_DIR="${i#*=}"
+            WH_DIR="${i#*=}"
         ;;
         -v=*|--vertica-id=*)
-            VERTICA_CONNECTION_ID="${i#*=}"
+            CONNECTION_ID="${i#*=}"
         ;;
         --skip-hdfs-load)
             SKIP_HDFS_LOAD=YES
@@ -70,8 +70,8 @@ if [ -z ${JOB_NAME+x} ]; then
     exit 1
 fi
 
-export VERTICA_CONNECTION_ID=$VERTICA_CONNECTION_ID
-export WAREHOUSE_DIR=$WAREHOUSE_DIR
+export VERTICA_CONNECTION_ID=$CONNECTION_ID
+export WAREHOUSE_DIR=$WH_DIR
 
 echo "====================================================="
 echo "RUNNING SQUARK WITH THE FOLLOWING VALUES:"
