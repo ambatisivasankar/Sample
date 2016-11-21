@@ -70,6 +70,9 @@ if [ -z ${JOB_NAME+x} ]; then
     exit 1
 fi
 
+cd squark-classic
+source jobs/${JOB_NAME}.sh
+
 export VERTICA_CONNECTION_ID=$CONNECTION_ID
 export WAREHOUSE_DIR=$WH_DIR
 
@@ -79,9 +82,6 @@ echo " -- VERTICA_CONNECTION_ID: $VERTICA_CONNECTION_ID"
 echo " -- WAREHOUSE_DIR: $WAREHOUSE_DIR"
 echo " -- JOB_NAME: $JOB_NAME"
 echo "====================================================="
-
-cd squark-classic
-source jobs/${JOB_NAME}.sh
 
 if [ $SKIP_HDFS_LOAD == YES ]; then
     echo " --- SKIPPING LOADING DATA INTO HDFS!"
