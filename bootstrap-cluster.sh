@@ -20,7 +20,7 @@ for i in "$@"; do
 done
 
 echo "Pulling submodules branch: $GIT_BRANCH"
-git submodules init
+git submodule init
 git submodule update
 cd squark
 git checkout $GIT_BRANCH
