@@ -4,7 +4,7 @@
 # Setting a dev or prod will determine which WAREHOUSE_DIR and VERTICA_CONNECTION_ID are to be used.
 set -e
 
-CONNECTION_ID="vertica_dev"
+VERTICA_CONNECTION_ID="vertica_dev"
 WH_DIR="/_wh_dev/"
 HELP=NO
 SKIP_HDFS_LOAD=NO
@@ -12,11 +12,11 @@ SKIP_VERTICA_LOAD=NO
 for i in "$@"; do
     case $i in
         --dev|--develop)
-            CONNECTION_ID="vertica_dev"
+            VERTICA_CONNECTION_ID="vertica_dev"
             WH_DIR="/_wh_dev/"
         ;;
         --prod|--production)
-            CONNECTION_ID="vertica_prod"
+            VERTICA_CONNECTION_ID="vertica_prod"
             WH_DIR="/_wh/"
         ;;
         -h|--help|help)
@@ -26,7 +26,7 @@ for i in "$@"; do
             WH_DIR="${i#*=}"
         ;;
         -v=*|--vertica-id=*)
-            CONNECTION_ID="${i#*=}"
+            VERTICA_CONNECTION_ID="${i#*=}"
         ;;
         --skip-hdfs-load)
             SKIP_HDFS_LOAD=YES
@@ -73,7 +73,7 @@ fi
 cd squark-classic
 source jobs/${JOB_NAME}.sh
 
-export VERTICA_CONNECTION_ID=$CONNECTION_ID
+export VERTICA_CONNECTION_ID=$VERTICA_CONNECTION_ID
 export WAREHOUSE_DIR=$WH_DIR
 
 echo "====================================================="
