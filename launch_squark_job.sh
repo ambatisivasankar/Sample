@@ -9,15 +9,18 @@ WH_DIR="/_wh_dev/"
 HELP=NO
 SKIP_HDFS_LOAD=NO
 SKIP_VERTICA_LOAD=NO
+SQUARK_TYPE=squark-dev
 for i in "$@"; do
     case $i in
         --dev|--develop)
             VERTICA_CONNECTION_ID="vertica_dev"
             WH_DIR="/_wh_dev/"
+            SQUARK_TYPE=squark-dev
         ;;
         --prod|--production)
             VERTICA_CONNECTION_ID="vertica_prod"
             WH_DIR="/_wh/"
+            SQUARK_TYPE=squark-prod
         ;;
         -h|--help|help)
             HELP=YES
@@ -75,12 +78,14 @@ source jobs/${JOB_NAME}.sh
 
 export VERTICA_CONNECTION_ID=$VERTICA_CONNECTION_ID
 export WAREHOUSE_DIR=$WH_DIR
+export SQUARK_TYPE=$SQUARK_TYPE
 
 echo "====================================================="
 echo "RUNNING SQUARK WITH THE FOLLOWING VALUES:"
 echo " -- VERTICA_CONNECTION_ID: $VERTICA_CONNECTION_ID"
 echo " -- WAREHOUSE_DIR: $WAREHOUSE_DIR"
 echo " -- JOB_NAME: $JOB_NAME"
+echo " -- SQUARK_TYPE: $SQUARK_TYPE"
 echo "====================================================="
 
 if [ $SKIP_HDFS_LOAD == YES ]; then
