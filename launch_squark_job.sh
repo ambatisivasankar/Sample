@@ -5,6 +5,7 @@
 set -e
 
 VERTICA_CONNECTION_ID="vertica_dev"
+VERTICA_HOST="vertica-dev"
 WH_DIR="/_wh_dev/"
 HELP=NO
 SKIP_HDFS_LOAD=NO
@@ -14,13 +15,21 @@ for i in "$@"; do
     case $i in
         --dev|--develop)
             VERTICA_CONNECTION_ID="vertica_dev"
+            VERTICA_HOST="vertica-dev"
             WH_DIR="/_wh_dev/"
             SQUARK_TYPE=squark-dev
         ;;
         --prod|--production)
             VERTICA_CONNECTION_ID="vertica_prod"
+            VERTICA_HOST="vertica"
             WH_DIR="/_wh/"
             SQUARK_TYPE=squark-prod
+        ;;
+        --test)
+            VERTICA_CONNECTION_ID="test_vertica"
+            VERTICA_HOST="vertica"
+            WH_DIR="/_wh_dev/"
+            SQUARK_TYPE=squark-test
         ;;
         -h|--help|help)
             HELP=YES
@@ -79,10 +88,12 @@ source jobs/${JOB_NAME}.sh
 export VERTICA_CONNECTION_ID=$VERTICA_CONNECTION_ID
 export WAREHOUSE_DIR=$WH_DIR
 export SQUARK_TYPE=$SQUARK_TYPE
+export VERTICA_HOST=$VERTICA_HOST
 
 echo "====================================================="
 echo "RUNNING SQUARK WITH THE FOLLOWING VALUES:"
 echo " -- VERTICA_CONNECTION_ID: $VERTICA_CONNECTION_ID"
+echo " -- VERTICA_HOST: $VERTICA_HOST"
 echo " -- WAREHOUSE_DIR: $WAREHOUSE_DIR"
 echo " -- JOB_NAME: $JOB_NAME"
 echo " -- SQUARK_TYPE: $SQUARK_TYPE"
