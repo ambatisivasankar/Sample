@@ -46,6 +46,9 @@ for i in "$@"; do
         --skip-vertica-load)
             SKIP_VERTICA_LOAD=YES
         ;;
+       --use-aws)
+           USE_AWS=1
+        ;;
         *)
             # Unknown option -- assume to be job_name
             JOB_NAME=${i}
@@ -72,6 +75,7 @@ if [ $HELP == YES ]; then
     echo " --prod | --production : Set default values for a prod job." 
     echo " --skip-hdfs-load      : Skip the loading of the data into hdfs."
     echo " --skip-vertica-load   : Skip the loading of the data into vertica.":
+    echo " --use-aws             : Instead of loading to hdfs, load to aws s3.":
     exit 0
 fi
 
@@ -89,6 +93,7 @@ export VERTICA_CONNECTION_ID=$VERTICA_CONNECTION_ID
 export WAREHOUSE_DIR=$WH_DIR
 export SQUARK_TYPE=$SQUARK_TYPE
 export VERTICA_HOST=$VERTICA_HOST
+export USE_AWS=$USE_AWS
 
 echo "====================================================="
 echo "RUNNING SQUARK WITH THE FOLLOWING VALUES:"
