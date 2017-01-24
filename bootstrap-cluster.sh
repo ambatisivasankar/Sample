@@ -28,7 +28,11 @@ git pull
 cd ../squark-classic
 git checkout $GIT_BRANCH
 git pull
+cd ../data_catalog-statscli
+git checkout master
+git pull
 cd ..
+
 echo "Finished pulling submodules..."
 echo "--------------------------------------------------------"
 
@@ -52,6 +56,7 @@ echo "--------------------------------------------------------"
 
 echo "Setting up the virtual environment..."
 virtualenv -p /usr/local/bin/python3.5 virt
+${PYTHON_VENV}/bin/pip3 install -r data_catalog-statscli/requirements.txt
 ${PYTHON_VENV}/bin/pip3 install -r squark-classic/requirements.txt
 cd squark
 ${PYTHON_VENV}/bin/pip3 install -r requirements.txt
