@@ -80,8 +80,10 @@ if [ $HELP == YES ]; then
     echo " --dev | --develop     : Set default values for a dev job."
     echo " --prod | --production : Set default values for a prod job." 
     echo " --skip-hdfs-load      : Skip the loading of the data into hdfs."
-    echo " --skip-vertica-load   : Skip the loading of the data into vertica.":
-    echo " --use-aws             : Instead of loading to hdfs, load to aws s3.":
+    echo " --skip-vertica-load   : Skip the loading of the data into vertica."
+    echo " --use-aws             : Save data to aws s3."
+    echo " --use-hdfs            : Save data to HDFS (if neither use-aws or use-hdfs is supplied, this is default)."
+    echo " --load-from-aws       : Load data from aws s3, instead of HDFS."
     exit 0
 fi
 
