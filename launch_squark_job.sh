@@ -49,6 +49,12 @@ for i in "$@"; do
        --use-aws)
            USE_AWS=1
         ;;
+       --use-hdfs)
+           USE_HDFS=1
+        ;;
+       --load-from-aws)
+           LOAD_FROM_AWS=1
+        ;;
         *)
             # Unknown option -- assume to be job_name
             JOB_NAME=${i}
@@ -94,6 +100,8 @@ export WAREHOUSE_DIR=$WH_DIR
 export SQUARK_TYPE=$SQUARK_TYPE
 export VERTICA_HOST=$VERTICA_HOST
 export USE_AWS=$USE_AWS
+export USE_HDFS=$USE_HDFS
+export LOAD_FROM_AWS=$LOAD_FROM_AWS
 
 echo "====================================================="
 echo "RUNNING SQUARK WITH THE FOLLOWING VALUES:"
