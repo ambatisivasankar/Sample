@@ -59,7 +59,7 @@ virtualenv -p /usr/local/bin/python3.5 virt
 ${PYTHON_VENV}/bin/pip3 install -r data_catalog-statscli/requirements.txt
 ${PYTHON_VENV}/bin/pip3 install -r squark-classic/requirements.txt
 cd squark
-${PYTHON_VENV}/bin/pip3 install -r requirements.txt
+${PYTHON_VENV}/bin/pip3 install --no-cache-dir -r requirements.txt
 ${PYTHON_VENV}/bin/python3 setup.py develop
 cd ..
 # Adding a temporary fix to remove cryptography as it causes issues with older linux kernels.
