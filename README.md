@@ -88,9 +88,15 @@ It takes the following arguments:
 
 1. --dev | --develop : This tells the script to use default development variables.
 2. --prod | --production : This tells the script to use the default production variables.
-3. -w=* | --warehouse-dir=* : This tells the script to use the value after the equals sign as the warehouse-dir.
-4. -v=* | --vertica-id=* : This tells the script to use the value after the equals sign as the vertica-connection-id.
-5. job_name : This is a required arguement, and it tells the script which job to run. Just pass the name of the job here.
+3. --test : This tells the script to use default test variables (use in a docker container).
+4. -w=* | --warehouse-dir=* : This tells the script to use the value after the equals sign as the warehouse-dir.
+5. -v=* | --vertica-id=* : This tells the script to use the value after the equals sign as the vertica-connection-id.
+6. --skip-hdfs-load : This tells squark to not load data into hdfs (or s3 is --use-aws option is passed).
+7. --skip-vertica-load: This tell squark to not load data into vertica.
+8. --use-aws: This tells squark to save the data into s3 (can be used with --use-hdfs to save into both).
+9. --use-hdfs: This tells squark to save the data into hdfs (can be used with --use-aws to save into both).
+10. --load-from-aws: This tells squark to load the data from s3 into aws-vertica.
+11. job_name : This is a required arguement, and it tells the script which job to run. Just pass the name of the job here.
 
 ###Example of running a job on the cluster:
 ---
