@@ -102,13 +102,32 @@ It takes the following arguments:
 ---
 
 Below is the execute shell for a jenkins job on the cluster:
-
 ```
 source "./env-cluster.sh"
 ./bootstrap-cluster.sh dev
-./launch_squark_job --dev teradata_cmn
+./launch_squark_job.sh --dev teradata_cmn
 ```
 
+Here are some more options to play with:
+* Running squark to only save data to hdfs:
+    ```
+    ./launch_squark_job.sh --dev --skip-vertica-load <job_name>
+    ```
+* Running squark to only load from hdfs:
+    ```
+    ./launch_squark_job.sh --dev --skip-hdfs-load <job_name>
+    ```
+* Running squark to save the data to s3 and hdfs:
+    ```
+    # Note - by default if no --use-* options are passed it defaults to hdfs only.
+    ./launch_squark_job.sh --dev --use-aws --use-hdfs <job_name>
+    ```
+* Running squark to load into the aws-vertica:
+    ```
+    ./launch_squark_job.sh --dev --use-aws --use-hdfs --load-from-aws <job_name>
+    ```
+
+The only **Gotcha** here is is you are using the `--load-from-aws` option - you need to also have the `--use-aws` and `--use-hdfs` options as well. This is a temporary issue and will be fixed in later versions.
 
 ###BELOW ARE THE SHASUMS OF THE JAR FILES:
 ---
