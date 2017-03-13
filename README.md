@@ -96,7 +96,9 @@ It takes the following arguments:
 8. --use-aws: This tells squark to save the data into s3 (can be used with --use-hdfs to save into both).
 9. --use-hdfs: This tells squark to save the data into hdfs (can be used with --use-aws to save into both).
 10. --load-from-aws: This tells squark to load the data from s3 into aws-vertica.
-11. job_name : This is a required arguement, and it tells the script which job to run. Just pass the name of the job here.
+11. --force-cutover: This will force the program to cutover the warehouse dirs. By default, cutover will happen if a full run happens.
+12. --skip-cutover: This will skip the cutover, useful if you don't want a cutover to happen, even during a full run.
+13. job_name : This is a required arguement, and it tells the script which job to run. Just pass the name of the job here.
 
 ###Example of running a job on the cluster:
 ---
