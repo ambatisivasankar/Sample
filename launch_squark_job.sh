@@ -61,6 +61,9 @@ for i in "$@"; do
        --load-from-aws)
            LOAD_FROM_AWS=1
         ;;
+       --load-from-hdfs)
+           LOAD_FROM_HDFS=1
+        ;;
        --force-cutover)
            FORCE_CUTOVER=1
         ;;
@@ -95,7 +98,8 @@ if [ $HELP == YES ]; then
     echo " --skip-vertica-load   : Skip the loading of the data into vertica."
     echo " --use-aws             : Save data to aws s3."
     echo " --use-hdfs            : Save data to HDFS (if neither use-aws or use-hdfs is supplied, this is default)."
-    echo " --load-from-aws       : Load data from aws s3, instead of HDFS."
+    echo " --load-from-aws       : Load data from aws s3 into aws vertica."
+    echo " --load-from-hdfs      : Load data from HDFS into onprem vertica."
     echo " --force-cutover       : The wh_cutover will only happen if a full run occurs, or this flag is specified."
     exit 0
 fi
@@ -117,6 +121,7 @@ export VERTICA_HOST=$VERTICA_HOST
 export USE_AWS=$USE_AWS
 export USE_HDFS=$USE_HDFS
 export LOAD_FROM_AWS=$LOAD_FROM_AWS
+export LOAD_FROM_HDFS=$LOAD_FROM_HDFS
 export SQUARK_TEMP=$WAREHOUSE_DIR
 if [ -z $SQUARK_WAREHOUSE ]; then
     export SQUARK_WAREHOUSE=$TMP_SQUARK_WAREHOUSE
