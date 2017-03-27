@@ -114,6 +114,10 @@ fi
 cd squark-classic
 source jobs/${JOB_NAME}.sh
 
+if [[ ( -z $LOAD_FROM_HDFS && -z $LOAD_FROM_AWS ) ]]; then
+    LOAD_FROM_HDFS=1
+fi
+
 export VERTICA_CONNECTION_ID=$VERTICA_CONNECTION_ID
 export WAREHOUSE_DIR=$WH_DIR
 export SQUARK_TYPE=$SQUARK_TYPE
