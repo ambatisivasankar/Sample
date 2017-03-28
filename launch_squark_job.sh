@@ -18,18 +18,24 @@ for i in "$@"; do
             VERTICA_HOST="vertica-dev"
             WH_DIR="/_wh_dev/"
             SQUARK_TYPE=squark-dev
+            TMP_SQUARK_WAREHOUSE="/wh_dev/"
+            TMP_SQUARK_ARCHIVE="/wh_dev_archive/"
         ;;
         --prod|--production)
             VERTICA_CONNECTION_ID="vertica_prod"
             VERTICA_HOST="vertica"
             WH_DIR="/_wh/"
             SQUARK_TYPE=squark-prod
+            TMP_SQUARK_WAREHOUSE="/wh/"
+            TMP_SQUARK_ARCHIVE="/wh_archive/"
         ;;
         --test)
             VERTICA_CONNECTION_ID="test_vertica"
             VERTICA_HOST="vertica"
             WH_DIR="/_wh_dev/"
             SQUARK_TYPE=squark-test
+            TMP_SQUARK_WAREHOUSE="/wh_dev/"
+            TMP_SQUARK_ARCHIVE="/wh_dev_archive/"
         ;;
         -h|--help|help)
             HELP=YES
@@ -54,6 +60,15 @@ for i in "$@"; do
         ;;
        --load-from-aws)
            LOAD_FROM_AWS=1
+        ;;
+       --load-from-hdfs)
+           LOAD_FROM_HDFS=1
+        ;;
+       --force-cutover)
+           FORCE_CUTOVER=1
+        ;;
+       --skip-cutover)
+           SKIP_CUTOVER=1
         ;;
         *)
             # Unknown option -- assume to be job_name
@@ -83,7 +98,9 @@ if [ $HELP == YES ]; then
     echo " --skip-vertica-load   : Skip the loading of the data into vertica."
     echo " --use-aws             : Save data to aws s3."
     echo " --use-hdfs            : Save data to HDFS (if neither use-aws or use-hdfs is supplied, this is default)."
-    echo " --load-from-aws       : Load data from aws s3, instead of HDFS."
+    echo " --load-from-aws       : Load data from aws s3 into aws vertica."
+    echo " --load-from-hdfs      : Load data from HDFS into onprem vertica."
+    echo " --force-cutover       : The wh_cutover will only happen if a full run occurs, or this flag is specified."
     exit 0
 fi
 
@@ -97,6 +114,10 @@ fi
 cd squark-classic
 source jobs/${JOB_NAME}.sh
 
+if [[ ( -z $LOAD_FROM_HDFS && -z $LOAD_FROM_AWS ) ]]; then
+    LOAD_FROM_HDFS=1
+fi
+
 export VERTICA_CONNECTION_ID=$VERTICA_CONNECTION_ID
 export WAREHOUSE_DIR=$WH_DIR
 export SQUARK_TYPE=$SQUARK_TYPE
@@ -104,6 +125,17 @@ export VERTICA_HOST=$VERTICA_HOST
 export USE_AWS=$USE_AWS
 export USE_HDFS=$USE_HDFS
 export LOAD_FROM_AWS=$LOAD_FROM_AWS
+export LOAD_FROM_HDFS=$LOAD_FROM_HDFS
+export SQUARK_TEMP=$WAREHOUSE_DIR
+if [ -z $SQUARK_WAREHOUSE ]; then
+    export SQUARK_WAREHOUSE=$TMP_SQUARK_WAREHOUSE
+fi
+if [ -z $SQUARK_ARCHIVE ]; then
+    export SQUARK_ARCHIVE=$TMP_SQUARK_ARCHIVE;
+fi
+if [ -z $JENKINS_URL ]; then
+    export JENKINS_URL=https://advana-jenkins.private.massmutual.com
+fi
 
 echo "====================================================="
 echo "RUNNING SQUARK WITH THE FOLLOWING VALUES:"
@@ -112,6 +144,10 @@ echo " -- VERTICA_HOST: $VERTICA_HOST"
 echo " -- WAREHOUSE_DIR: $WAREHOUSE_DIR"
 echo " -- JOB_NAME: $JOB_NAME"
 echo " -- SQUARK_TYPE: $SQUARK_TYPE"
+echo "-------- CUTOVER DIRS INFO ----------"
+echo " -- SQUARK_WAREHOUSE: $SQUARK_WAREHOUSE"
+echo " -- SQUARK_TEMP: $SQUARK_TEMP"
+echo " -- SQUARK_ARCHIVE: $SQUARK_ARCHIVE"
 echo "====================================================="
 
 if [ $SKIP_HDFS_LOAD == YES ]; then
@@ -128,3 +164,11 @@ if [ $SKIP_VERTICA_LOAD == NO ]; then
     ./load_wh.sh ${JOB_NAME}
 fi
 
+# Do the cutover
+# NOTE: Only run if neither skip hdfs or vertica options are given, or the --force-cutover option is given
+if [[ ( -z $SKIP_HDFS_LOAD && -z $SKIP_VERTICA_LOAD ) || $FORCE_CUTOVER ]]; then
+    if [ -z $SKIP_CUTOVER ]; then
+        echo "Running the CUTOVER script..."
+        $PYTHON_VENV/bin/python wh_dir_cutover.py $JOB_NAME
+    fi
+fi
