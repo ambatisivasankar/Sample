@@ -8,8 +8,8 @@ VERTICA_CONNECTION_ID="vertica_dev"
 VERTICA_HOST="vertica-dev"
 WH_DIR="/_wh_dev/"
 HELP=NO
-SKIP_HDFS_LOAD=NO
-SKIP_VERTICA_LOAD=NO
+#SKIP_HDFS_LOAD=NO
+#SKIP_VERTICA_LOAD=NO
 SQUARK_TYPE=squark-dev
 for i in "$@"; do
     case $i in
@@ -150,22 +150,25 @@ echo " -- SQUARK_TEMP: $SQUARK_TEMP"
 echo " -- SQUARK_ARCHIVE: $SQUARK_ARCHIVE"
 echo "====================================================="
 
-if [ $SKIP_HDFS_LOAD == YES ]; then
+if [ -z $SKIP_HDFS_LOAD ]; then
+    ./run.sh
+else
     echo " --- SKIPPING LOADING DATA INTO HDFS!"
 fi
-if [ $SKIP_HDFS_LOAD == NO ]; then
-    ./run.sh
-fi
 
-if [ $SKIP_VERTICA_LOAD == YES ]; then
-    echo " --- SKIPPING LOADING DATA INTO VERTICA!"
-fi
-if [ $SKIP_VERTICA_LOAD == NO ]; then
+if [ -z $SKIP_VERTICA_LOAD ]; then
     ./load_wh.sh ${JOB_NAME}
+else
+    echo " --- SKIPPING LOADING DATA INTO VERTICA!"
 fi
 
 # Do the cutover
 # NOTE: Only run if neither skip hdfs or vertica options are given, or the --force-cutover option is given
+echo "Checking values for cutover:"
+echo "SKIP HDFS: $SKIP_HDFS_LOAD"
+echo "SKIP VERTICA: $SKIP_VERTICA_LOAD"
+echo "FORCE CUTOVER: $FORCE_CUTOVER"
+echo "SKIP CUTOVER: $SKIP_CUTOVER"
 if [[ ( -z $SKIP_HDFS_LOAD && -z $SKIP_VERTICA_LOAD ) || $FORCE_CUTOVER ]]; then
     if [ -z $SKIP_CUTOVER ]; then
         echo "Running the CUTOVER script..."
