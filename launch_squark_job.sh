@@ -72,7 +72,7 @@ for i in "$@"; do
         ;;
         *)
             # Unknown option -- assume to be job_name
-            JOB_NAME=${i}
+            JOB_FILE_NAME=${i}
         ;;
     esac
 done
@@ -104,7 +104,7 @@ if [ $HELP == YES ]; then
     exit 0
 fi
 
-if [ -z ${JOB_NAME+x} ]; then
+if [ -z ${JOB_FILE_NAME+x} ]; then
     echo "ERROR! : NO JOB NAME WAS FOUND! PLEASE SUPPLY A JOB NAME WITH THE COMMAND."
     echo " -- The job name will be the name of the bash file in the jobs directory in squark-classic."
     echo "Quitting..."
@@ -112,7 +112,7 @@ if [ -z ${JOB_NAME+x} ]; then
 fi
 
 cd squark-classic
-source jobs/${JOB_NAME}.sh
+source jobs/${JOB_FILE_NAME}.sh
 
 if [[ ( -z $LOAD_FROM_HDFS && -z $LOAD_FROM_AWS ) ]]; then
     LOAD_FROM_HDFS=1
@@ -142,7 +142,7 @@ echo "RUNNING SQUARK WITH THE FOLLOWING VALUES:"
 echo " -- VERTICA_CONNECTION_ID: $VERTICA_CONNECTION_ID"
 echo " -- VERTICA_HOST: $VERTICA_HOST"
 echo " -- WAREHOUSE_DIR: $WAREHOUSE_DIR"
-echo " -- JOB_NAME: $JOB_NAME"
+echo " -- JOB_FILE_NAME: $JOB_FILE_NAME"
 echo " -- SQUARK_TYPE: $SQUARK_TYPE"
 echo "-------- CUTOVER DIRS INFO ----------"
 echo " -- SQUARK_WAREHOUSE: $SQUARK_WAREHOUSE"
@@ -157,7 +157,7 @@ else
 fi
 
 if [ -z $SKIP_VERTICA_LOAD ]; then
-    ./load_wh.sh ${JOB_NAME}
+    ./load_wh.sh ${JOB_FILE_NAME}
 else
     echo " --- SKIPPING LOADING DATA INTO VERTICA!"
 fi
@@ -172,6 +172,6 @@ echo "SKIP CUTOVER: $SKIP_CUTOVER"
 if [[ ( -z $SKIP_HDFS_LOAD && -z $SKIP_VERTICA_LOAD ) || $FORCE_CUTOVER ]]; then
     if [ -z $SKIP_CUTOVER ]; then
         echo "Running the CUTOVER script..."
-        $PYTHON_VENV/bin/python wh_dir_cutover.py $JOB_NAME
+        $PYTHON_VENV/bin/python wh_dir_cutover.py $JOB_FILE_NAME
     fi
 fi
