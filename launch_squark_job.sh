@@ -165,14 +165,14 @@ echo "====================================================="
 
 if [ -z $SKIP_HDFS_LOAD ]; then
     echo " --- Running Loading data"
-#    ./run.sh
+    ./run.sh
 else
     echo " --- SKIPPING LOADING DATA INTO HDFS!"
 fi
 
 if [ -z $SKIP_VERTICA_LOAD ]; then
     echo " --- Running Load wh..."
-#    ./load_wh.sh ${JOB_FILE_NAME}
+    ./load_wh.sh ${JOB_FILE_NAME}
 else
     echo " --- SKIPPING LOADING DATA INTO VERTICA!"
 fi
@@ -187,6 +187,6 @@ echo "SKIP CUTOVER: $SKIP_CUTOVER"
 if [[ ( -z $SKIP_HDFS_LOAD && -z $SKIP_VERTICA_LOAD && -z $USE_AWS ) || $FORCE_CUTOVER ]]; then
     if [ -z $SKIP_CUTOVER ]; then
         echo "Running the CUTOVER script..."
-        #$PYTHON_VENV/bin/python wh_dir_cutover.py $JOB_FILE_NAME
+        $PYTHON_VENV/bin/python wh_dir_cutover.py $JOB_FILE_NAME
     fi
 fi
