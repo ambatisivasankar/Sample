@@ -45,6 +45,7 @@ for i in "$@"; do
         ;;
         -v=*|--vertica-id=*)
             VERTICA_CONNECTION_ID="${i#*=}"
+            CUSTOM_VERT_CONN_ID=1
         ;;
         --skip-hdfs-load)
             SKIP_HDFS_LOAD=YES
@@ -118,6 +119,18 @@ if [[ ( -z $LOAD_FROM_HDFS && -z $LOAD_FROM_AWS ) ]]; then
     LOAD_FROM_HDFS=1
 fi
 
+
+# Set the vertica options based on run type:
+if [[ ( -z $CUSTOM_VERT_CONN_ID && $USE_AWS ) ]]; then
+    # If we are using aws and no custom vertica id has been set
+    if [ $SQUARK_TYPE == "squark-dev" ]; then
+        # Set aws vertica dev properties.
+        VERTICA_CONNECTION_ID="vertica_aws_nprd"
+    elif [ $SQUARK_TYPE == "squark-prod" ]; then
+        VERTICA_CONNECTION_ID="vertica_aws"
+    fi
+fi
+
 export VERTICA_CONNECTION_ID=$VERTICA_CONNECTION_ID
 export WAREHOUSE_DIR=$WH_DIR
 export SQUARK_TYPE=$SQUARK_TYPE
@@ -151,12 +164,14 @@ echo " -- SQUARK_ARCHIVE: $SQUARK_ARCHIVE"
 echo "====================================================="
 
 if [ -z $SKIP_HDFS_LOAD ]; then
+    echo " --- Running Loading data"
     ./run.sh
 else
     echo " --- SKIPPING LOADING DATA INTO HDFS!"
 fi
 
 if [ -z $SKIP_VERTICA_LOAD ]; then
+    echo " --- Running Load wh..."
     ./load_wh.sh ${JOB_FILE_NAME}
 else
     echo " --- SKIPPING LOADING DATA INTO VERTICA!"
@@ -169,7 +184,7 @@ echo "SKIP HDFS: $SKIP_HDFS_LOAD"
 echo "SKIP VERTICA: $SKIP_VERTICA_LOAD"
 echo "FORCE CUTOVER: $FORCE_CUTOVER"
 echo "SKIP CUTOVER: $SKIP_CUTOVER"
-if [[ ( -z $SKIP_HDFS_LOAD && -z $SKIP_VERTICA_LOAD ) || $FORCE_CUTOVER ]]; then
+if [[ ( -z $SKIP_HDFS_LOAD && -z $SKIP_VERTICA_LOAD && -z $USE_AWS ) || $FORCE_CUTOVER ]]; then
     if [ -z $SKIP_CUTOVER ]; then
         echo "Running the CUTOVER script..."
         $PYTHON_VENV/bin/python wh_dir_cutover.py $JOB_FILE_NAME
