@@ -28,9 +28,9 @@ git pull
 cd ../squark-classic
 git checkout $GIT_BRANCH
 git pull
-cd ../data_catalog-statscli
-git checkout master
-git pull
+#cd ../data_catalog-statscli
+#git checkout master
+#git pull
 cd ..
 
 echo "Finished pulling submodules..."
