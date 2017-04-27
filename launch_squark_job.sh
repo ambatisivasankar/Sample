@@ -130,6 +130,16 @@ if [[ ( -z $CUSTOM_VERT_CONN_ID && $USE_AWS ) ]]; then
         VERTICA_CONNECTION_ID="vertica_aws"
     fi
 fi
+# Set the vertica options based on run type:
+if [ $USE_AWS ]; then
+    # If we are using aws and no custom vertica id has been set
+    if [ $SQUARK_TYPE == "squark-dev" ]; then
+        # Set aws vertica dev properties.
+        S3_CONNECTION_ID="s3_nprd"
+    elif [ $SQUARK_TYPE == "squark-prod" ]; then
+        S3_CONNECTION_ID="s3_prd"
+    fi
+fi
 
 export VERTICA_CONNECTION_ID=$VERTICA_CONNECTION_ID
 export WAREHOUSE_DIR=$WH_DIR
@@ -140,6 +150,7 @@ export USE_HDFS=$USE_HDFS
 export LOAD_FROM_AWS=$LOAD_FROM_AWS
 export LOAD_FROM_HDFS=$LOAD_FROM_HDFS
 export SQUARK_TEMP=$WAREHOUSE_DIR
+export S3_CONNECTION_ID=$S3_CONNECTION_ID
 if [ -z $SQUARK_WAREHOUSE ]; then
     export SQUARK_WAREHOUSE=$TMP_SQUARK_WAREHOUSE
 fi
