@@ -2,7 +2,7 @@
 
 # Need to tell the script what branch we are going to be running
 echo "--------------------------------------------------------"
-echo "Setting up submodules..."
+#echo "Setting up submodules..."
 GIT_BRANCH="master"
 # Check for options dev or develop for develop branch or prod/production/master for master branch
 for i in "$@"; do
@@ -19,22 +19,22 @@ for i in "$@"; do
     esac
 done
 
-echo "Pulling submodules branch: $GIT_BRANCH"
-git submodule init
-git submodule update
-cd squark
-git checkout $GIT_BRANCH
-git pull
-cd ../squark-classic
-git checkout $GIT_BRANCH
-git pull
-#cd ../data_catalog-statscli
-#git checkout master
+#echo "Pulling submodules branch: $GIT_BRANCH"
+#git submodule init
+#git submodule update
+#cd squark
+#git checkout $GIT_BRANCH
 #git pull
-cd ..
-
-echo "Finished pulling submodules..."
-echo "--------------------------------------------------------"
+#cd ../squark-classic
+#git checkout $GIT_BRANCH
+#git pull
+##cd ../data_catalog-statscli
+##git checkout master
+##git pull
+#cd ..
+#
+#echo "Finished pulling submodules..."
+#echo "--------------------------------------------------------"
 
 echo "Checking password variables are set..."
 # Check to make sure that password variables are set:
@@ -56,7 +56,7 @@ echo "--------------------------------------------------------"
 
 echo "Setting up the virtual environment..."
 virtualenv -p /usr/local/bin/python3.5 virt
-${PYTHON_VENV}/bin/pip3 install -r data_catalog-statscli/requirements.txt
+#${PYTHON_VENV}/bin/pip3 install -r data_catalog-statscli/requirements.txt
 ${PYTHON_VENV}/bin/pip3 install -r squark-classic/requirements.txt
 cd squark
 ${PYTHON_VENV}/bin/pip3 install --no-cache-dir -r requirements.txt

@@ -1,0 +1,8 @@
+if [ "$(docker network ls | awk '{print $2}' | grep advana)" = 'advana' ]; then
+    echo 'advana network exists; skipping';
+else
+    docker network create advana;
+fi
+make build
+make test
+make down

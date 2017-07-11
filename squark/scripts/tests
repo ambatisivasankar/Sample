@@ -1,0 +1,10 @@
+#!/bin/bash -ex
+
+export PYTHONPATH="$PWD:$PYTHONPATH"
+
+# Wait until vertica connection is ready
+SQUARK_LOG_LEVEL=WARNING PY4JDBC_LOGLEVEL=WARNING python3 scripts/poll-vertica.py
+
+py.test -p no:cacheprovider -v --junitxml=tests/test-results.xml "$@"
+
+rm -f derby.log
