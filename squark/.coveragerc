@@ -1,0 +1,17 @@
+[run]
+omit =
+  tests/*
+  squark/utils/vault/*
+  squark/utils/ansistrm.py
+  squark/__main__.py
+
+[report]
+exclude_lines =
+    pragma: no cover
+    def __repr__
+    if self.debug:
+    if settings.DEBUG
+    raise AssertionError
+    raise NotImplementedError
+    if 0:
+    if __name__ == .__main__.:

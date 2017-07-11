@@ -1,0 +1,1 @@
+SELECT * FROM V_CATALOG.USERS WHERE "user_name" = '{{ user }}';

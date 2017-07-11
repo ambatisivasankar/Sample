@@ -1,0 +1,38 @@
+---
+version: "2.0"
+networks:
+  advana:
+    external: true
+services:
+  postgres:
+    image: postgres
+    networks: [advana]
+    environment:
+      POSTGRES_PASSWORD: test
+  vertica:
+    image: jbfavre/vertica:7.2.3-2_centos-6
+    networks: [advana]
+  hdfs:
+    image: cloudera/quickstart:5.5.0-0-beta
+    networks: 
+      advana:
+        aliases:
+          - quickstart.cloudera
+    hostname: quickstart.cloudera
+    privileged: true
+    build:
+      context: ./compose/hdfs/
+    command: /docker-entrypoint.sh
+  tester:
+    build:
+      context: .
+    networks: [advana]
+    depends_on: [vertica, hdfs, postgres]
+    volumes:
+      - ./:/usr/local/src/squark
+      - ./tests/config:/etc/squark
+    command:
+      scripts/tests
+    environment:
+      SQUARK_CONFIG_DIR: ./tests/config
+      SQUARK_PASSWORD_FILE: ./tests/config/.squark-password

@@ -1,0 +1,5 @@
+export PROJECT_ID=rs_csm
+export WAREHOUSE_DIR='/_wh/'
+export SQL_TEMPLATE='%s'
+export INCLUDE_TABLES="INDIVIDUAL,INDIVIDUAL_GAP"
+export CONNECTION_ID=rs_csm

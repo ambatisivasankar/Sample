@@ -1,0 +1,22 @@
+---
+dataframe:
+    - count
+field_types:
+    NumericType:
+        - max
+        - min
+        - avg
+        - stddev_pop
+        - stddev_samp
+        - var_pop
+        - var_samp
+        - percent_null
+    StringType:
+        - max
+        - min
+        - avg
+        - stddev_pop
+        - stddev_samp
+        - var_pop
+        - var_samp
+        - percent_null
