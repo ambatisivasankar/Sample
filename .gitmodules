@@ -1,9 +1,0 @@
-[submodule "squark-classic"]
-	path = squark-classic
-	url = git@github.com:massmutual/squark-classic.git
-[submodule "squark"]
-	path = squark
-	url = git@github.com:massmutual/squark.git
-[submodule "data_catalog-statscli"]
-	path = data_catalog-statscli
-	url = git@github.com:massmutual/data_catalog-statscli.git
