@@ -8,10 +8,12 @@ import logging
 import boto3
 import glob
 import time
+import functools
 
 from pywebhdfs.webhdfs import PyWebHdfsClient
 import squark.config.environment
 
+print_now = functools.partial(print, flush=True)
 squarkenv = squark.config.environment.Environment()
 
 try:
@@ -96,9 +98,9 @@ def do_s3_copyfrom(schema_name, table_name, table_prefix, urls):
         # Add retries for loading data from s3
         curr_retry = 0
         retry_bool = True
-        print('----------------------------')
+        print_now('----------------------------')
         while retry_bool and curr_retry < TABLE_NUM_RETRY:
-            print('Attempting to load table {table}: [Attempt {curr}/{tot}]'.format(
+            print_now('Attempting to load table {table}: [Attempt {curr}/{tot}]'.format(
                     table=table_name, curr=curr_retry+1, tot=TABLE_NUM_RETRY))
             try:
                 cursor = vertica_conn.cursor()
@@ -106,15 +108,15 @@ def do_s3_copyfrom(schema_name, table_name, table_prefix, urls):
                 cursor.close()
                 retry_bool = False
             except Exception as e:
-                print('!! -- An Error occurred while trying to load -- waiting 5 seconds to retry!')
-                print(str(e))
+                print_now('!! -- An Error occurred while trying to load -- waiting 5 seconds to retry!')
+                print_now(str(e))
                 curr_retry += 1
                 time.sleep(5)
         if retry_bool:
-            print('ERROR!! Number of allowed retries exceeded!! Exiting')
+            print_now('ERROR!! Number of allowed retries exceeded!! Exiting')
             raise
-        print('Load Successful...')
-        print('----------------------------')
+        print_now('Load Successful...')
+        print_now('----------------------------')
 
 def do_copyfrom(schema_name, table_name, table_prefix, urls):
     urls = urls[:]
@@ -145,16 +147,18 @@ def main():
     if LOAD_FROM_AWS:
         aws_urls = get_s3_urls(PROJECT_ID)
         items = list(aws_urls.items())
+        print_now('OCG items before: {}'.format(items))
         items.sort(key=lambda item: len(item[1]), reverse=True)
+        print_now('OCG items after sorting: {}'.format(items))
         for table_name, aws_urls in aws_urls.items():
-            print('XXX: Loading S3 %s (%d files)' % (table_name, len(aws_urls)))
+            print_now('XXX: Loading S3 %s (%d files)' % (table_name, len(aws_urls)))
             do_s3_copyfrom(schema_name, table_name, table_prefix, aws_urls)
     if LOAD_FROM_HDFS:
         urls = get_urls(dirname)
         items = list(urls.items())
         items.sort(key=lambda item: len(item[1]), reverse=True)
         for table_name, urls in urls.items():
-            print('XXX: Loading %s (%d files)' % (table_name, len(urls)))
+            print_now('XXX: Loading %s (%d files)' % (table_name, len(urls)))
             do_copyfrom(schema_name, table_name, table_prefix, urls)
 
 
