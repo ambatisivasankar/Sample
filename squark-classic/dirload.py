@@ -147,10 +147,14 @@ def main():
     if LOAD_FROM_AWS:
         aws_urls = get_s3_urls(PROJECT_ID)
         items = list(aws_urls.items())
+        print_now('OCG MAX_CONNS: {}'.format(MAX_CONNS))
         print_now('OCG items before: {}'.format(items))
-        items.sort(key=lambda item: len(item[1]), reverse=True)
-        print_now('OCG items after sorting: {}'.format(items))
-        for table_name, aws_urls in aws_urls.items():
+        #items.sort(key=lambda item: len(item[1]), reverse=True)
+        #print_now('OCG items after sorting: {}'.format(items))
+        # below was using the "raw" unsorted aws_urls.items() originally
+        # add in a sorted so it does a simple sort on table name, to match all_tables processing
+        # - that way the first-written table will be read first also, reduce eventual-consistency issues?
+        for table_name, aws_urls in sorted(aws_urls.items()):
             print_now('XXX: Loading S3 %s (%d files)' % (table_name, len(aws_urls)))
             do_s3_copyfrom(schema_name, table_name, table_prefix, aws_urls)
     if LOAD_FROM_HDFS:
