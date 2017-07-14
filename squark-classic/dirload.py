@@ -48,7 +48,7 @@ logging.basicConfig(level=logging.DEBUG)
 def get_s3_urls(project_id):
     session = boto3.Session(aws_access_key_id=AWS_ACCESS_KEY_ID, aws_secret_access_key=AWS_SECRET_ACCESS_KEY, region_name='us-east-1')
     client = session.client('s3')
-    prefix = '{SQUARK_TYPE}/{PROJECT_ID}'.format(
+    prefix = '{SQUARK_TYPE}/{PROJECT_ID}/'.format(
                 SQUARK_TYPE=SQUARK_TYPE,
                 PROJECT_ID=project_id
                 )
