@@ -30,7 +30,7 @@ PROJECT_ID = os.environ.get('PROJECT_ID')
 SQUARK_TYPE = os.environ.get('SQUARK_TYPE')
 LOAD_FROM_AWS = os.environ.get('LOAD_FROM_AWS')
 LOAD_FROM_HDFS = os.environ.get('LOAD_FROM_HDFS')
-S3_FUSE_LOCATION = os.environ.get('S3_FUSE_LOCATION','/s3/')
+S3_FUSE_LOCATION = os.environ.get('S3_FUSE_LOCATION','/mnt/s3/')
 TABLE_NUM_RETRY = int(os.environ.get('SQUARK_NUM_RETRY','1'))
 S3_CONNECTION_ID = os.environ.get('S3_CONNECTION_ID')
 
