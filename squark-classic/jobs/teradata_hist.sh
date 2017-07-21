@@ -22,7 +22,7 @@ export JSON_INFO="
               'upperBound': 22000000,
               'numPartitions': 50
             },
-            'CUST_AGMT_HIST_VW': {
+            'AGMT_CVG_HIST_VW': {
               'partitionColumn': 'COALESCE(AGREEMENT_ID, 0)',
               'lowerBound': 5600000,
               'upperBound': 34000000,
