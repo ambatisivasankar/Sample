@@ -4,6 +4,34 @@ export SQL_TEMPLATE='%s'
 export INCLUDE_VIEWS=1
 export INCLUDE_TABLES='CUST_AGMT_HIST_VW,CUST_DEMOGRAPHICS_HIST_VW,AGMT_CVG_HIST_VW'
 export CONNECTION_ID=teradata
+
+export SPARK_MAX_EXECUTORS=15
+export JSON_INFO="
+{
+    'PARTITION_INFO':{
+        'tables': {
+            'CUST_AGMT_HIST_VW': {
+              'partitionColumn': 'AGREEMENT_ID',
+              'lowerBound': 1,
+              'upperBound': 34000000,
+              'numPartitions': 50
+            },
+            'CUST_DEMOGRAPHICS_HIST_VW': {
+              'partitionColumn': 'PRTY_ID',
+              'lowerBound': 1,
+              'upperBound': 22000000,
+              'numPartitions': 50
+            },
+            'CUST_AGMT_HIST_VW': {
+              'partitionColumn': 'COALESCE(AGREEMENT_ID, 0)',
+              'lowerBound': 5600000,
+              'upperBound': 34000000,
+              'numPartitions': 50
+            }
+        }
+   }
+}
+"
 #export STATS_CONFIG="
 #{
 #    'profiles': {
