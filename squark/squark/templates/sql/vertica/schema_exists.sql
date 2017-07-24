@@ -1,0 +1,1 @@
+SELECT * FROM SCHEMATA WHERE SCHEMA_NAME = '{{schema}}';

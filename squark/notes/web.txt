@@ -1,0 +1,82 @@
+
+Endpoint where you get/create the table spec
+
+
+Table
+  - id: is a squark id - source:<source>/schema:<schema>/table:<table>
+  - name 
+  - schema
+  - source 
+  - type
+  - catalog?
+
+TableSpec
+  - fk: table
+  # ----- Through tables -----
+  - columns --> ColumnSpec
+  - primary_keys --> PrimaryKeySpec
+  - foreign_keys --> ForeignKeySpec
+  - indexes --> IndexSpec
+
+ColumnSpec
+  - id: source/schema/table/column
+  - name
+  - type
+  - other JDBC info
+
+PrimaryKeySpec
+  - id
+  - etc
+
+ForeignKeySpec
+  - etc
+
+IndexSpec
+  - etc
+
+TableState
+  - fk: Table 
+  - fk: TableSpec
+  - start_dt
+  - end_dt (null)
+  - verified_dt 
+  - is_active
+
+SquarkOperation
+  - src: squark id 
+  - dest: squark id
+  - dest_format
+  - start_dt
+  - end_dt 
+  - succeeded
+
+SquarkOperationFailure
+  - fk: SquarkOperation
+  - exception
+  - traceback
+
+TableExport
+  - fk: Table 
+  - fk: TableState
+  - start_dt
+  - end_dt
+  - succeeded
+  - build_id
+  - squark_operation
+
+TableExportStats
+  - fk: TableExport
+  - stats (PickleField)
+  - columns --> ColumnExportStats
+
+ColumnExportStats
+  - fk: ColumnSpec
+  - stats (PickleField)
+
+SourceExport
+  - start_dt
+  - end_dt
+  - squark_revision
+  - build_id
+
+

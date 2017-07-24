@@ -1,0 +1,10 @@
+#!/bin/bash -ex
+
+export PYTHONPATH="$PWD:$PYTHONPATH"
+
+# Wait until vertica connection is ready
+SQUARK_LOG_LEVEL=WARNING PY4JDBC_LOGLEVEL=WARNING scripts/test-utils.py
+
+py.test -p no:cacheprovider -v --cov squark --cov-report html --cov-config=.coveragerc "$@"
+
+rm -f derby.log

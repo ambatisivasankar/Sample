@@ -1,0 +1,17 @@
+env*.sh
+virt
+py4jdbc
+metastore_db
+out.log
+derby.log
+
+*.egg-info
+target
+*.jar
+*.zip
+*.pyc
+.python_history
+py4j
+.cache
+htmlcov
+.coverage
