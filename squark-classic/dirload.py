@@ -149,11 +149,7 @@ def main():
         items = list(aws_urls.items())
         print_now('OCG MAX_CONNS: {}'.format(MAX_CONNS))
         print_now('OCG items before: {}'.format(items))
-        #items.sort(key=lambda item: len(item[1]), reverse=True)
-        #print_now('OCG items after sorting: {}'.format(items))
-        # below was using the "raw" unsorted aws_urls.items() originally
-        # add in a sorted so it does a simple sort on table name, to match all_tables processing
-        # - that way the first-written table will be read first also, reduce eventual-consistency issues?
+        # sort by table to match all_tables processing -> last written table will be last loaded, better for S3 store
         for table_name, aws_urls in sorted(aws_urls.items()):
             print_now('XXX: Loading S3 %s (%d files)' % (table_name, len(aws_urls)))
             do_s3_copyfrom(schema_name, table_name, table_prefix, aws_urls)
