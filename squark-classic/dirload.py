@@ -20,15 +20,12 @@ except:
     VERTICA_CONNECTION_ID = "vertica_dev"
 
 MAX_CONNS = int(os.getenv('VERTICA_PARALLELISM', 10))
-HDFS_HOST = os.environ['HDFS_HOST']
-HDFS_PORT = os.environ['HDFS_PORT']
-HDFS_USER = os.environ['HDFS_USER']
 
 PROJECT_ID = os.environ.get('PROJECT_ID')
 SQUARK_TYPE = os.environ.get('SQUARK_TYPE')
 LOAD_FROM_AWS = os.environ.get('LOAD_FROM_AWS')
 LOAD_FROM_HDFS = os.environ.get('LOAD_FROM_HDFS')
-S3_FUSE_LOCATION = os.environ.get('S3_FUSE_LOCATION','/s3/')
+S3_FUSE_LOCATION = os.environ.get('S3_FUSE_LOCATION','/mnt/s3/')
 TABLE_NUM_RETRY = int(os.environ.get('SQUARK_NUM_RETRY','1'))
 S3_CONNECTION_ID = os.environ.get('S3_CONNECTION_ID')
 
@@ -39,14 +36,17 @@ if LOAD_FROM_AWS:
     SQUARK_BUCKET = os.environ.get('SQUARK_BUCKET','squark')
     #SQUARK_BUCKET='squark'
     #vertica_aws_conn = squarkenv.sources['vertica_aws'].conn
-    
+if LOAD_FROM_HDFS:
+    HDFS_HOST = os.environ['HDFS_HOST']
+    HDFS_PORT = os.environ['HDFS_PORT']
+    HDFS_USER = os.environ['HDFS_USER']
 
 logging.basicConfig(level=logging.DEBUG)
 
 def get_s3_urls(project_id):
     session = boto3.Session(aws_access_key_id=AWS_ACCESS_KEY_ID, aws_secret_access_key=AWS_SECRET_ACCESS_KEY, region_name='us-east-1')
     client = session.client('s3')
-    prefix = '{SQUARK_TYPE}/{PROJECT_ID}'.format(
+    prefix = '{SQUARK_TYPE}/{PROJECT_ID}/'.format(
                 SQUARK_TYPE=SQUARK_TYPE,
                 PROJECT_ID=project_id
                 )
@@ -144,9 +144,9 @@ def main():
         table_prefix = ''
     if LOAD_FROM_AWS:
         aws_urls = get_s3_urls(PROJECT_ID)
-        items = list(aws_urls.items())
-        items.sort(key=lambda item: len(item[1]), reverse=True)
-        for table_name, aws_urls in aws_urls.items():
+        print('DEBUG: S3 .orc url listing, sorted: {}'.format(sorted(aws_urls.items())))
+        # sort by table to match all_tables processing -> last written table will be last loaded, better for S3 store
+        for table_name, aws_urls in sorted(aws_urls.items()):
             print('XXX: Loading S3 %s (%d files)' % (table_name, len(aws_urls)))
             do_s3_copyfrom(schema_name, table_name, table_prefix, aws_urls)
     if LOAD_FROM_HDFS:

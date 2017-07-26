@@ -42,8 +42,8 @@ if [ -z ${SQUARK_PASSWORD+x} ]; then
     echo "SQUARK_PASSWORD variable is not set. Cannot continue..."
     exit 1
 fi
-if [ -z ${VERTICA_PASSWORD+x} ]; then
-    echo "VERTICA_PASSWORD variable is not set. Cannot continue..."
+if [ -z ${VERTICA_PASSWORD+x} ] && [ -z ${AWS_VERTICA_PASSWORD+x} ]; then
+    echo "neither VERTICA_PASSWORD nor AWS_VERTICA_PASSWORD variables are set. Cannot continue..."
     exit 1
 fi
 echo "Finished checking password variables..."
