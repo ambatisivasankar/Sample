@@ -6,9 +6,6 @@ export VERTICA_DATABASE="advana"
 export VERTICA_VSQL="/usr/local/bin/vsql"
 
 # HDFS SETTINGS
-export HDFS_HOST="don't matter"
-export HDFS_PORT="don't matter"
-export HDFS_USER="don't matter I think"
 export HADOOP_CONF_DIR=/etc/hadoop/conf
 
 # JARS

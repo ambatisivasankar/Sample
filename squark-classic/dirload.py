@@ -144,9 +144,7 @@ def main():
         table_prefix = ''
     if LOAD_FROM_AWS:
         aws_urls = get_s3_urls(PROJECT_ID)
-        items = list(aws_urls.items())
-        print('OCG MAX_CONNS: {}'.format(MAX_CONNS))
-        print('OCG items before: {}'.format(items))
+        print('DEBUG: S3 .orc url listing, sorted: {}'.format(sorted(aws_urls.items())))
         # sort by table to match all_tables processing -> last written table will be last loaded, better for S3 store
         for table_name, aws_urls in sorted(aws_urls.items()):
             print('XXX: Loading S3 %s (%d files)' % (table_name, len(aws_urls)))
