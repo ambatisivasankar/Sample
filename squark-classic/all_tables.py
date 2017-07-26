@@ -144,7 +144,7 @@ def log_source_row_count(sqlctx, table_name, properties, db_product_name):
     count = None
     handled_db_prefixes = ['teradata','postgres']
     if any(db_product_name.lower().startswith(db) for db in handled_db_prefixes):
-        sql_query = '(SELECT COUNT(*) as cnt FROM {}) as query'.format(table_name)
+        sql_query = '(SELECT COUNT(*) as cnt FROM "{}") as query'.format(table_name)
         print('--- Executing source row count query: {}'.format(sql_query, flush=True))
         df = sqlctx.read.jdbc(JDBC_URL, sql_query, properties=properties)
         count = df.first()[0]
