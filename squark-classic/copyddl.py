@@ -1,6 +1,5 @@
 import os
 import re
-import functools
 
 from jinja2 import Template
 
@@ -24,8 +23,6 @@ reserved = ['ALL', 'ANALYSE', 'ANALYZE', 'AND', 'ANY', 'ARRAY', 'AS', 'ASC',
 'TIMESERIES', 'TO', 'TRAILING', 'TRUE', 'UNBOUNDED', 'UNION', 'UNIQUE',
 'UNSEGMENTED', 'USER', 'USING', 'WHEN', 'WHERE', 'WINDOW', 'WITH', 'WITHIN']
 
-
-print_now = functools.partial(print, flush=True)
 
 def sanitize(name):
     if name.upper() in reserved:
@@ -94,7 +91,7 @@ class ColSpec:
                     if self.name in large_ddl:
                         data['to_type'] = 'LONG ' + data['to_type']
                         data['COLUMN_SIZE'] = large_ddl[self.name]
-                        print_now('--- Overriding default 650000 length for {}, final ddl will be: {}({})'.format(
+                        print('--- Overriding default 650000 length for {}, final ddl will be: {}({})'.format(
                             self.name,
                             data['to_type'],
                             data['COLUMN_SIZE']
@@ -179,7 +176,7 @@ def copy_table_ddl(
     if is_db2:
         # as with get_tables(), in db2 apparently we need to fetchmany() w/exact number of columns
         column_count = utils.get_number_of_columns_in_db2_table(from_conn, from_schema, from_table)
-        print_now('*************** DB2 TABLE COLUMN COUNT: {}'.format(column_count))
+        print('*************** DB2 TABLE COLUMN COUNT: {}'.format(column_count))
         cols_connection = from_conn.get_columns(schema=from_schema, table=from_table).fetchmany(column_count)
         squark_metadata['db2_table_name'] = from_table
     else:
@@ -190,8 +187,8 @@ def copy_table_ddl(
 
     if not is_db2:
         cols_connection.close()
-    print_now('creating table %r' % from_table)
-    print_now(ddl)
+    print('creating table %r' % from_table)
+    print(ddl)
     cur = to_conn.cursor()
     rs = cur.execute(ddl)
 
@@ -200,17 +197,17 @@ def log_squark_metadata_contents(to_conn):
 
     large_ddl_table_name = 'squark_config_large_ddl'
     rs_large_ddl = utils.get_squark_metadata_for_project(to_conn, PROJECT_ID, large_ddl_table_name)
-    print_now('--- SQUARK_METADATA=TRUE, contents of {squark_metadata_table_name} for PROJECT_ID "{project_id}":'.format(
+    print('--- SQUARK_METADATA=TRUE, contents of {squark_metadata_table_name} for PROJECT_ID "{project_id}":'.format(
         squark_metadata_table_name=large_ddl_table_name,
         project_id=PROJECT_ID))
     if rs_large_ddl:
         column_names = rs_large_ddl[0]._fieldnames
-        print_now('\t'.join(column_names))
-        print_now('\t'.join('-' * len(name) for name in column_names))
+        print('\t'.join(column_names))
+        print('\t'.join('-' * len(name) for name in column_names))
         for row in rs_large_ddl:
-            print_now('\t'.join(str(val) for val in (list(row))))
+            print('\t'.join(str(val) for val in (list(row))))
     else:
-        print_now('< NO ROWS RETURNED >')
+        print('< NO ROWS RETURNED >')
 
 
 if __name__ == '__main__':
@@ -267,19 +264,19 @@ if __name__ == '__main__':
         table_name_key = 'name'
         # get_tables().fetchall() or .fetchmany(#) where # > number of tables in schema are both failing via db2
         table_count = utils.get_number_of_tables_in_db2_schema(from_conn, JDBC_SCHEMA)
-        print_now('*************** DB2 SCHEMA TABLE COUNT: {}'.format(table_count))
+        print('*************** DB2 SCHEMA TABLE COUNT: {}'.format(table_count))
         tables = from_conn.get_tables(schema=JDBC_SCHEMA).fetchmany(table_count)
     else:
         tables = from_conn.get_tables(schema=from_schema)
 
     for table in tables:
         table = dict(zip([k.lower() for k in table._fieldnames], table))
-        print_now("Checking table: {tbl} {tbltype}".format(tbl=table[table_name_key], tbltype=table['table_type']))
+        print("Checking table: {tbl} {tbltype}".format(tbl=table[table_name_key], tbltype=table['table_type']))
         if table['table_type'] is None:
-            print_now('>>>>> skipping weird None table: %r' % table)
+            print('>>>>> skipping weird None table: %r' % table)
             continue
         if not INCLUDE_VIEWS and table['table_type'].upper() != 'TABLE':
-            print_now('>>>> skipping non table: %s' % table[table_name_key])
+            print('>>>> skipping non table: %s' % table[table_name_key])
             continue
         table_name = sanitize(table[table_name_key])
         if INCLUDE_TABLES and table_name not in INCLUDE_TABLES:
@@ -291,21 +288,21 @@ if __name__ == '__main__':
                 to_conn, to_schema, table_name, squark_metadata)
         except Exception as exc:
             if SKIP_ERRORS:
-                print_now('>>>> ERROR COPYING TABLE:')
-                print_now(exc)
+                print('>>>> ERROR COPYING TABLE:')
+                print(exc)
                 continue
             else:
                 raise exc
 #        if LOAD_FROM_AWS:
-#            print_now('-------- LAUNCHING AWS VERTICA DDL PUSH -----------')
+#            print('-------- LAUNCHING AWS VERTICA DDL PUSH -----------')
 #            try:
 #                copy_table_ddl(
 #                    from_conn, from_schema, table[table_name_key],
 #                    to_conn, to_schema, table_name)
 #            except Exception as exc:
 #                if SKIP_ERRORS:
-#                    print_now('>>>> ERROR COPYING TABLE:')
-#                    print_now(exc)
+#                    print('>>>> ERROR COPYING TABLE:')
+#                    print(exc)
 #                    continue
 #                else:
 #                    raise exc
