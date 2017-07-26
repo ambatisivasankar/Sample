@@ -20,9 +20,6 @@ except:
     VERTICA_CONNECTION_ID = "vertica_dev"
 
 MAX_CONNS = int(os.getenv('VERTICA_PARALLELISM', 10))
-HDFS_HOST = os.environ['HDFS_HOST']
-HDFS_PORT = os.environ['HDFS_PORT']
-HDFS_USER = os.environ['HDFS_USER']
 
 PROJECT_ID = os.environ.get('PROJECT_ID')
 SQUARK_TYPE = os.environ.get('SQUARK_TYPE')
@@ -39,7 +36,10 @@ if LOAD_FROM_AWS:
     SQUARK_BUCKET = os.environ.get('SQUARK_BUCKET','squark')
     #SQUARK_BUCKET='squark'
     #vertica_aws_conn = squarkenv.sources['vertica_aws'].conn
-    
+if LOAD_FROM_HDFS:
+    HDFS_HOST = os.environ['HDFS_HOST']
+    HDFS_PORT = os.environ['HDFS_PORT']
+    HDFS_USER = os.environ['HDFS_USER']
 
 logging.basicConfig(level=logging.DEBUG)
 
