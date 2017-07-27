@@ -142,8 +142,8 @@ def convert_array_to_string(df):
 
 def log_source_row_count(sqlctx, table_name, properties, db_product_name):
     count = None
-    # 'ase' = Sybase   'db2' failed on first pass, skip for now
-    handled_db_prefixes = ['teradata','postgres','ase', 'microsoft sql', 'oracle']
+    # 'ase' = Sybase   'db2' and 'oracle' both failed with syntax errors using below sql_query
+    handled_db_prefixes = ['teradata','postgres','ase', 'microsoft sql']
     if any(db_product_name.lower().startswith(db) for db in handled_db_prefixes):
         sql_query = '(SELECT COUNT(*) as cnt FROM "{}") as query'.format(table_name)
         print('--- Executing source row count query: {}'.format(sql_query, flush=True))
