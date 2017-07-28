@@ -59,6 +59,7 @@ SPARK_JOB_NAME = '%s-squark-all-tables' % PROJECT_ID
 SKIP_ERRORS = os.environ.get('SKIP_ERRORS')
 INCLUDE_VIEWS = os.environ.get('INCLUDE_VIEWS')
 SKIP_MIN_MAX_ON_CAST = os.environ.get('SKIP_MIN_MAX_ON_CAST')
+SKIP_SOURCE_ROW_COUNT = os.environ.get('SKIP_SOURCE_ROW_COUNT', '').lower() in ['1', 'true', 'yes']
 
 JSON_INFO = os.environ.get('JSON_INFO')
 TABLES_WITH_SUBQUERIES = {}
@@ -312,8 +313,11 @@ def save_table(sqlctx, table_name, squark_metadata):
     properties = dict(user=JDBC_USER, password=JDBC_PASSWORD)
 
     db_name = squark_metadata[SMD_CONNECTION_INFO]['db_product_name']
+    start_query_time = time.time()
     source_row_count = log_source_row_count(sqlctx, table_name, properties, db_name)
+    query_time = time.time() - start_query_time
     if source_row_count:
+        print('--- COUNT QUERY TIME: {:.0f} seconds = {:.2f} minutes'.format(query_time, query_time / 60), flush=True)
         row_count_info = {'count': source_row_count, 'query_time': datetime.datetime.now()}
         squark_metadata[SMD_SOURCE_ROW_COUNTS][table_name] = row_count_info
 
