@@ -42,15 +42,17 @@ def send_source_row_counts_to_vertica(vertica_conn, project_id, source_schema, r
         vertica_conn - The connection to the vertica instance.
         project_id (str) - The name of the project.
         row_counts (list) - A list of lists, where each element in the main list is a list where the first element is
-                                the name of the table, second element is source row count, and third element is the
-                                time of row count query.
+                                the name of the table, second element is source row count, third element is the
+                                time of row count query, and fourth is how long the query took to return count.
     """
     query = """INSERT INTO {ROW_COUNT_SCHEMA}.{ROW_COUNT_TABLE}
-                    (project_id, source_schema, table_name, row_count, query_date, build_number, job_name)
-                VALUES ('{PROJECT_ID}', '{SOURCE_SCHEMA}', '{TABLE_NAME}', {ROW_COUNT}, '{QUERY_DATE}', '{BUILD_NUMBER}', '{JOB_NAME}');"""
+                    (project_id, source_schema, table_name, row_count, query_date,
+                        build_number, job_name, seconds_query_duration)
+                VALUES ('{PROJECT_ID}', '{SOURCE_SCHEMA}', '{TABLE_NAME}', {ROW_COUNT}, '{QUERY_DATE}',
+                            '{BUILD_NUMBER}', '{JOB_NAME}', '{QUERY_DURATION}');"""
     cursor = vertica_conn.cursor()
     print('Initiating sending row counts to vertica...')
-    for table_name, row_count, query_time in row_counts:
+    for table_name, row_count, query_time, query_duration in row_counts:
         rs = cursor.execute(query.format(
             ROW_COUNT_SCHEMA=config.ADMIN_SCHEMA,
             ROW_COUNT_TABLE=config.ADMIN_SOURCE_ROW_COUNT_TABLE,
@@ -60,7 +62,8 @@ def send_source_row_counts_to_vertica(vertica_conn, project_id, source_schema, r
             ROW_COUNT=row_count,
             QUERY_DATE=query_time,
             BUILD_NUMBER=build_number,
-            JOB_NAME=job_name))
+            JOB_NAME=job_name,
+            QUERY_DURATION=query_duration))
     print('Finished sending the row counts to vertica...')
 
 

@@ -315,10 +315,12 @@ def save_table(sqlctx, table_name, squark_metadata):
     db_name = squark_metadata[SMD_CONNECTION_INFO]['db_product_name']
     start_query_time = time.time()
     source_row_count = log_source_row_count(sqlctx, table_name, properties, db_name)
-    query_time = time.time() - start_query_time
+    query_duration = time.time() - start_query_time
     if source_row_count:
-        print('--- COUNT QUERY TIME: {:.0f} seconds = {:.2f} minutes'.format(query_time, query_time / 60), flush=True)
-        row_count_info = {'count': source_row_count, 'query_time': datetime.datetime.now()}
+        print('--- COUNT QUERY DURATION: {:.0f} seconds = {:.2f} minutes'.format(query_duration, query_duration / 60),
+              flush=True)
+        row_count_info = {'count': source_row_count, 'query_time': datetime.datetime.now(),
+                          'seconds_query_duration': query_duration}
         squark_metadata[SMD_SOURCE_ROW_COUNTS][table_name] = row_count_info
 
     if TABLES_WITH_SUBQUERIES and table_name.lower() in [table.lower() for table in TABLES_WITH_SUBQUERIES.keys()]:
@@ -536,13 +538,14 @@ def main():
     if source_row_counts:
         print('Source row counts for each table:')
         print('-----------------------------------------------')
-        print(' - table\tcount\tas of')
+        print(' - table\tcount\tas of\tquery duration')
         row_counts = []
         for table in sorted(source_row_counts):
             count = source_row_counts[table]['count']
             as_of = source_row_counts[table]['query_time']
-            print(' - {}\t{}\t{}'.format(table, count, as_of))
-            row_counts.append([table, count, as_of])
+            query_duration = source_row_counts[table]['seconds_query_duration']
+            print(' - {}\t{}\t{}\t{}'.format(table, count, as_of, query_duration))
+            row_counts.append([table, count, as_of, query_duration])
         utils.send_source_row_counts_to_vertica(vertica_conn, PROJECT_ID, JDBC_SCHEMA, row_counts, BUILD_NUMBER,
                                                 JOB_NAME)
         print('===============================================')
