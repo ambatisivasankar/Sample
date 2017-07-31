@@ -52,7 +52,7 @@ def get_s3_urls(project_id):
                 )
     tmp_paths = client.list_objects(Bucket=SQUARK_BUCKET, Prefix=prefix)
     paths = [x['Key'] for x in tmp_paths['Contents']]
-    while tmp_paths['isTruncated']:
+    while tmp_paths['IsTruncated']:
         nextMarker = paths[-1]
         tmp_paths = client.list_objects(Bucket=SQUARK_BUCKET, Prefix=prefix, Marker=nextMarker)
         paths.extend([x['Key'] for x in tmp_paths['Contents']])
