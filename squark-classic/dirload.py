@@ -52,6 +52,12 @@ def get_s3_urls(project_id):
                 )
     tmp_paths = client.list_objects(Bucket=SQUARK_BUCKET, Prefix=prefix)
     paths = [x['Key'] for x in tmp_paths['Contents']]
+    while tmp_paths['isTruncated']:
+        nextMarker = paths[-1]
+        tmp_paths = client.list_objects(Bucket=SQUARK_BUCKET, Prefix=prefix, Marker=nextMarker)
+        paths.extend([x['Key'] for x in tmp_paths['Contents']])
+
+    print('--- Total pulled paths: %i    --- Total set of pulled paths: %i'%(len(paths), len(set(paths))))
     all_orcs = [x for x in paths if glob.re.search('.*\.orc/.*\.orc', x)]
     urls = defaultdict(list)
     for orc_file in all_orcs:
