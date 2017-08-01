@@ -73,5 +73,5 @@ SELECT c.schema_name, c.table_name, c.row_count as VERT_row_count, src.row_count
 FROM cteCombined c
 LEFT JOIN cteSourceCounts src ON src.project_id = c.schema_name AND src.table_name = c.table_name
 WHERE 1 = 1
-ORDER BY c.schema_name, c.table_name
+ORDER BY c.schema_name, UPPER(c.table_name)
 

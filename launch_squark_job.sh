@@ -204,3 +204,9 @@ if [[ ( -z $SKIP_HDFS_LOAD && -z $SKIP_VERTICA_LOAD && -z $USE_AWS ) || $FORCE_C
         $PYTHON_VENV/bin/python wh_dir_cutover.py $JOB_FILE_NAME
     fi
 fi
+
+# Run only if SKIP_SOURCE_ROW_COUNT. Practically, probably won't be helpful for skip-vertica jobs but can adjust in future.
+if [ -z $SKIP_SOURCE_ROW_COUNT ]; then
+    vsql="$VERTICA_VSQL -C -h $VERTICA_HOST -U $VERTICA_USER -w $VERTICA_PASSWORD -d $VERTICA_DATABASE -f "
+    $vsql ./squark-classic/resources/row_count_reconciliation.sql -v VERTICA_SCHEMA="'$JOB_FILE_NAME'"
+fi
