@@ -207,6 +207,10 @@ fi
 
 # Run only if SKIP_SOURCE_ROW_COUNT. Practically, probably won't be helpful for skip-vertica jobs but can adjust in future.
 if [ -z $SKIP_SOURCE_ROW_COUNT ]; then
-    vsql="$VERTICA_VSQL -C -h $VERTICA_HOST -U $VERTICA_USER -w $VERTICA_PASSWORD -d $VERTICA_DATABASE -f "
-    $vsql ./squark-classic/resources/row_count_reconciliation.sql -v VERTICA_SCHEMA="'$JOB_FILE_NAME'"
+    if [ $LOAD_FROM_AWS ]; then
+        vsql="$VERTICA_VSQL -C -h $AWS_VERTICA_HOST -p $AWS_VERTICA_PORT -U $VERTICA_USER -w $AWS_VERTICA_PASSWORD -d $VERTICA_DATABASE -f "
+    else
+        vsql="$VERTICA_VSQL -C -h $VERTICA_HOST -U $VERTICA_USER -w $VERTICA_PASSWORD -d $VERTICA_DATABASE -f "
+    fi
+        $vsql ./resources/row_count_reconciliation.sql -v VERTICA_SCHEMA="'$JOB_FILE_NAME'"
 fi
