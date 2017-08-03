@@ -1,3 +1,4 @@
+# 2017.08.03, this schema is now deprecated in favor of winrisk, which has been updated to pull below table list
 export PROJECT_ID=winrisk_placement
 export WAREHOUSE_DIR='/_wh/'
 export SQL_TEMPLATE='%s'
