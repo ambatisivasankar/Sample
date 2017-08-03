@@ -562,7 +562,7 @@ def main():
             as_of = source_row_counts_before[table]['query_time']
             query_duration = source_row_counts_before[table]['seconds_query_duration']
             is_after = 0
-            print(' - {}\t{}\t{}\t{}\t{}'.format(table, count, as_of, query_duration))
+            print(' - {}\t{}\t{}\t{}'.format(table, count, as_of, query_duration))
             row_counts.append([table, count, as_of, query_duration, is_after])
         utils.send_source_row_counts_to_vertica(vertica_conn, PROJECT_ID, JDBC_SCHEMA, row_counts, BUILD_NUMBER,
                                                 JOB_NAME)
@@ -577,7 +577,7 @@ def main():
             as_of = source_row_counts_after[table]['query_time']
             query_duration = source_row_counts_after[table]['seconds_query_duration']
             is_after = 1
-            print(' - {}\t{}\t{}\t{}\t{}'.format(table, count, as_of, query_duration))
+            print(' - {}\t{}\t{}\t{}'.format(table, count, as_of, query_duration))
             row_counts.append([table, count, as_of, query_duration, is_after])
         utils.send_source_row_counts_to_vertica(vertica_conn, PROJECT_ID, JDBC_SCHEMA, row_counts, BUILD_NUMBER,
                                                 JOB_NAME)
