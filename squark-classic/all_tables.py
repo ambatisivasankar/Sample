@@ -74,8 +74,9 @@ if JSON_INFO:
         print('TABLES_WITH_PARTITION_INFO: %r' % TABLES_WITH_PARTITION_INFO)
 
 SMD_SOURCE_ROW_COUNTS = 'source_row_counts'
+SMD_SOURCE_ROW_COUNTS_AFTER = 'source_row_counts_after'
 SMD_CONNECTION_INFO = 'connection_info'
-SQUARK_METADATA_KEYS = [SMD_SOURCE_ROW_COUNTS, SMD_CONNECTION_INFO]
+SQUARK_METADATA_KEYS = [SMD_SOURCE_ROW_COUNTS, SMD_SOURCE_ROW_COUNTS_AFTER, SMD_CONNECTION_INFO]
 
 INCLUDE_TABLES = os.environ.get('INCLUDE_TABLES')
 if INCLUDE_TABLES is not None:
@@ -315,12 +316,13 @@ def save_table(sqlctx, table_name, squark_metadata):
     db_name = squark_metadata[SMD_CONNECTION_INFO]['db_product_name']
     start_query_time = time.time()
     source_row_count = log_source_row_count(sqlctx, table_name, properties, db_name)
-    query_duration = time.time() - start_query_time
+    row_count_query_duration = time.time() - start_query_time
     if source_row_count:
-        print('--- COUNT QUERY DURATION: {:.0f} seconds = {:.2f} minutes'.format(query_duration, query_duration / 60),
+        print('--- BEFORE COUNT QUERY DURATION: {:.0f} seconds = {:.2f} minutes'.format(row_count_query_duration,
+                                                                                 row_count_query_duration / 60),
               flush=True)
         row_count_info = {'count': source_row_count, 'query_time': datetime.datetime.now(),
-                          'seconds_query_duration': query_duration}
+                          'seconds_query_duration': row_count_query_duration}
         squark_metadata[SMD_SOURCE_ROW_COUNTS][table_name] = row_count_info
 
     if TABLES_WITH_SUBQUERIES and table_name.lower() in [table.lower() for table in TABLES_WITH_SUBQUERIES.keys()]:
@@ -424,7 +426,21 @@ def save_table(sqlctx, table_name, squark_metadata):
         df.write.format(WRITE_FORMAT).options(**opts).save(save_path, mode=WRITE_MODE)
         e3 = time.time()
         print(' ----- Writing to HDFS took: %.3f seconds'%(e3-s3))
-    #print('----- Sending stats to graphite:')
+
+    if source_row_count and row_count_query_duration < 60:
+        start_query_time = time.time()
+        source_row_count = log_source_row_count(sqlctx, table_name, properties, db_name)
+        row_count_query_duration = time.time() - start_query_time
+        if source_row_count:
+            print('--- AFTER COUNT QUERY DURATION: {:.0f} seconds = {:.2f} minutes'.format(row_count_query_duration,
+                                                                                     row_count_query_duration / 60),
+                  flush=True)
+            row_count_info = {'count': source_row_count, 'query_time': datetime.datetime.now(),
+                              'seconds_query_duration': row_count_query_duration}
+            squark_metadata[SMD_SOURCE_ROW_COUNTS_AFTER][table_name] = row_count_info
+
+
+            #print('----- Sending stats to graphite:')
     #stats['error_code'] = 0
     #push_graphite_stats(stats, dbtable)
 
@@ -534,21 +550,39 @@ def main():
     # Send the table timings to vertica
     utils.send_table_timings_to_vertica(vertica_conn, PROJECT_ID, table_timing, BUILD_NUMBER, JOB_NAME)
 
-    source_row_counts = squark_metadata[SMD_SOURCE_ROW_COUNTS]
-    if source_row_counts:
+
+    source_row_counts_before = squark_metadata[SMD_SOURCE_ROW_COUNTS]
+    if source_row_counts_before:
         print('Source row counts for each table:')
-        print('-----------------------------------------------')
+        print('--BEFORE PULL--------------------------------------------')
         print(' - table\tcount\tas of\tquery duration')
         row_counts = []
-        for table in sorted(source_row_counts):
-            count = source_row_counts[table]['count']
-            as_of = source_row_counts[table]['query_time']
-            query_duration = source_row_counts[table]['seconds_query_duration']
-            print(' - {}\t{}\t{}\t{}'.format(table, count, as_of, query_duration))
-            row_counts.append([table, count, as_of, query_duration])
+        for table in sorted(source_row_counts_before):
+            count = source_row_counts_before[table]['count']
+            as_of = source_row_counts_before[table]['query_time']
+            query_duration = source_row_counts_before[table]['seconds_query_duration']
+            is_after = 0
+            print(' - {}\t{}\t{}\t{}\t{}'.format(table, count, as_of, query_duration))
+            row_counts.append([table, count, as_of, query_duration, is_after])
+        utils.send_source_row_counts_to_vertica(vertica_conn, PROJECT_ID, JDBC_SCHEMA, row_counts, BUILD_NUMBER,
+                                                JOB_NAME)
+
+    source_row_counts_after = squark_metadata[SMD_SOURCE_ROW_COUNTS_AFTER]
+    if source_row_counts_after:
+        print('--AFTER PULL---------------------------------------------')
+        print(' - table\tcount\tas of\tquery duration')
+        row_counts = []
+        for table in sorted(source_row_counts_after):
+            count = source_row_counts_after[table]['count']
+            as_of = source_row_counts_after[table]['query_time']
+            query_duration = source_row_counts_after[table]['seconds_query_duration']
+            is_after = 1
+            print(' - {}\t{}\t{}\t{}\t{}'.format(table, count, as_of, query_duration))
+            row_counts.append([table, count, as_of, query_duration, is_after])
         utils.send_source_row_counts_to_vertica(vertica_conn, PROJECT_ID, JDBC_SCHEMA, row_counts, BUILD_NUMBER,
                                                 JOB_NAME)
         print('===============================================')
+
 
 if __name__ == "__main__":
 

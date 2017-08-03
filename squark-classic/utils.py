@@ -47,12 +47,12 @@ def send_source_row_counts_to_vertica(vertica_conn, project_id, source_schema, r
     """
     query = """INSERT INTO {ROW_COUNT_SCHEMA}.{ROW_COUNT_TABLE}
                     (project_id, source_schema, table_name, row_count, query_date,
-                        build_number, job_name, seconds_query_duration)
+                        build_number, job_name, seconds_query_duration, is_after)
                 VALUES ('{PROJECT_ID}', '{SOURCE_SCHEMA}', '{TABLE_NAME}', {ROW_COUNT}, '{QUERY_DATE}',
-                            '{BUILD_NUMBER}', '{JOB_NAME}', '{QUERY_DURATION}');"""
+                            '{BUILD_NUMBER}', '{JOB_NAME}', '{QUERY_DURATION}', '{IS_AFTER}');"""
     cursor = vertica_conn.cursor()
     print('Initiating sending row counts to vertica...')
-    for table_name, row_count, query_time, query_duration in row_counts:
+    for table_name, row_count, query_time, query_duration, is_after_count in row_counts:
         rs = cursor.execute(query.format(
             ROW_COUNT_SCHEMA=config.ADMIN_SCHEMA,
             ROW_COUNT_TABLE=config.ADMIN_SOURCE_ROW_COUNT_TABLE,
@@ -63,7 +63,8 @@ def send_source_row_counts_to_vertica(vertica_conn, project_id, source_schema, r
             QUERY_DATE=query_time,
             BUILD_NUMBER=build_number,
             JOB_NAME=job_name,
-            QUERY_DURATION=query_duration))
+            QUERY_DURATION=query_duration,
+            IS_AFTER=is_after_count))
     print('Finished sending the row counts to vertica...')
 
 
