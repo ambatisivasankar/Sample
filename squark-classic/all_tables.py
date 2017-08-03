@@ -463,6 +463,16 @@ def main():
         else:
             tables = source.conn.get_tables(schema=JDBC_SCHEMA).fetchall()
 
+
+        warmup_query_start = time.time()
+        # ** this syntax may not work for all dbs, e.g. Oracle wants slightly diff I think
+        warmup_sql_query = '(SELECT 1 as Test) as query'
+        properties = dict(user=JDBC_USER, password=JDBC_PASSWORD)
+        df = sqlctx.read.jdbc(JDBC_URL, warmup_sql_query, properties=properties)
+        warmup_duration = time.time() - warmup_query_start
+        print('--- WARMUP DURATION: {:.2f} seconds'.format(warmup_duration), flush=True)
+
+
         tables = [{k.lower(): v for (k,v) in x._asdict().items()} for x in tables]
         tables = [x for x in tables if x['table_type'] in ('TABLE','VIEW')]
         processed_tables = []
