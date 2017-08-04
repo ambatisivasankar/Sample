@@ -498,6 +498,7 @@ def main():
     
             # Skip indexes and stuff
             if table['table_type'] not in ('TABLE', 'VIEW'):
+                print('**********SKIPPING NON-TABLE/VIEW, table_type: {}'.format(table['table_type']))
                 continue
     
             if CHECK_PRIVILEGES:
