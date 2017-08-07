@@ -494,6 +494,7 @@ def main():
                     continue
     
             if table[table_name_key] in EXCLUDE_TABLES:
+                print('*******SKIPPING EXCLUDE_TABLES TABLE: %r' % table)
                 continue
     
             # Skip indexes and stuff
