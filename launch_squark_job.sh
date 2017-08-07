@@ -215,6 +215,7 @@ if [ -z $SKIP_SOURCE_ROW_COUNT ]; then
     fi
         $vsql ./resources/row_count_reconciliation.sql -v VERTICA_SCHEMA="'$JOB_FILE_NAME'"
 
-        msg='payload={"channel": "#ingest_alerts", "username": "webhookbot", "text": "3: This is posted to #ingest_alerts and comes from a bot named webhookbot.", "icon_emoji": ":ghost:"}'
-        curl -X POST --data-urlencode $msg https://hooks.slack.com/services/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
+        url="https://hooks.slack.com/services/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"
+        msg="$PROJECT_ID completed at <{BUILD_URL}/consoleFull|jenkins log>"
+        curl -X POST --data-urlencode 'payload={"channel": "#ingest_alerts", "username": "webhookbot", "text": '\""$msg\""', "icon_emoji": ":ingestee:"}' $url
 fi
