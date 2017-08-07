@@ -88,11 +88,15 @@ WITH cteAllTables AS
 )
 --SELECT * FROM cteAmalgSourceCounts
 SELECT c.schema_name, c.table_name, ROUND(c.schema_create_time, 'SS') AS schema_create_time, c.row_count as vertRowCount, src.lowSrcCount, src.highSrcCount, 
-	ROUND(src.beforeQueryTime, 'SS') as srcQueryTime, logSrcCount * 3 as tolDiff, src.lowSrcCount - COALESCE(c.row_count, 0) as rawDIFF, 
+	ROUND(src.beforeQueryTime, 'SS') as srcBefQueryTime, logSrcCount * 3 as tolDiff, 	
+	CASE WHEN COALESCE(c.row_count, 0) < src.lowSrcCount THEN COALESCE(c.row_count, 0) - src.lowSrcCount
+		WHEN COALESCE(c.row_count, 0) > src.highSrcCount THEN COALESCE(c.row_count, 0) - src.highSrcCount
+		ELSE NULL::INT
+	END as boundDiff,
 	CAST(c.PopdTblsCount AS VARCHAR(10))  || ' of ' || CAST(TableCnt AS VARCHAR(10)) as vertPopdTbls, src.build,
 	CASE WHEN src.lowSrcCount IS NULL OR c.row_count BETWEEN src.lowSrcCount AND src.highSrcCount THEN '.'
 		-- arbitrary decision to declare any diff, vs. low count from source, <= logSrcCount * 3 to be "bad but not that bad"..
-		WHEN ABS(src.lowSrcCount - COALESCE(c.row_count, 0)) <= logSrcCount * 3 THEN '>>>> ooh, its close <<<<'
+		WHEN ABS(COALESCE(c.row_count, 0) - src.lowSrcCount) <= logSrcCount * 3 OR ABS(COALESCE(c.row_count, 0) - src.highSrcCount) <= logSrcCount * 3 THEN '>>>> ooh, its close <<<<'
 		ELSE '>>>> WHOOPS row count <<<<' 
 	END AS RowCountCheck
 	-- debug stuff
