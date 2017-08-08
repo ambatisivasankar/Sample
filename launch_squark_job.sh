@@ -213,9 +213,34 @@ if [ -z $SKIP_SOURCE_ROW_COUNT ]; then
     else
         vsql="$VERTICA_VSQL -C -h $VERTICA_HOST -U $VERTICA_USER -w $VERTICA_PASSWORD -d $VERTICA_DATABASE -f "
     fi
-        $vsql ./resources/row_count_reconciliation.sql -v VERTICA_SCHEMA="'$JOB_FILE_NAME'"
+        results_file="row_count_results.out"
+        $vsql ./resources/row_count_reconciliation.sql -v VERTICA_SCHEMA="'$JOB_FILE_NAME' -o $results_file"
+        cat $results_file
 
-        url="https://hooks.slack.com/services/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"
-        msg="$PROJECT_ID completed at <$BUILD_URL/consoleFull|jenkins log>"
-        curl -X POST --data-urlencode 'payload={"channel": "#ingest_alerts", "username": "webhookbot", "text": '\""$msg\""', "icon_emoji": ":ingestee:"}' $url
+        marker_text="<<<<"
+        if grep -q $marker_text $results_file; then
+            attachment=$(cat $results_file | grep "<<<<" | tr -d ' ' | awk  'BEGIN { FS="|"; OFS="."; } { print $1,$2; }')
+            json=$(cat<<-EOM
+            payload={
+                "channel": "#ingest_alerts",
+                "username": "webhookbot",
+                "text": "$PROJECT_ID completed at <$BUILD_URL/consoleFull|jenkins log>",
+                "icon_emoji": ":ingestee:",
+                "attachments": [
+                    {
+                        "fallback": "row count reconciliation issues in this job",
+                        "color": "danger",
+                        "pretext": "source vs. Vertica row count reconciliation reported issues in below tables",
+                        "title": "click for build $BUILD_NUMBER log",
+                        "title_link": "$BUILD_URL#footer",
+                        "text": "$attachment",
+                        "footer": "LOAD_FROM_AWS: $LOAD_FROM_AWS",
+                        "ts": 123456789
+                    }
+                ]
+            }
+EOM
+)
+            curl -X POST --data-urlencode "$json" https://hooks.slack.com/services/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
+        fi
 fi
