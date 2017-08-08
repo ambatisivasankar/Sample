@@ -1,11 +1,11 @@
-# 2017.08.03, this schema is now deprecated in favor of winrisk, which has been updated to pull below table list
-export PROJECT_ID=winrisk_placement
+export PROJECT_ID=esp_leads
 export WAREHOUSE_DIR='/_wh/'
 export SQL_TEMPLATE='%s'
-export CONNECTION_ID=winrisk_placement
-export INCLUDE_TABLES="NAME,SUMMARY,COVERAGES,BILLING,REPLACEMENT_SUMMARY,RATINGS,RIDERS,REQUIREMENTS,NOTES,POLICY_EVENTS,LAB_DEMOGRAPHICS,LAB_RESULTS,ADDITIONAL_RIDER_INFO"
-export SKIP_ERRORS=1
 export INCLUDE_VIEWS=1
+export CONNECTION_ID=esp
+export INCLUDE_TABLES="ANLTCS_LEADS"
+#export EXCLUDE_TABLES="ANLTCS_NEXT_PURCHASE"
+
 #export STATS_CONFIG="
 #{
 #    'profiles': {
