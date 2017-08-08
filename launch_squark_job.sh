@@ -232,7 +232,7 @@ if [ -z $SKIP_SOURCE_ROW_COUNT ]; then
                         "color": "danger",
                         "pretext": "source vs. Vertica row count reconciliation reported issues in below tables",
                         "title": "click for build $BUILD_NUMBER log",
-                        "title_link": "$BUILD_URL#footer",
+                        "title_link": "$BUILD_URL/consoleFull#footer",
                         "text": "$attachment",
                         "footer": "LOAD_FROM_AWS: $LOAD_FROM_AWS",
                         "ts": 123456789
