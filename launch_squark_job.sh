@@ -219,7 +219,7 @@ if [ -z $SKIP_SOURCE_ROW_COUNT ]; then
 
         marker_text="<<<<"
         if grep -q $marker_text $results_file; then
-            attachment=$(cat $results_file | grep "<<<<" | tr -d ' ' | awk  'BEGIN { FS="|"; OFS="";} { print "- ",$1,".",$2; }')
+            attachment=$(cat $results_file | grep $marker_text | tr -d ' ' | awk  'BEGIN { FS="|"; OFS="";} { print "- ",$1,".",$2; }')
             json=$(cat<<-EOM
             payload={
                 "channel": "#ingest_alerts",
