@@ -219,23 +219,22 @@ if [ -z $SKIP_SOURCE_ROW_COUNT ]; then
 
         marker_text="<<<<"
         if grep -q $marker_text $results_file; then
-            attachment=$(cat $results_file | grep "<<<<" | tr -d ' ' | awk  'BEGIN { FS="|"; OFS="."; } { print $1,$2; }')
+            attachment=$(cat $results_file | grep "<<<<" | tr -d ' ' | awk  'BEGIN { FS="|"; OFS="";} { print "- ",$1,".",$2; }')
             json=$(cat<<-EOM
             payload={
                 "channel": "#ingest_alerts",
                 "username": "webhookbot",
-                "text": "$PROJECT_ID completed at <$BUILD_URL/consoleFull|jenkins log>",
+                "text": "JOB COMPLETED: $PROJECT_ID, see <$BUILD_URL/consoleFull|jenkins log>",
                 "icon_emoji": ":ingestee:",
                 "attachments": [
                     {
                         "fallback": "row count reconciliation issues in this job",
                         "color": "danger",
-                        "pretext": "source vs. Vertica row count reconciliation reported issues in below tables",
+                        "pretext": "*** source vs. Vertica row count reconciliation reported issues in below tables ***",
                         "title": "click for build $BUILD_NUMBER log",
                         "title_link": "$BUILD_URL/consoleFull#footer",
                         "text": "$attachment",
-                        "footer": "LOAD_FROM_AWS: $LOAD_FROM_AWS",
-                        "ts": 123456789
+                        "footer": "LOAD_FROM_AWS: $LOAD_FROM_AWS"
                     }
                 ]
             }

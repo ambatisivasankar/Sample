@@ -88,7 +88,7 @@ WITH cteAllTables AS
 )
 --SELECT * FROM cteAmalgSourceCounts
 SELECT c.schema_name, c.table_name, ROUND(c.schema_create_time, 'SS') AS schema_create_time, c.row_count as vertRowCount, src.lowSrcCount, src.highSrcCount, 
-	ROUND(src.beforeQueryTime, 'SS') as srcBefQueryTime, logSrcCount * 3 as tolDiff, 	
+	ROUND(src.beforeQueryTime, 'SS') as srcBefQueryTime, src.beforeDur AS befDurSecs, logSrcCount * 3 as tolDiff,
 	CASE WHEN COALESCE(c.row_count, 0) < src.lowSrcCount THEN COALESCE(c.row_count, 0) - src.lowSrcCount
 		WHEN COALESCE(c.row_count, 0) > src.highSrcCount THEN COALESCE(c.row_count, 0) - src.highSrcCount
 		ELSE NULL::INT
