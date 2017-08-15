@@ -204,3 +204,42 @@ if [[ ( -z $SKIP_HDFS_LOAD && -z $SKIP_VERTICA_LOAD && -z $USE_AWS ) || $FORCE_C
         $PYTHON_VENV/bin/python wh_dir_cutover.py $JOB_FILE_NAME
     fi
 fi
+
+# Run only if SKIP_SOURCE_ROW_COUNT. Practically, probably won't be helpful for skip-vertica jobs but can adjust in future.
+echo "Row count reconciliation, SKIP_SOURCE_ROW_COUNT: $SKIP_SOURCE_ROW_COUNT"
+if [ -z $SKIP_SOURCE_ROW_COUNT ]; then
+    if [ $LOAD_FROM_AWS ]; then
+        vsql="$VERTICA_VSQL -C -h $AWS_VERTICA_HOST -p $AWS_VERTICA_PORT -U $VERTICA_USER -w $AWS_VERTICA_PASSWORD -d $VERTICA_DATABASE -f "
+    else
+        vsql="$VERTICA_VSQL -C -h $VERTICA_HOST -U $VERTICA_USER -w $VERTICA_PASSWORD -d $VERTICA_DATABASE -f "
+    fi
+        results_file="row_count_results.out"
+        $vsql ./resources/row_count_reconciliation.sql -v VERTICA_SCHEMA="'$JOB_FILE_NAME'" -o $results_file
+        cat $results_file
+
+        marker_text="<<<<"
+        if grep -q $marker_text $results_file; then
+            attachment=$(cat $results_file | grep $marker_text | tr -d ' ' | awk  'BEGIN { FS="|"; OFS="";} { print "- ",$1,".",$2; }')
+            json=$(cat<<-EOM
+            payload={
+                "channel": "#ingest_alerts",
+                "username": "webhookbot",
+                "text": "JOB COMPLETED: $PROJECT_ID, see <$BUILD_URL/consoleFull|jenkins log>",
+                "icon_emoji": ":ingestee:",
+                "attachments": [
+                    {
+                        "fallback": "row count reconciliation issues in this job",
+                        "color": "danger",
+                        "pretext": "*** source vs. Vertica row count reconciliation reported issues in below tables ***",
+                        "title": "click for build $BUILD_NUMBER log",
+                        "title_link": "$BUILD_URL/consoleFull#footer",
+                        "text": "$attachment",
+                        "footer": "LOAD_FROM_AWS: $LOAD_FROM_AWS"
+                    }
+                ]
+            }
+EOM
+)
+            curl -X POST --data-urlencode "$json" https://hooks.slack.com/services/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
+        fi
+fi
