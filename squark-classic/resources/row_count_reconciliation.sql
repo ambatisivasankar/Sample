@@ -59,7 +59,7 @@ WITH cteAllTables AS
 (
 	SELECT A.project_id, A.source_schema, A.table_name, A.row_count, A.query_date, A.build_number, A.job_name, A.seconds_query_duration, A.is_after
 	FROM (
-		SELECT src.*, MAX(build_number) OVER (PARTITION BY src.project_id) as lastProjectBuild
+		SELECT src.*, MAX(build_number) OVER (PARTITION BY src.project_id, src.job_name) as lastProjectBuild
 		FROM admin.squark_source_row_counts src
 		WHERE 1=1
 			AND src.project_id IN (SELECT DISTINCT a.schema_name FROM cteAllTables a)
@@ -83,7 +83,7 @@ WITH cteAllTables AS
 			ELSE sca.row_count
 		END as highSrcCount
 	FROM cteSourceCounts scb
-	LEFT JOIN cteSourceCounts sca ON sca.project_id = scb.project_id AND sca.source_schema = scb.source_schema AND sca.table_name = scb.table_name AND sca.is_after = 't'
+	LEFT JOIN cteSourceCounts sca ON sca.project_id = scb.project_id AND sca.source_schema = scb.source_schema AND sca.table_name = scb.table_name AND sca.job_name = scb.job_name AND sca.is_after = 't'
 	WHERE COALESCE(scb.is_after, 'f') = 'f' 
 )
 --SELECT * FROM cteAmalgSourceCounts
