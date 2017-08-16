@@ -207,7 +207,7 @@ fi
 
 # Run only if SKIP_SOURCE_ROW_COUNT. Practically, probably won't be helpful for skip-vertica jobs but can adjust in future.
 echo "Row count reconciliation, SKIP_SOURCE_ROW_COUNT: $SKIP_SOURCE_ROW_COUNT"
-if [ -z $SKIP_SOURCE_ROW_COUNT ]; then
+if [[ ( -z $SKIP_VERTICA_LOAD && -z $SKIP_SOURCE_ROW_COUNT ) ]]; then
     if [ $LOAD_FROM_AWS ]; then
         vsql="$VERTICA_VSQL -C -h $AWS_VERTICA_HOST -p $AWS_VERTICA_PORT -U $VERTICA_USER -w $AWS_VERTICA_PASSWORD -d $VERTICA_DATABASE -f "
     else
