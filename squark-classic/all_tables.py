@@ -146,7 +146,7 @@ def log_source_row_count(sqlctx, table_name, properties, db_product_name):
     count = None
     # 'ase' = Sybase - REMOVED 'db2' and 'oracle' both failed with syntax errors using below sql_query
     handled_db_prefixes = ['teradata','postgres','microsoft sql','ase']
-    if any(db_product_name.lower().startswith(db) for db in handled_db_prefixes):
+    if any(db_product_name.lower().startswith(db) for db in handled_db_prefixes) and not SKIP_SOURCE_ROW_COUNT:
         sql_query = '(SELECT COUNT(*) as cnt FROM "{}") as query'.format(table_name)
         print('--- Executing source row count query: {}'.format(sql_query, flush=True))
         df = sqlctx.read.jdbc(JDBC_URL, sql_query, properties=properties)
