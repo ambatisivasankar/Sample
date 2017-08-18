@@ -6,6 +6,8 @@ export INCLUDE_TABLES="DIM_PARTICIPANT"
 export SKIP_MIN_MAX_ON_CAST=1
 export CONNECTION_ID=trac_rpgw
 
+# connection attempt on aws jenkins-ingestion fails without below TZ setting: ORA-01882: timezone region  not found
+export TZ=GMT
 export SPARK_MAX_EXECUTORS=10
 export JSON_INFO="
 {

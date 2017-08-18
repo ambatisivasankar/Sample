@@ -64,6 +64,7 @@ WITH cteAllTables AS
 		WHERE 1=1
 			AND src.project_id IN (SELECT DISTINCT a.schema_name FROM cteAllTables a)
 			AND src.query_date > SYSDATE() - 10
+			AND src.job_name = :JOB_NAME
 	) A
 	WHERE A.build_number = lastProjectBuild 
 )
