@@ -57,16 +57,20 @@ WITH cteAllTables AS
 --SELECT * FROM cteCombined ORDER BY schema_name, table_name
 ,cteSourceCounts AS
 (
-	SELECT A.project_id, A.source_schema, A.table_name, A.row_count, A.query_date, A.build_number, A.job_name, A.seconds_query_duration, A.is_after
+	SELECT A.project_id, A.source_schema, A.table_name, A.row_count, A.query_date, A.build_number, A.job_name, A.seconds_query_duration, A.is_after, A.rowCount
 	FROM (
-		SELECT src.*, MAX(build_number) OVER (PARTITION BY src.project_id, src.job_name) as lastProjectBuild
+		SELECT src.*, MAX(build_number) OVER (PARTITION BY src.project_id, src.job_name) as lastProjectBuild --fix2
+			-- on the off chance there are two diff jobs writing to same schema, e.g. a multi-job and a normal job, need something like below to pull out the matching rows
+			-- what will be reported upon will be latest data loaded in, irrespective of per-job build numbering
+			,ROW_NUMBER() OVER (PARTITION BY src.project_id, src.table_name ORDER BY src.query_date DESC) as rowCount
 		FROM admin.squark_source_row_counts src
 		WHERE 1=1
 			AND src.project_id IN (SELECT DISTINCT a.schema_name FROM cteAllTables a)
 			AND src.query_date > SYSDATE() - 10
-			AND src.job_name = :JOB_NAME
+--			AND src.job_name = :JOB_NAME  -- this approach fails w/multi-jobs, at least w/o a bunch more work
 	) A
-	WHERE A.build_number = lastProjectBuild 
+	WHERE A.build_number = lastProjectBuild
+		AND A.rowCount <= 2 -- rowCount=1 will be for is_after=true, rowCount=2 will be for is_after=false
 )
 --SELECT * FROM cteSourceCounts ORDER BY project_id, table_name   
 ,cteAmalgSourceCounts AS
