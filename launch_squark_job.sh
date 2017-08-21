@@ -216,7 +216,7 @@ if [[ ( -z $SKIP_VERTICA_LOAD && -z $SKIP_SOURCE_ROW_COUNT ) ]]; then
         vsql="$VERTICA_VSQL -C -h $VERTICA_HOST -U $VERTICA_USER -w $VERTICA_PASSWORD -d $VERTICA_DATABASE -f "
     fi
         results_file="row_count_results.out"
-        $vsql ./resources/row_count_reconciliation.sql -v VERTICA_SCHEMA="'$JOB_FILE_NAME'" -v JOB_NAME="'$JOB_NAME'" -o $results_file
+        $vsql ./resources/row_count_reconciliation.sql -v VERTICA_SCHEMA="'$JOB_FILE_NAME'" -o $results_file
         cat $results_file
 
         marker_text="<<<<"
