@@ -17,7 +17,7 @@ export JSON_INFO="
             'PRTY_ALT_ID_VW': {
               'partitionColumn': 'PRTY_ID',
               'lowerBound': 1,
-              'upperBound': 20000000,
+              'upperBound': 22000000,
               'numPartitions': 50
             }
         }
