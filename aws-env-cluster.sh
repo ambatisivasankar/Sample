@@ -26,3 +26,6 @@ export SPARK_EXECUTOR_MEMORY="2G"
 export CLASSPATH=$CLASSPATH:$PY4JDBC_JAR
 export PYTHONPATH=$PYTHONPATH:$SPARK_HOME/python:$(pwd)
 
+# for AWS EMR
+# instead of default "jenkins" in run.sh
+export SPARK_YARN_QUEUE="default"

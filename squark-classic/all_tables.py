@@ -319,7 +319,7 @@ def save_table(sqlctx, table_name, squark_metadata):
     dbtable = SQL_TEMPLATE % table_name
     print('********* EXECUTE SQL: %r' % dbtable)
     properties = dict(user=JDBC_USER, password=JDBC_PASSWORD)
-    if USE_CLUSTER_EMR:
+    if USE_CLUSTER_EMR and 1==0:
         print('--- USE_CLUSTER_EMR is a go')
         driver_name_for_spark = squark_metadata[SMD_CONNECTION_INFO].get('driver_name_for_spark', '')
         if driver_name_for_spark:
@@ -397,7 +397,8 @@ def save_table(sqlctx, table_name, squark_metadata):
 
     if USE_AWS:
         s2 = time.time()
-        s3_file_system = 's3' if USE_CLUSTER_EMR else 's3n'
+        #s3_file_system = 's3' if USE_CLUSTER_EMR else 's3n'
+        s3_file_system = 's3n'
         save_path = "{S3_FILESYSTEM}://{AWS_ACCESS_KEY_ID}:{AWS_SECRET_ACCESS_KEY}@{SQUARK_BUCKET}/{SQUARK_TYPE}/{PROJECT_ID}/{TABLE_NAME}/{TABLE_NAME}.orc/".format(
                 S3_FILESYSTEM = s3_file_system,
                 AWS_ACCESS_KEY_ID=AWS_ACCESS_KEY_ID,
