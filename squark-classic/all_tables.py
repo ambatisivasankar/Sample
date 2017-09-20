@@ -319,7 +319,7 @@ def save_table(sqlctx, table_name, squark_metadata):
     dbtable = SQL_TEMPLATE % table_name
     print('********* EXECUTE SQL: %r' % dbtable)
     properties = dict(user=JDBC_USER, password=JDBC_PASSWORD)
-    if USE_CLUSTER_EMR and 1==0:
+    if USE_CLUSTER_EMR:
         print('--- USE_CLUSTER_EMR is a go')
         driver_name_for_spark = squark_metadata[SMD_CONNECTION_INFO].get('driver_name_for_spark', '')
         if driver_name_for_spark:
