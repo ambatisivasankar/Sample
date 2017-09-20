@@ -397,8 +397,8 @@ def save_table(sqlctx, table_name, squark_metadata):
 
     if USE_AWS:
         s2 = time.time()
-        #s3_file_system = 's3' if USE_CLUSTER_EMR else 's3n'
-        s3_file_system = 's3n'
+        s3_file_system = 's3a' if USE_CLUSTER_EMR else 's3n'
+        #s3_file_system = 's3n'
         save_path = "{S3_FILESYSTEM}://{AWS_ACCESS_KEY_ID}:{AWS_SECRET_ACCESS_KEY}@{SQUARK_BUCKET}/{SQUARK_TYPE}/{PROJECT_ID}/{TABLE_NAME}/{TABLE_NAME}.orc/".format(
                 S3_FILESYSTEM = s3_file_system,
                 AWS_ACCESS_KEY_ID=AWS_ACCESS_KEY_ID,
