@@ -93,6 +93,7 @@ CHECK_PRIVILEGES = os.environ.get('CHECK_PRIVILEGES', '').lower() in ['1', 'true
 SPARKLOCAL = os.environ.get('SPARKLOCAL', '0').lower() in ['1', 'true', 'yes']
 SPARKLOCAL_CORE_COUNT = os.environ.get('SPARKLOCAL_CORE_COUNT', 1)
 TABLE_RETRY_NUM = int(os.environ.get('SQUARK_NUM_RETRY', '1'))
+USE_CLUSTER_EMR = os.environ.get('USE_CLUSTER_EMR', '').lower() in ['1', 'true', 'yes']
 
 # Get the environment variable for whether to stringify the columns which are array types (for SOG mainly)
 CONVERT_ARRAYS_TO_STRING = os.environ.get('CONVERT_ARRAYS_TO_STRING')
@@ -318,6 +319,12 @@ def save_table(sqlctx, table_name, squark_metadata):
     dbtable = SQL_TEMPLATE % table_name
     print('********* EXECUTE SQL: %r' % dbtable)
     properties = dict(user=JDBC_USER, password=JDBC_PASSWORD)
+    if USE_CLUSTER_EMR:
+        print('--- USE_CLUSTER_EMR is a go')
+        driver_name_for_spark = squark_metadata[SMD_CONNECTION_INFO].get('driver_name_for_spark', '')
+        if driver_name_for_spark:
+            print('--- ... and setting driver_name_for_spark: {}'.format(driver_name_for_spark))
+            properties['driver'] = driver_name_for_spark
 
     db_name = squark_metadata[SMD_CONNECTION_INFO]['db_product_name']
     start_query_time = time.time()
@@ -390,7 +397,10 @@ def save_table(sqlctx, table_name, squark_metadata):
 
     if USE_AWS:
         s2 = time.time()
-        save_path = "s3n://{AWS_ACCESS_KEY_ID}:{AWS_SECRET_ACCESS_KEY}@{SQUARK_BUCKET}/{SQUARK_TYPE}/{PROJECT_ID}/{TABLE_NAME}/{TABLE_NAME}.orc/".format(
+        s3_file_system = 's3a' if USE_CLUSTER_EMR else 's3n'
+        #s3_file_system = 's3n'
+        save_path = "{S3_FILESYSTEM}://{AWS_ACCESS_KEY_ID}:{AWS_SECRET_ACCESS_KEY}@{SQUARK_BUCKET}/{SQUARK_TYPE}/{PROJECT_ID}/{TABLE_NAME}/{TABLE_NAME}.orc/".format(
+                S3_FILESYSTEM = s3_file_system,
                 AWS_ACCESS_KEY_ID=AWS_ACCESS_KEY_ID,
                 AWS_SECRET_ACCESS_KEY=AWS_SECRET_ACCESS_KEY,
                 SQUARK_BUCKET=SQUARK_BUCKET,

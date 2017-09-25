@@ -158,12 +158,36 @@ def get_number_of_columns_in_db2_table(db2_conn, schema_name, table_name):
 
 
 def populate_connection_metadata(md):
+    """
+    Function: populate_connection_metadata - Return a dictionary populated with selected metadata values
+    Args:
+        md - Vendor specific implementation of JDBC DatabaseMetaData interface, i.e. py4jdbc connection._metadata
+        Returns: dict
+    """
     conn_md = {key: 'UNKNOWN' for key in ['db_product_name', 'db_product_version', 'driver_name', 'driver_version']}
+
+    def db_match(db_name):
+        return conn_md['db_product_name'].lower().startswith(db_name)
+
     try:
         conn_md['db_product_name'] = md.getDatabaseProductName()
         conn_md['db_product_version'] = md.getDatabaseProductVersion()
         conn_md['driver_name'] = md.getDriverName()
         conn_md['driver_version'] = md.getDriverVersion()
+        # some jdbc drivers don't need to have their driver values set on connecting under spark 2.1+
+        # lack of a driver_name_for_spark key means driver property won't be set, but below values would work if need be
+        #   Microsoft SQL Server: 'com.microsoft.sqlserver.jdbc.SQLServerDriver'
+        #   Oracle: 'oracle.jdbc.OracleDriver'
+        #   Postgresql: 'org.postgresql.Driver'
+        if db_match('teradata'):
+            conn_md['driver_name_for_spark'] = conn_md['driver_name']
+        elif db_match('vertica'):
+            conn_md['driver_name_for_spark'] = 'com.vertica.jdbc.Driver'
+        elif db_match('db2'):
+            conn_md['driver_name_for_spark'] = 'com.ibm.db2.jcc.DB2Driver'
+        elif db_match('ase'):
+            conn_md['driver_name_for_spark'] = 'net.sourceforge.jtds.jdbc.Driver'
+
     except Exception as exc:
         print('****** ERROR DURING METADATA REQUEST:')
         print(exc)
