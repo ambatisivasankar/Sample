@@ -6,10 +6,10 @@ export VERTICA_DATABASE="advana"
 export VERTICA_VSQL="/usr/local/bin/vsql"
 
 # HDFS SETTINGS
-export HADOOP_CONF_DIR=/etc/hadoop/conf
+export HADOOP_CONF_DIR=/etc/hadoop/conf-emr
 
 # JARS
-export PY4JDBC_JAR="/hadoop/deploy/jdbc/py4jdbc-assembly-0.1.6.8_210.jar"
+export PY4JDBC_JAR="/hadoop/deploy/jdbc/py4jdbc-assembly-0.1.6.8_211.jar"
 export JARS="py4jdbc_latest.jar" # comma separated
 
 # SQUARK SETTINGS
@@ -19,7 +19,7 @@ export PYTHON_VENV=$(pwd)/virt
 export WAREHOUSE_DIR="/_wh_dev/"
 
 # SPARK SETTINGS
-export SPARK_HOME=/hadoop/spark/1.6
+export SPARK_HOME=/hadoop/spark/2.2
 export PYSPARK_PYTHON=$PYTHON_VENV/bin/python
 export SPARK_DRIVER_MEMORY="2G"
 export SPARK_EXECUTOR_MEMORY="2G"
