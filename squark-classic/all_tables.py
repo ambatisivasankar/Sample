@@ -327,6 +327,10 @@ def save_table(sqlctx, table_name, squark_metadata):
             properties['driver'] = driver_name_for_spark
 
     db_name = squark_metadata[SMD_CONNECTION_INFO]['db_product_name']
+    if db_name.lower().startswith('oracle'):
+        # ORA-00604: error occurred at recursive SQL level 1 -> ORA-01882: timezone region  not found
+        properties['oracle.jdbc.timezoneAsRegion'] = 'False'
+
     start_query_time = time.time()
     source_row_count = log_source_row_count(sqlctx, table_name, properties, db_name)
     row_count_query_duration = time.time() - start_query_time
