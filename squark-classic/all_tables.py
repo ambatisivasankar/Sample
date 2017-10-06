@@ -475,7 +475,8 @@ def save_table(sqlctx, table_name, squark_metadata):
 def main():
     try:
         conf = SparkConf()
-        conf.set("spark.local.dir", "/hadoop/sparklocal")
+        if not USE_CLUSTER_EMR:
+            conf.set("spark.local.dir", "/hadoop/sparklocal")
         if SPARKLOCAL:
             conf.set("spark.master", "local[{}]".format(SPARKLOCAL_CORE_COUNT))
         sc = SparkContext(appName=SPARK_JOB_NAME, conf=conf)
