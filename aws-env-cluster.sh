@@ -29,3 +29,5 @@ export PYTHONPATH=$PYTHONPATH:$SPARK_HOME/python:$(pwd)
 # for AWS EMR
 # instead of default "jenkins" in run.sh
 export SPARK_YARN_QUEUE="default"
+
+export USE_CLUSTER_EMR=1
