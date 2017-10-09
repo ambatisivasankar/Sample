@@ -6,7 +6,7 @@ export VERTICA_DATABASE="advana"
 export VERTICA_VSQL="/usr/local/bin/vsql"
 
 # HDFS SETTINGS
-export HADOOP_CONF_DIR=/etc/hadoop/conf-emr
+export HADOOP_CONF_DIR=/etc/hadoop/conf
 
 # JARS
 export PY4JDBC_JAR="/hadoop/deploy/jdbc/py4jdbc-assembly-0.1.6.8_211.jar"
