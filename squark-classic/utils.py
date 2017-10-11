@@ -187,6 +187,12 @@ def populate_connection_metadata(md):
             conn_md['driver_name_for_spark'] = 'com.ibm.db2.jcc.DB2Driver'
         elif db_match('ase'):
             conn_md['driver_name_for_spark'] = 'net.sourceforge.jtds.jdbc.Driver'
+        elif db_match('microsoft sql'):
+            conn_md['driver_name_for_spark'] = 'com.microsoft.sqlserver.jdbc.SQLServerDriver'
+        elif db_match('oracle'):
+            conn_md['driver_name_for_spark'] = 'oracle.jdbc.OracleDriver'
+        elif db_match('postgresql'):
+            conn_md['driver_name_for_spark'] = 'org.postgresql.Driver'
 
     except Exception as exc:
         print('****** ERROR DURING METADATA REQUEST:')
