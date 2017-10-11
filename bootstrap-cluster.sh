@@ -55,7 +55,11 @@ chmod 600 $SQUARK_PASSWORD_FILE
 echo "--------------------------------------------------------"
 
 echo "Setting up the virtual environment..."
-virtualenv -p /usr/local/bin/python3.5 virt
+if [ $USE_CLUSTER_EMR ]; then
+    virtualenv -p python3.5 virt
+else
+    virtualenv -p /usr/local/bin/python3.5 virt
+fi
 #${PYTHON_VENV}/bin/pip3 install -r data_catalog-statscli/requirements.txt
 ${PYTHON_VENV}/bin/pip3 install -r squark-classic/requirements.txt
 cd squark

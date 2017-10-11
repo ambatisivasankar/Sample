@@ -9,7 +9,7 @@ export VERTICA_VSQL="/usr/local/bin/vsql"
 export HADOOP_CONF_DIR=/etc/hadoop/conf
 
 # JARS
-export PY4JDBC_JAR="/hadoop/deploy/jdbc/py4jdbc-assembly-0.1.6.8_210.jar"
+export PY4JDBC_JAR="/hadoop/deploy/jdbc/py4jdbc-assembly-0.1.6.8_211.jar"
 export JARS="py4jdbc_latest.jar" # comma separated
 
 # SQUARK SETTINGS
@@ -19,10 +19,15 @@ export PYTHON_VENV=$(pwd)/virt
 export WAREHOUSE_DIR="/_wh_dev/"
 
 # SPARK SETTINGS
-export SPARK_HOME=/hadoop/spark/1.6
+export SPARK_HOME=/hadoop/spark/2.2
 export PYSPARK_PYTHON=$PYTHON_VENV/bin/python
 export SPARK_DRIVER_MEMORY="2G"
 export SPARK_EXECUTOR_MEMORY="2G"
 export CLASSPATH=$CLASSPATH:$PY4JDBC_JAR
 export PYTHONPATH=$PYTHONPATH:$SPARK_HOME/python:$(pwd)
 
+# for AWS EMR
+# instead of default "jenkins" in run.sh
+export SPARK_YARN_QUEUE="default"
+
+export USE_CLUSTER_EMR=1

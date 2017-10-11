@@ -93,6 +93,7 @@ CHECK_PRIVILEGES = os.environ.get('CHECK_PRIVILEGES', '').lower() in ['1', 'true
 SPARKLOCAL = os.environ.get('SPARKLOCAL', '0').lower() in ['1', 'true', 'yes']
 SPARKLOCAL_CORE_COUNT = os.environ.get('SPARKLOCAL_CORE_COUNT', 1)
 TABLE_RETRY_NUM = int(os.environ.get('SQUARK_NUM_RETRY', '1'))
+USE_CLUSTER_EMR = os.environ.get('USE_CLUSTER_EMR', '').lower() in ['1', 'true', 'yes']
 
 # Get the environment variable for whether to stringify the columns which are array types (for SOG mainly)
 CONVERT_ARRAYS_TO_STRING = os.environ.get('CONVERT_ARRAYS_TO_STRING')
@@ -318,8 +319,18 @@ def save_table(sqlctx, table_name, squark_metadata):
     dbtable = SQL_TEMPLATE % table_name
     print('********* EXECUTE SQL: %r' % dbtable)
     properties = dict(user=JDBC_USER, password=JDBC_PASSWORD)
+    if USE_CLUSTER_EMR:
+        print('--- USE_CLUSTER_EMR is a go')
+        driver_name_for_spark = squark_metadata[SMD_CONNECTION_INFO].get('driver_name_for_spark', '')
+        if driver_name_for_spark:
+            print('--- ... and setting driver_name_for_spark: {}'.format(driver_name_for_spark))
+            properties['driver'] = driver_name_for_spark
 
     db_name = squark_metadata[SMD_CONNECTION_INFO]['db_product_name']
+    if db_name.lower().startswith('oracle'):
+        # ORA-00604: error occurred at recursive SQL level 1 -> ORA-01882: timezone region  not found
+        properties['oracle.jdbc.timezoneAsRegion'] = 'False'
+
     start_query_time = time.time()
     source_row_count = log_source_row_count(sqlctx, table_name, properties, db_name)
     row_count_query_duration = time.time() - start_query_time
@@ -390,7 +401,10 @@ def save_table(sqlctx, table_name, squark_metadata):
 
     if USE_AWS:
         s2 = time.time()
-        save_path = "s3n://{AWS_ACCESS_KEY_ID}:{AWS_SECRET_ACCESS_KEY}@{SQUARK_BUCKET}/{SQUARK_TYPE}/{PROJECT_ID}/{TABLE_NAME}/{TABLE_NAME}.orc/".format(
+        s3_file_system = 's3a' if USE_CLUSTER_EMR else 's3n'
+        #s3_file_system = 's3n'
+        save_path = "{S3_FILESYSTEM}://{AWS_ACCESS_KEY_ID}:{AWS_SECRET_ACCESS_KEY}@{SQUARK_BUCKET}/{SQUARK_TYPE}/{PROJECT_ID}/{TABLE_NAME}/{TABLE_NAME}.orc/".format(
+                S3_FILESYSTEM = s3_file_system,
                 AWS_ACCESS_KEY_ID=AWS_ACCESS_KEY_ID,
                 AWS_SECRET_ACCESS_KEY=AWS_SECRET_ACCESS_KEY,
                 SQUARK_BUCKET=SQUARK_BUCKET,
@@ -461,7 +475,8 @@ def save_table(sqlctx, table_name, squark_metadata):
 def main():
     try:
         conf = SparkConf()
-        conf.set("spark.local.dir", "/hadoop/sparklocal")
+        if not USE_CLUSTER_EMR:
+            conf.set("spark.local.dir", "/hadoop/sparklocal")
         if SPARKLOCAL:
             conf.set("spark.master", "local[{}]".format(SPARKLOCAL_CORE_COUNT))
         sc = SparkContext(appName=SPARK_JOB_NAME, conf=conf)
