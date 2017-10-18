@@ -359,7 +359,7 @@ def save_table(sqlctx, table_name, squark_metadata):
         upper_bound = partition_info['upperBound']
         num_partitions = partition_info['numPartitions']
 
-        df = sqlctx.read.format('jdbc').options(
+        lazy_read = sqlctx.read.format('jdbc').options(
             url=JDBC_URL,
             dbtable=dbtable,
             user=JDBC_USER,
@@ -367,7 +367,12 @@ def save_table(sqlctx, table_name, squark_metadata):
             partitionColumn=partition_column,
             lowerBound=lower_bound,
             upperBound=upper_bound,
-            numPartitions=num_partitions).load()
+            numPartitions=num_partitions)
+
+        if db_name.lower().startswith('oracle'):
+            df = lazy_read.option('oracle.jdbc.timezoneAsRegion', 'False').load()
+        else:
+            df = lazy_read.load()
     else:
         if db_name.lower().startswith('db2'):
             # per documentation, and logic, this is how we should be doing all queries, but would need to test broadly,
