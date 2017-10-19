@@ -29,6 +29,10 @@ S3_FUSE_LOCATION = os.environ.get('S3_FUSE_LOCATION','/mnt/s3/')
 TABLE_NUM_RETRY = int(os.environ.get('SQUARK_NUM_RETRY','1'))
 S3_CONNECTION_ID = os.environ.get('S3_CONNECTION_ID')
 
+JENKINS_URL = os.environ.get('JENKINS_URL', '')
+JOB_NAME = os.environ.get('JOB_NAME', '')
+BUILD_NUMBER = os.environ.get('BUILD_NUMBER', '-1')
+
 if LOAD_FROM_AWS:
     aws = squarkenv.sources[S3_CONNECTION_ID]
     AWS_ACCESS_KEY_ID = aws.cfg['access_key_id']
@@ -85,6 +89,7 @@ def get_urls(dirname):
 
 def do_s3_copyfrom(schema_name, table_name, table_prefix, urls):
     urls = urls[:]
+    curr_retry = 0
     while urls:
         _urls = []
         for i in range(MAX_CONNS):
@@ -100,7 +105,7 @@ def do_s3_copyfrom(schema_name, table_name, table_prefix, urls):
         vertica_conn = squarkenv.sources[VERTICA_CONNECTION_ID].conn
         logging.info("---- Launching s3 copy command...")
         # Add retries for loading data from s3
-        curr_retry = 0
+        # curr_retry = 0
         retry_bool = True
         print('----------------------------')
         while retry_bool and curr_retry < TABLE_NUM_RETRY:
@@ -122,6 +127,8 @@ def do_s3_copyfrom(schema_name, table_name, table_prefix, urls):
         print('Load Successful...')
         print('----------------------------')
 
+    return curr_retry + 1
+
 def do_copyfrom(schema_name, table_name, table_prefix, urls):
     urls = urls[:]
     while urls:
@@ -141,6 +148,34 @@ def do_copyfrom(schema_name, table_name, table_prefix, urls):
         cursor.execute(sql)
         cursor.close()
 
+def check_and_commit(vertica_conn):
+    if not vertica_conn.autocommit:
+        vertica_conn.commit()
+
+def update_squark_load_timings(project_id, table_name, time_taken, attempt_count):
+    jenkins_name = JENKINS_URL.split('.')[0].split('/')[-1]
+    vertica_conn = squarkenv.sources[VERTICA_CONNECTION_ID].conn
+    query = """INSERT INTO {TIMING_SCHEMA}.{TIMING_TABLE} (jenkins_name, job_name, build_number, project_id, table_name, seconds_taken, attempt_count, date_loaded) VALUES (
+            '{JENKINS_NAME}', '{JOB_NAME}', '{BUILD_NUMBER}', '{PROJECT_ID}', '{TABLE_NAME}', {SECONDS_TAKEN}, {ATTEMPT_COUNT}, CURRENT_TIMESTAMP);"""
+
+    cursor = vertica_conn.cursor()
+    logging.info('---- Initiating sending load timings to vertica...')
+    rs = cursor.execute(query.format(
+        TIMING_SCHEMA='admin',
+        TIMING_TABLE='squark_load_timings',
+        JENKINS_NAME=jenkins_name,
+        JOB_NAME=JOB_NAME,
+        BUILD_NUMBER=BUILD_NUMBER,
+        PROJECT_ID=project_id,
+        TABLE_NAME=table_name,
+        SECONDS_TAKEN=time_taken,
+        ATTEMPT_COUNT=attempt_count,
+        ))
+    check_and_commit(vertica_conn)
+    logging.info('---- Finished sending load timings to vertica...')
+    cursor.close()
+
+
 def main():
     schema_name = sys.argv[1]
     dirname = sys.argv[2]
@@ -154,7 +189,13 @@ def main():
         # sort by table to match all_tables processing -> last written table will be last loaded, better for S3 store
         for table_name, aws_urls in sorted(aws_urls.items()):
             print('XXX: Loading S3 %s (%d files)' % (table_name, len(aws_urls)))
-            do_s3_copyfrom(schema_name, table_name, table_prefix, aws_urls)
+            s1 = time.time()
+            num_attempts = do_s3_copyfrom(schema_name, table_name, table_prefix, aws_urls)
+            table_time = round(time.time() - s1)
+            # admin table will be updated after each table is loaded to vertica, i.e. even if full job later fails
+            update_squark_load_timings(project_id=PROJECT_ID, table_name=table_name, time_taken=table_time,
+                                       attempt_count=num_attempts)
+
     if LOAD_FROM_HDFS:
         urls = get_urls(dirname)
         items = list(urls.items())
