@@ -68,6 +68,42 @@ def send_source_row_counts_to_vertica(vertica_conn, project_id, source_schema, r
     print('Finished sending the row counts to vertica...')
 
 
+def send_load_timing_to_vertica(vertica_conn, jenkins_name, job_name, build_number, project_id, table_name, time_taken, attempt_count, source):
+    """
+    Function: send_load_timing_to_vertica - send timing on number of seconds to load a table from source to Vertica using COPY.
+            This function takes, and inserts, a single row of data at a time.
+    Args:
+        vertica_conn - The connection to the vertica instance.
+        jenkins_name (str) - The name originating Jenkins instance.
+        job_name (str) - Name of Jenkins job initiating the squark load.
+        build_number (int) - Build number from Jenkins job.
+        project_id (str) - Squark project_id, matches the target schema name in Vertica.
+        table_name (str) - Table name.
+        time_taken (int) - Number of seconds to load into Vertica.
+        attempt_count (int) - Number of attempts made on this table, relevant when source = s3, 1 if no retries
+        source (str) - Where the data is being loaded from, initially either 'hdfs' or 's3'.
+    """
+    query = """INSERT INTO {TIMING_SCHEMA}.{TIMING_TABLE} (jenkins_name, job_name, build_number, project_id, table_name, seconds_taken, attempt_count, source, date_loaded) VALUES (
+            '{JENKINS_NAME}', '{JOB_NAME}', {BUILD_NUMBER}, '{PROJECT_ID}', '{TABLE_NAME}', {SECONDS_TAKEN}, {ATTEMPT_COUNT}, '{SOURCE}', CURRENT_TIMESTAMP);"""
+
+    cursor = vertica_conn.cursor()
+    print('---- Initiating sending load timings to vertica...', flush=True)
+    rs = cursor.execute(query.format(
+        TIMING_SCHEMA=config.ADMIN_SCHEMA,
+        TIMING_TABLE=config.ADMIN_LOAD_TIMING_TABLE,
+        JENKINS_NAME=jenkins_name,
+        JOB_NAME=job_name,
+        BUILD_NUMBER=build_number,
+        PROJECT_ID=project_id,
+        TABLE_NAME=table_name,
+        SECONDS_TAKEN=time_taken,
+        ATTEMPT_COUNT=attempt_count,
+        SOURCE=source,
+        ))
+    check_and_commit(vertica_conn)
+    print('---- Finished sending load timings to vertica...', flush=True)
+
+
 def get_large_data_ddl_def(vertica_conn, project_id, table_name):
     """
     Function: get_large_data_ddl_def - Query config table for custom length value(s) tied to columns with long src data

@@ -11,6 +11,7 @@ import time
 
 from pywebhdfs.webhdfs import PyWebHdfsClient
 import squark.config.environment
+import utils
 
 squarkenv = squark.config.environment.Environment()
 
@@ -148,33 +149,11 @@ def do_copyfrom(schema_name, table_name, table_prefix, urls):
         cursor.execute(sql)
         cursor.close()
 
-def check_and_commit(vertica_conn):
-    if not vertica_conn.autocommit:
-        vertica_conn.commit()
-
-def update_squark_load_timings(project_id, table_name, time_taken, attempt_count):
+def update_squark_load_timings(project_id, table_name, time_taken, attempt_count, source):
     jenkins_name = JENKINS_URL.split('.')[0].split('/')[-1]
     vertica_conn = squarkenv.sources[VERTICA_CONNECTION_ID].conn
-    query = """INSERT INTO {TIMING_SCHEMA}.{TIMING_TABLE} (jenkins_name, job_name, build_number, project_id, table_name, seconds_taken, attempt_count, date_loaded) VALUES (
-            '{JENKINS_NAME}', '{JOB_NAME}', '{BUILD_NUMBER}', '{PROJECT_ID}', '{TABLE_NAME}', {SECONDS_TAKEN}, {ATTEMPT_COUNT}, CURRENT_TIMESTAMP);"""
-
-    cursor = vertica_conn.cursor()
-    logging.info('---- Initiating sending load timings to vertica...')
-    rs = cursor.execute(query.format(
-        TIMING_SCHEMA='admin',
-        TIMING_TABLE='squark_load_timings',
-        JENKINS_NAME=jenkins_name,
-        JOB_NAME=JOB_NAME,
-        BUILD_NUMBER=BUILD_NUMBER,
-        PROJECT_ID=project_id,
-        TABLE_NAME=table_name,
-        SECONDS_TAKEN=time_taken,
-        ATTEMPT_COUNT=attempt_count,
-        ))
-    check_and_commit(vertica_conn)
-    logging.info('---- Finished sending load timings to vertica...')
-    cursor.close()
-
+    utils.send_load_timing_to_vertica(vertica_conn, jenkins_name, JOB_NAME, BUILD_NUMBER, project_id, table_name,
+                                      time_taken, attempt_count, source)
 
 def main():
     schema_name = sys.argv[1]
@@ -194,7 +173,7 @@ def main():
             table_time = round(time.time() - s1)
             # admin table will be updated after each table is loaded to vertica, i.e. even if full job later fails
             update_squark_load_timings(project_id=PROJECT_ID, table_name=table_name, time_taken=table_time,
-                                       attempt_count=num_attempts)
+                                       attempt_count=num_attempts, source='s3')
 
     if LOAD_FROM_HDFS:
         urls = get_urls(dirname)
