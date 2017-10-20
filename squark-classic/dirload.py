@@ -171,7 +171,7 @@ def main():
             print('XXX: Loading S3 %s (%d files)' % (table_name, len(aws_urls)))
             s1 = time.time()
             num_attempts = do_s3_copyfrom(schema_name, table_name, table_prefix, aws_urls)
-            table_time = round(time.time() - s1)
+            table_time = time.time() - s1
             # admin table will be updated after each table is loaded to vertica, i.e. even if full job later fails
             update_squark_load_timings(project_id=PROJECT_ID, table_name=table_name, time_taken=table_time,
                                        attempt_count=num_attempts, source='s3', total_table_count=total_table_count)
@@ -185,7 +185,7 @@ def main():
             print('XXX: Loading %s (%d files)' % (table_name, len(urls)))
             s1 = time.time()
             do_copyfrom(schema_name, table_name, table_prefix, urls)
-            table_time = round(time.time() - s1)
+            table_time = time.time() - s1
             update_squark_load_timings(project_id=PROJECT_ID, table_name=table_name, time_taken=table_time,
                                        attempt_count=1, source='hdfs', total_table_count=total_table_count)
 

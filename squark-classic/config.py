@@ -42,7 +42,7 @@ ADMIN_LOAD_TIMINGTABLE_DDL="""CREATE TABLE {SCHEMA}.{TABLE} (
     build_number int,
     project_id varchar(50),
     table_name varchar(100),
-    seconds_taken int,
+    seconds_taken numeric(37,2),
     attempt_count int,
     source varchar(50),
     total_table_count int,
