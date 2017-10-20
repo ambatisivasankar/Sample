@@ -79,7 +79,7 @@ def send_load_timing_to_vertica(vertica_conn, jenkins_name, job_name, build_numb
         build_number (int) - Build number from Jenkins job.
         project_id (str) - Squark project_id, matches the target schema name in Vertica.
         table_name (str) - Table name.
-        time_taken (int) - Number of seconds to load into Vertica.
+        time_taken (float) - Number of seconds to load into Vertica.
         attempt_count (int) - Number of attempts made on this table, relevant when source = s3, 1 if no retries
         source (str) - Where the data is being loaded from, initially either 'hdfs' or 's3'.
     """
