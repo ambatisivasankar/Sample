@@ -178,11 +178,16 @@ def main():
 
     if LOAD_FROM_HDFS:
         urls = get_urls(dirname)
+        total_table_count = len(urls.keys())
         items = list(urls.items())
         items.sort(key=lambda item: len(item[1]), reverse=True)
         for table_name, urls in urls.items():
             print('XXX: Loading %s (%d files)' % (table_name, len(urls)))
+            s1 = time.time()
             do_copyfrom(schema_name, table_name, table_prefix, urls)
+            table_time = round(time.time() - s1)
+            update_squark_load_timings(project_id=PROJECT_ID, table_name=table_name, time_taken=table_time,
+                                       attempt_count=1, source='hdfs', total_table_count=total_table_count)
 
 
 if __name__ == '__main__':
