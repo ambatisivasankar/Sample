@@ -68,7 +68,7 @@ def send_source_row_counts_to_vertica(vertica_conn, project_id, source_schema, r
     print('Finished sending the row counts to vertica...')
 
 
-def send_load_timing_to_vertica(vertica_conn, jenkins_name, job_name, build_number, project_id, table_name, time_taken, attempt_count, source):
+def send_load_timing_to_vertica(vertica_conn, jenkins_name, job_name, build_number, project_id, table_name, time_taken, attempt_count, source, total_table_count):
     """
     Function: send_load_timing_to_vertica - send timing on number of seconds to load a table from source to Vertica using COPY.
             This function takes, and inserts, a single row of data at a time.
@@ -83,9 +83,8 @@ def send_load_timing_to_vertica(vertica_conn, jenkins_name, job_name, build_numb
         attempt_count (int) - Number of attempts made on this table, relevant when source = s3, 1 if no retries
         source (str) - Where the data is being loaded from, initially either 'hdfs' or 's3'.
     """
-    query = """INSERT INTO {TIMING_SCHEMA}.{TIMING_TABLE} (jenkins_name, job_name, build_number, project_id, table_name, seconds_taken, attempt_count, source, date_loaded) VALUES (
-            '{JENKINS_NAME}', '{JOB_NAME}', {BUILD_NUMBER}, '{PROJECT_ID}', '{TABLE_NAME}', {SECONDS_TAKEN}, {ATTEMPT_COUNT}, '{SOURCE}', CURRENT_TIMESTAMP);"""
-
+    query = """INSERT INTO {TIMING_SCHEMA}.{TIMING_TABLE} (jenkins_name, job_name, build_number, project_id, table_name, seconds_taken, attempt_count, source, total_table_count, date_loaded) VALUES (
+            '{JENKINS_NAME}', '{JOB_NAME}', {BUILD_NUMBER}, '{PROJECT_ID}', '{TABLE_NAME}', {SECONDS_TAKEN}, {ATTEMPT_COUNT}, '{SOURCE}', {TOTAL_TABLE_COUNT}, CURRENT_TIMESTAMP);"""
     cursor = vertica_conn.cursor()
     print('---- Initiating sending load timings to vertica...', flush=True)
     rs = cursor.execute(query.format(
@@ -99,6 +98,7 @@ def send_load_timing_to_vertica(vertica_conn, jenkins_name, job_name, build_numb
         SECONDS_TAKEN=time_taken,
         ATTEMPT_COUNT=attempt_count,
         SOURCE=source,
+        TOTAL_TABLE_COUNT=total_table_count,
         ))
     check_and_commit(vertica_conn)
     print('---- Finished sending load timings to vertica...', flush=True)

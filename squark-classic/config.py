@@ -45,6 +45,7 @@ ADMIN_LOAD_TIMINGTABLE_DDL="""CREATE TABLE {SCHEMA}.{TABLE} (
     seconds_taken int,
     attempt_count int,
     source varchar(50),
+    total_table_count int,
     date_loaded timestamp
     );""".format(SCHEMA=ADMIN_SCHEMA, TABLE=ADMIN_LOAD_TIMING_TABLE)
 

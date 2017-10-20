@@ -149,11 +149,11 @@ def do_copyfrom(schema_name, table_name, table_prefix, urls):
         cursor.execute(sql)
         cursor.close()
 
-def update_squark_load_timings(project_id, table_name, time_taken, attempt_count, source):
+def update_squark_load_timings(project_id, table_name, time_taken, attempt_count, source, total_table_count):
     jenkins_name = JENKINS_URL.split('.')[0].split('/')[-1]
     vertica_conn = squarkenv.sources[VERTICA_CONNECTION_ID].conn
     utils.send_load_timing_to_vertica(vertica_conn, jenkins_name, JOB_NAME, BUILD_NUMBER, project_id, table_name,
-                                      time_taken, attempt_count, source)
+                                      time_taken, attempt_count, source, total_table_count)
 
 def main():
     schema_name = sys.argv[1]
@@ -164,6 +164,7 @@ def main():
         table_prefix = ''
     if LOAD_FROM_AWS:
         aws_urls = get_s3_urls(PROJECT_ID)
+        total_table_count = len(aws_urls.keys())
         print('DEBUG: S3 .orc url listing, sorted: {}'.format(sorted(aws_urls.items())))
         # sort by table to match all_tables processing -> last written table will be last loaded, better for S3 store
         for table_name, aws_urls in sorted(aws_urls.items()):
@@ -173,7 +174,7 @@ def main():
             table_time = round(time.time() - s1)
             # admin table will be updated after each table is loaded to vertica, i.e. even if full job later fails
             update_squark_load_timings(project_id=PROJECT_ID, table_name=table_name, time_taken=table_time,
-                                       attempt_count=num_attempts, source='s3')
+                                       attempt_count=num_attempts, source='s3', total_table_count=total_table_count)
 
     if LOAD_FROM_HDFS:
         urls = get_urls(dirname)
