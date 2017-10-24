@@ -11,6 +11,7 @@ import time
 
 from pywebhdfs.webhdfs import PyWebHdfsClient
 import squark.config.environment
+import utils
 
 squarkenv = squark.config.environment.Environment()
 
@@ -28,6 +29,10 @@ LOAD_FROM_HDFS = os.environ.get('LOAD_FROM_HDFS')
 S3_FUSE_LOCATION = os.environ.get('S3_FUSE_LOCATION','/mnt/s3/')
 TABLE_NUM_RETRY = int(os.environ.get('SQUARK_NUM_RETRY','1'))
 S3_CONNECTION_ID = os.environ.get('S3_CONNECTION_ID')
+
+JENKINS_URL = os.environ.get('JENKINS_URL', '')
+JOB_NAME = os.environ.get('JOB_NAME', '')
+BUILD_NUMBER = os.environ.get('BUILD_NUMBER', '-1')
 
 if LOAD_FROM_AWS:
     aws = squarkenv.sources[S3_CONNECTION_ID]
@@ -85,6 +90,7 @@ def get_urls(dirname):
 
 def do_s3_copyfrom(schema_name, table_name, table_prefix, urls):
     urls = urls[:]
+    curr_retry = 0
     while urls:
         _urls = []
         for i in range(MAX_CONNS):
@@ -100,7 +106,7 @@ def do_s3_copyfrom(schema_name, table_name, table_prefix, urls):
         vertica_conn = squarkenv.sources[VERTICA_CONNECTION_ID].conn
         logging.info("---- Launching s3 copy command...")
         # Add retries for loading data from s3
-        curr_retry = 0
+        # curr_retry = 0
         retry_bool = True
         print('----------------------------')
         while retry_bool and curr_retry < TABLE_NUM_RETRY:
@@ -122,6 +128,8 @@ def do_s3_copyfrom(schema_name, table_name, table_prefix, urls):
         print('Load Successful...')
         print('----------------------------')
 
+    return curr_retry + 1
+
 def do_copyfrom(schema_name, table_name, table_prefix, urls):
     urls = urls[:]
     while urls:
@@ -141,6 +149,12 @@ def do_copyfrom(schema_name, table_name, table_prefix, urls):
         cursor.execute(sql)
         cursor.close()
 
+def update_squark_load_timings(project_id, table_name, time_taken, attempt_count, source, total_table_count):
+    jenkins_name = JENKINS_URL.split('.')[0].split('/')[-1]
+    vertica_conn = squarkenv.sources[VERTICA_CONNECTION_ID].conn
+    utils.send_load_timing_to_vertica(vertica_conn, jenkins_name, JOB_NAME, BUILD_NUMBER, project_id, table_name,
+                                      time_taken, attempt_count, source, total_table_count)
+
 def main():
     schema_name = sys.argv[1]
     dirname = sys.argv[2]
@@ -150,18 +164,30 @@ def main():
         table_prefix = ''
     if LOAD_FROM_AWS:
         aws_urls = get_s3_urls(PROJECT_ID)
+        total_table_count = len(aws_urls.keys())
         print('DEBUG: S3 .orc url listing, sorted: {}'.format(sorted(aws_urls.items())))
         # sort by table to match all_tables processing -> last written table will be last loaded, better for S3 store
         for table_name, aws_urls in sorted(aws_urls.items()):
             print('XXX: Loading S3 %s (%d files)' % (table_name, len(aws_urls)))
-            do_s3_copyfrom(schema_name, table_name, table_prefix, aws_urls)
+            s1 = time.time()
+            num_attempts = do_s3_copyfrom(schema_name, table_name, table_prefix, aws_urls)
+            table_time = time.time() - s1
+            # admin table will be updated after each table is loaded to vertica, i.e. even if full job later fails
+            update_squark_load_timings(project_id=PROJECT_ID, table_name=table_name, time_taken=table_time,
+                                       attempt_count=num_attempts, source='s3', total_table_count=total_table_count)
+
     if LOAD_FROM_HDFS:
         urls = get_urls(dirname)
+        total_table_count = len(urls.keys())
         items = list(urls.items())
         items.sort(key=lambda item: len(item[1]), reverse=True)
         for table_name, urls in urls.items():
             print('XXX: Loading %s (%d files)' % (table_name, len(urls)))
+            s1 = time.time()
             do_copyfrom(schema_name, table_name, table_prefix, urls)
+            table_time = time.time() - s1
+            update_squark_load_timings(project_id=PROJECT_ID, table_name=table_name, time_taken=table_time,
+                                       attempt_count=1, source='hdfs', total_table_count=total_table_count)
 
 
 if __name__ == '__main__':
