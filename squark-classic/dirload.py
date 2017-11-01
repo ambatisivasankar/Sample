@@ -38,7 +38,9 @@ if LOAD_FROM_AWS:
     aws = squarkenv.sources[S3_CONNECTION_ID]
     AWS_ACCESS_KEY_ID = aws.cfg['access_key_id']
     AWS_SECRET_ACCESS_KEY = aws.cfg['secret_access_key']
-    SQUARK_BUCKET = os.environ.get('SQUARK_BUCKET','squark')
+    SQUARK_BUCKET = os.environ['SQUARK_BUCKET']
+    if SQUARK_BUCKET.lower() in ['squark','squark-dsprd']:
+        raise TypeError('Invalid bucket specified: {}'.format(SQUARK_BUCKET))
     #SQUARK_BUCKET='squark'
     #vertica_aws_conn = squarkenv.sources['vertica_aws'].conn
 if LOAD_FROM_HDFS:
