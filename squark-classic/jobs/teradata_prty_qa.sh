@@ -17,7 +17,7 @@ export JSON_INFO="
               'partitionColumn': 'PRTY_ID',
               'lowerBound': 8450000,
               'upperBound': 32000000,
-              'numPartitions': 200
+              'numPartitions': 40
             }
         }
     }
