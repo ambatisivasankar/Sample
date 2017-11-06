@@ -1,10 +1,11 @@
 export PROJECT_ID=verint
 export WAREHOUSE_DIR='/_wh/'
 export SQL_TEMPLATE='%s'
-# 2017.10.31, leaving out QUEUEHISTORYTIMESERIES until filter/partitioning is figured out
 export INCLUDE_TABLES="QUEUE,QUEUEHISTORYTIMESERIES,SPQUEUE,SPQUEUESKILL,SKILL,FORECASTTIMESERIES"
 export CONNECTION_ID=verint
 export SQUARK_METADATA=1
+# because of the subsetting below, skipping source row counts entirely
+export SKIP_SOURCE_ROW_COUNT=1
 
 
 export JSON_INFO="
