@@ -17,31 +17,31 @@ export JSON_INFO="
               'partitionColumn': 'AGREEMENT_ID',
               'lowerBound': 1,
               'upperBound': 30000000,
-              'numPartitions': 200
+              'numPartitions': 50
             },
             'AGMT_VAL_CMN_VW': {
               'partitionColumn': 'AGREEMENT_ID',
               'lowerBound': 1,
               'upperBound': 30000000,
-              'numPartitions': 200
+              'numPartitions': 50
             },
             'PDCR_AGMT_CMN_VW': {
               'partitionColumn': 'AGREEMENT_ID',
               'lowerBound': 1,
               'upperBound': 30000000,
-              'numPartitions': 200
+              'numPartitions': 50
             },
             'CUST_AGMT_CMN_VW': {
               'partitionColumn': 'AGREEMENT_ID',
               'lowerBound': 1,
               'upperBound': 30000000,
-              'numPartitions': 200
+              'numPartitions': 50
             },
             'CUST_DEMOGRAPHICS_VW': {
               'partitionColumn': 'PRTY_ID',
               'lowerBound': 21800000,
               'upperBound': 33000000,
-              'numPartitions': 200
+              'numPartitions': 50
             }
         }
    }
