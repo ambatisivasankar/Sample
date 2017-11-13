@@ -21,6 +21,14 @@ for i in "$@"; do
             TMP_SQUARK_WAREHOUSE="/wh_dev/"
             TMP_SQUARK_ARCHIVE="/wh_dev_archive/"
         ;;
+        --qa)
+            VERTICA_CONNECTION_ID="vertica_dev"
+            VERTICA_HOST="vertica-dev"
+            WH_DIR="/_wh_dev/"
+            SQUARK_TYPE=squark-qa
+            TMP_SQUARK_WAREHOUSE="/wh_dev/"
+            TMP_SQUARK_ARCHIVE="/wh_dev_archive/"
+        ;;
         --prod|--production)
             VERTICA_CONNECTION_ID="vertica_prod"
             VERTICA_HOST="vertica"
@@ -129,6 +137,8 @@ if [[ ( -z $CUSTOM_VERT_CONN_ID && $USE_AWS ) ]]; then
     if [ $SQUARK_TYPE == "squark-dev" ]; then
         # Set aws vertica dev properties.
         VERTICA_CONNECTION_ID="vertica_aws_nprd"
+    elif [ $SQUARK_TYPE == "squark-qa" ]; then
+        VERTICA_CONNECTION_ID="vertica_aws_nprd_qa"
     elif [ $SQUARK_TYPE == "squark-prod" ]; then
         VERTICA_CONNECTION_ID="vertica_aws"
     fi
