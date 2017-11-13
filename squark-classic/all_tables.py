@@ -421,26 +421,36 @@ def save_table(sqlctx, table_name, squark_metadata):
         )
         print('******* SAVING TABLE TO S3: %r' % save_path.replace(AWS_SECRET_ACCESS_KEY,'********'))
         opts = dict(codec=WRITE_CODEC)
-        # Adding retries to the save process for aws s3 saves
-        print('-----------------------------------------')
-        curr_retry = 0
-        retry_bool = True
-        while retry_bool and curr_retry < TABLE_RETRY_NUM:
-            print('Attempting to save {table}: [Attempt {curr}/{tot}]'.format(
-                    table=dbtable, curr=curr_retry+1, tot=TABLE_RETRY_NUM))
-            try:
-                df.write.format('orc').options(**opts).save(save_path, mode=WRITE_MODE)
-                retry_bool = False
-            except Exception as e:
-                print('!! -- An Error occurred while trying to save table: %r'%(dbtable))
-                print(str(e))
-                print('Taking a quick 5 second nap and restarting the save for this table...')
-                curr_retry += 1
-                time.sleep(5)
-        if retry_bool:
-            print('ERROR! Number of retries exceeded!! Exiting...')
+
+        print('Attempting to save {table}'.format(table=dbtable))
+        try:
+            df.write.format('orc').options(**opts).save(save_path, mode=WRITE_MODE)
+        except Exception as e:
+            print('!! -- An Error occurred while trying to save table: %r' % (dbtable))
+            print(str(e))
             raise
-        print('Save successful...')       
+
+        # # Adding retries to the save process for aws s3 saves
+        # print('-----------------------------------------')
+        # curr_retry = 0
+        # retry_bool = True
+        # while retry_bool and curr_retry < TABLE_RETRY_NUM:
+        #     print('Attempting to save {table}: [Attempt {curr}/{tot}]'.format(
+        #             table=dbtable, curr=curr_retry+1, tot=TABLE_RETRY_NUM))
+        #     try:
+        #         df.write.format('orc').options(**opts).save(save_path, mode=WRITE_MODE)
+        #         retry_bool = False
+        #     except Exception as e:
+        #         print('!! -- An Error occurred while trying to save table: %r'%(dbtable))
+        #         print(str(e))
+        #         print('Taking a quick 5 second nap and restarting the save for this table...')
+        #         curr_retry += 1
+        #         time.sleep(5)
+        # if retry_bool:
+        #     print('ERROR! Number of retries exceeded!! Exiting...')
+        #     raise
+
+        print('Save successful...')
         print('-----------------------------------------')
         
         e2 = time.time()
@@ -555,7 +565,28 @@ def main():
                     with open('err/%s' % table[table_name_key], 'w') as f:
                         f.write(str(exc))
             else:
-                save_table(sqlctx, table[table_name_key], squark_metadata)
+                #save_table(sqlctx, table[table_name_key], squark_metadata)
+
+                # Moving retries to the save process for aws s3 saves to outside of save_table()
+                print('-----------------------------------------')
+                curr_retry = 0
+                retry_bool = True
+                while retry_bool and curr_retry < TABLE_RETRY_NUM:
+                    print('Attempting to save {table}: [Attempt {curr}/{tot}]'.format(
+                            table=table[table_name_key], curr=curr_retry+1, tot=TABLE_RETRY_NUM))
+                    try:
+                        save_table(sqlctx, table[table_name_key], squark_metadata)
+                        retry_bool = False
+                    except Exception as e:
+                        print('!! -- An Error occurred while trying to save table: %r'%(table[table_name_key]))
+                        print(str(e))
+                        print('Taking a quick 5 second nap and restarting the save for this table...')
+                        curr_retry += 1
+                        time.sleep(5)
+                if retry_bool:
+                    print('ERROR! Number of retries exceeded!! Exiting...')
+                    raise
+
 
             processed_tables.append(table[table_name_key])
             table_time = time.time() - s1
