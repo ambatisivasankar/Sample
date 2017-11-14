@@ -11,6 +11,7 @@ from pyspark.sql.types import ArrayType
 
 import squark.config.environment
 import squark.stats
+import squark.exceptions
 import sys
 from decimal import Decimal
 import json
@@ -426,9 +427,10 @@ def save_table(sqlctx, table_name, squark_metadata):
         try:
             df.write.format('orc').options(**opts).save(save_path, mode=WRITE_MODE)
         except Exception as e:
-            print('!! -- An Error occurred while trying to save table: %r' % (dbtable))
+            print('!! -- An Error occurred while trying to .save table: %r' % (dbtable))
             print(str(e))
-            raise
+            raise squark.exceptions.SaveToS3Error('save to S3 failed') from e
+            #raise
 
         # # Adding retries to the save process for aws s3 saves
         # print('-----------------------------------------')
@@ -464,7 +466,8 @@ def save_table(sqlctx, table_name, squark_metadata):
         e3 = time.time()
         print(' ----- Writing to HDFS took: %.3f seconds'%(e3-s3))
 
-    if source_row_count and row_count_query_duration < 60:
+    # 2017.11.14, increase duration limit, re doing an AFTER count, from 60 to 90 seconds
+    if source_row_count and row_count_query_duration < 90:
         start_query_time = time.time()
         source_row_count = log_source_row_count(sqlctx, table_name, properties, db_name)
         row_count_query_duration = time.time() - start_query_time
@@ -577,12 +580,16 @@ def main():
                     try:
                         save_table(sqlctx, table[table_name_key], squark_metadata)
                         retry_bool = False
-                    except Exception as e:
-                        print('!! -- An Error occurred while trying to save table: %r'%(table[table_name_key]))
+                    except squark.exceptions.SaveToS3Error as e:
+                        print('!! -- An Error occurred during save_table(): %r'%(table[table_name_key]))
                         print(str(e))
                         print('Taking a quick 5 second nap and restarting the save for this table...')
                         curr_retry += 1
                         time.sleep(5)
+                    except Exception as e:
+                        print('!! -- Exiting after unknown error occurred during save_table(): %r'%(table[table_name_key]))
+                        print(str(e))
+                        retry_bool = False
                 if retry_bool:
                     print('ERROR! Number of retries exceeded!! Exiting...')
                     raise
