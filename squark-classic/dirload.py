@@ -8,6 +8,7 @@ import logging
 import boto3
 import glob
 import time
+import re
 
 from pywebhdfs.webhdfs import PyWebHdfsClient
 import squark.config.environment
@@ -33,6 +34,7 @@ S3_CONNECTION_ID = os.environ.get('S3_CONNECTION_ID')
 JENKINS_URL = os.environ.get('JENKINS_URL', '')
 JOB_NAME = os.environ.get('JOB_NAME', '')
 BUILD_NUMBER = os.environ.get('BUILD_NUMBER', '-1')
+SKIP_UNIQUE_ID_CHECK = os.environ.get('SKIP_UNIQUE_ID_CHECK', '').lower() in ['1', 'true', 'yes']
 
 if LOAD_FROM_AWS:
     aws = squarkenv.sources[S3_CONNECTION_ID]
@@ -168,8 +170,16 @@ def main():
         aws_urls = get_s3_urls(PROJECT_ID)
         total_table_count = len(aws_urls.keys())
         print('DEBUG: S3 .orc url listing, sorted: {}'.format(sorted(aws_urls.items())))
+        # a "part" file, e.g. part-00000-c4492a53-615d-4787-b284-96f6848c0aee-c000.snappy.orc
+        p = re.compile('part-?\d{5}-?(\w{8}-?\w{4}-?\w{4}-?\w{4}-?\w{12}-?\w{4})')
         # sort by table to match all_tables processing -> last written table will be last loaded, better for S3 store
         for table_name, aws_urls in sorted(aws_urls.items()):
+            unique_ids = set(p.findall('|'.join(aws_urls)))
+            print('unique id values in part files: {}'.format(', '.join(unique_ids)))
+            if not SKIP_UNIQUE_ID_CHECK:
+                if len(unique_ids) > 1:
+                    raise ValueError(
+                        'S3 folder contains part files from multiple operations, unique ids: {}'.format(unique_ids))
             print('XXX: Loading S3 %s (%d files)' % (table_name, len(aws_urls)))
             s1 = time.time()
             num_attempts = do_s3_copyfrom(schema_name, table_name, table_prefix, aws_urls)
