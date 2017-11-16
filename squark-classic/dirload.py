@@ -175,11 +175,12 @@ def main():
         # sort by table to match all_tables processing -> last written table will be last loaded, better for S3 store
         for table_name, aws_urls in sorted(aws_urls.items()):
             unique_ids = set(p.findall('|'.join(aws_urls)))
-            print('unique id values in part files: {}'.format(', '.join(unique_ids)))
+            print('table {}, unique id values in part files: {}'.format(table_name, ', '.join(unique_ids)))
             if not SKIP_UNIQUE_ID_CHECK:
                 if len(unique_ids) > 1:
                     raise ValueError(
-                        'S3 folder contains part files from multiple operations, unique ids: {}'.format(unique_ids))
+                        'S3 folder for table {} contains part files from multiple operations, unique ids: {}'.format(
+                            table_name, unique_ids))
             print('XXX: Loading S3 %s (%d files)' % (table_name, len(aws_urls)))
             s1 = time.time()
             num_attempts = do_s3_copyfrom(schema_name, table_name, table_prefix, aws_urls)
