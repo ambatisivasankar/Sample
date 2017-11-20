@@ -17,3 +17,8 @@ class LocationNotWritable(Exception):
 
 class LocationAlreadyExists(Exception):
     pass
+
+
+class SaveToS3Error(Exception):
+    pass
+

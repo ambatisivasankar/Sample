@@ -11,6 +11,7 @@ from pyspark.sql.types import ArrayType
 
 import squark.config.environment
 import squark.stats
+import squark.exceptions
 import sys
 from decimal import Decimal
 import json
@@ -421,28 +422,16 @@ def save_table(sqlctx, table_name, squark_metadata):
         )
         print('******* SAVING TABLE TO S3: %r' % save_path.replace(AWS_SECRET_ACCESS_KEY,'********'))
         opts = dict(codec=WRITE_CODEC)
-        # Adding retries to the save process for aws s3 saves
+        print('Attempting to save {table}'.format(table=dbtable))
+        try:
+            df.write.format('orc').options(**opts).save(save_path, mode=WRITE_MODE)
+        except Exception as e:
+            print('!! -- An Error occurred while trying to .save table: %r' % (dbtable))
+            print(str(e))
+            raise squark.exceptions.SaveToS3Error('save to S3 failed', e)
+
+        print('Save successful...')
         print('-----------------------------------------')
-        curr_retry = 0
-        retry_bool = True
-        while retry_bool and curr_retry < TABLE_RETRY_NUM:
-            print('Attempting to save {table}: [Attempt {curr}/{tot}]'.format(
-                    table=dbtable, curr=curr_retry+1, tot=TABLE_RETRY_NUM))
-            try:
-                df.write.format('orc').options(**opts).save(save_path, mode=WRITE_MODE)
-                retry_bool = False
-            except Exception as e:
-                print('!! -- An Error occurred while trying to save table: %r'%(dbtable))
-                print(str(e))
-                print('Taking a quick 5 second nap and restarting the save for this table...')
-                curr_retry += 1
-                time.sleep(5)
-        if retry_bool:
-            print('ERROR! Number of retries exceeded!! Exiting...')
-            raise
-        print('Save successful...')       
-        print('-----------------------------------------')
-        
         e2 = time.time()
         print(' ----- Writing to S3 took: %.3f seconds'%(e2-s2))
     if USE_HDFS or (not USE_AWS and not USE_HDFS):
@@ -454,7 +443,8 @@ def save_table(sqlctx, table_name, squark_metadata):
         e3 = time.time()
         print(' ----- Writing to HDFS took: %.3f seconds'%(e3-s3))
 
-    if source_row_count and row_count_query_duration < 60:
+    # 2017.11.14, increase duration limit, re doing an AFTER count, from 60 to 90 seconds
+    if source_row_count and row_count_query_duration < 90:
         start_query_time = time.time()
         source_row_count = log_source_row_count(sqlctx, table_name, properties, db_name)
         row_count_query_duration = time.time() - start_query_time
@@ -555,7 +545,31 @@ def main():
                     with open('err/%s' % table[table_name_key], 'w') as f:
                         f.write(str(exc))
             else:
-                save_table(sqlctx, table[table_name_key], squark_metadata)
+                # Moving retries for aws s3 saves to outside of save_table(), only retry if the df.write() fails
+                print('-----------------------------------------')
+                curr_retry = 0
+                retry_bool = True
+                while retry_bool and curr_retry < TABLE_RETRY_NUM:
+                    print('Attempting to save {table}: [Attempt {curr}/{tot}]'.format(
+                            table=table[table_name_key], curr=curr_retry+1, tot=TABLE_RETRY_NUM))
+                    try:
+                        save_table(sqlctx, table[table_name_key], squark_metadata)
+                        retry_bool = False
+                    except squark.exceptions.SaveToS3Error as e:
+                        print('!! -- An Error occurred during save_table(): %r'%(table[table_name_key]))
+                        print(str(e))
+                        print('Taking a quick 5 second nap and restarting the save for this table...')
+                        curr_retry += 1
+                        time.sleep(5)
+                    except Exception as e:
+                        print('!! -- Exiting after unknown error occurred during save_table(): %r'%(table[table_name_key]))
+                        print(str(e))
+                        retry_bool = False
+                        raise
+                if retry_bool:
+                    print('ERROR! Number of retries exceeded!! Exiting...')
+                    raise
+
 
             processed_tables.append(table[table_name_key])
             table_time = time.time() - s1
