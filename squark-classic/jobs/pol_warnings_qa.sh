@@ -1,4 +1,4 @@
-export PROJECT_ID=pol_warnings
+export PROJECT_ID=pol_warnings_qa
 export WAREHOUSE_DIR='/_wh/'
 export SQL_TEMPLATE='%s'
 #export EXCLUDE_TABLES=""
