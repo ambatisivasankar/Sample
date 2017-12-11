@@ -1,11 +1,11 @@
-export PROJECT_ID=pol_warnings_st
+export PROJECT_ID=pol_warnings_prd
 export WAREHOUSE_DIR='/_wh/'
 export SQL_TEMPLATE='%s'
 #export EXCLUDE_TABLES=""
 export INCLUDE_TABLES="MSG"
 #export INCLUDE_VIEWS=1
 export SKIP_SOURCE_ROW_COUNT=1
-export CONNECTION_ID=pol_warnings_st
+export CONNECTION_ID=pol_warnings_prd
 #export STATS_CONFIG="
 #{
 #    'profiles': {

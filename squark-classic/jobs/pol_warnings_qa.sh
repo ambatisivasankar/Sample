@@ -5,7 +5,7 @@ export SQL_TEMPLATE='%s'
 export INCLUDE_TABLES="MSG"
 #export INCLUDE_VIEWS=1
 export SKIP_SOURCE_ROW_COUNT=1
-export CONNECTION_ID=pol_warnings
+export CONNECTION_ID=pol_warnings_qa
 #export STATS_CONFIG="
 #{
 #    'profiles': {
