@@ -95,6 +95,7 @@ SPARKLOCAL = os.environ.get('SPARKLOCAL', '0').lower() in ['1', 'true', 'yes']
 SPARKLOCAL_CORE_COUNT = os.environ.get('SPARKLOCAL_CORE_COUNT', 1)
 TABLE_RETRY_NUM = int(os.environ.get('SQUARK_NUM_RETRY', '1'))
 USE_CLUSTER_EMR = os.environ.get('USE_CLUSTER_EMR', '').lower() in ['1', 'true', 'yes']
+WIDE_COLUMNS_MD5 = os.environ.get('WIDE_COLUMNS_MD5', '').lower() in ['1', 'true', 'yes']
 
 # Get the environment variable for whether to stringify the columns which are array types (for SOG mainly)
 CONVERT_ARRAYS_TO_STRING = os.environ.get('CONVERT_ARRAYS_TO_STRING')
@@ -123,7 +124,12 @@ if USE_AWS:
 vertica_conn = squarkenv.sources[VERTICA_CONNECTION_ID].conn
 
 def add_md5_column(df):
-    return df.withColumn('_advana_md5', F.md5(F.concat_ws('!@#$', *df.columns)))
+    # 20171213, AR-268 large number of columns leading to StackOverflow error in AWS/EMR environment
+    #   before using on a given table want to confirm limiting to first 400 columns will still result in unique MD5
+    if WIDE_COLUMNS_MD5:
+        return df.withColumn('_advana_md5', F.md5(F.concat_ws('!@#$', *df.columns[:400])))
+    else:
+        return df.withColumn('_advana_md5', F.md5(F.concat_ws('!@#$', *df.columns)))
 
 def add_auto_incr_column(df):
     #return df.withColumn('_advana_id', F.monotonicallyIncreasingId())
@@ -243,8 +249,8 @@ def conform_any_extreme_decimals(df):
 def push_graphite_stats(stats, table_name):
     """
     Function to push data stats (such as count) to graphite.
-    Takes only the stats dictionary as input, but expects to 
-    find the 'hostedgraphite' url, token, and port in the 
+    Takes only the stats dictionary as input, but expects to
+    find the 'hostedgraphite' url, token, and port in the
     secrets file.
     """
     stats_time = int(time.time())
@@ -262,7 +268,7 @@ def push_graphite_stats(stats, table_name):
     conn = socket.create_connection((GRAPHITE_URL, GRAPHITE_PORT))
     conn.send(message.encode('utf8'))
 
-    # Send error 
+    # Send error
     message = "{API_TOKEN}.squark.{SQUARK_TYPE}.{PROJECT_ID}.{TABLE_NAME}.error_code {ERROR_CODE} {TIME}\n".format(
             API_TOKEN=GRAPHITE_TOKEN,
             SQUARK_TYPE=SQUARK_TYPE,
@@ -436,7 +442,7 @@ def save_table(sqlctx, table_name, squark_metadata):
         print(' ----- Writing to S3 took: %.3f seconds'%(e2-s2))
     if USE_HDFS or (not USE_AWS and not USE_HDFS):
         s3 = time.time()
-        save_path = "%s/%s" % (DATA_DIR, table_name)    
+        save_path = "%s/%s" % (DATA_DIR, table_name)
         print('******* SAVING TABLE TO HDFS: %r' % save_path)
         opts = dict(codec=WRITE_CODEC)
         df.write.format(WRITE_FORMAT).options(**opts).save(save_path, mode=WRITE_MODE)
@@ -510,16 +516,16 @@ def main():
                 if table[table_name_key] not in INCLUDE_TABLES:
                     print('*******SKIPPING NOT INCLUDED TABLE: %r' % table)
                     continue
-    
+
             if table[table_name_key] in EXCLUDE_TABLES:
                 print('*******SKIPPING EXCLUDE_TABLES TABLE: %r' % table)
                 continue
-    
+
             # Skip indexes and stuff
             if table['table_type'] not in ('TABLE', 'VIEW'):
                 print('**********SKIPPING NON-TABLE/VIEW, table_type: {}'.format(table['table_type']))
                 continue
-    
+
             if CHECK_PRIVILEGES:
                 # Skip if we can't read the table.
                 privs = conn._metadata.getTablePrivileges(conn._jconn.getCatalog(), "%", table["table_name"])
@@ -532,7 +538,7 @@ def main():
                 if not can_select:
                     print("**********SKIPPING TABLE (no select available): %r" % table)
                     continue
-    
+
             if SKIP_ERRORS:
                 try:
                     save_table(sqlctx, table[table_name_key], squark_metadata)
