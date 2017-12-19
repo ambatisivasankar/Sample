@@ -6,7 +6,9 @@ export CONNECTION_ID=verint
 export SQUARK_METADATA=1
 # because of the subsetting below, skipping source row counts entirely
 export SKIP_SOURCE_ROW_COUNT=1
-
+# 20171213, FORECASTTIMESERIES has 493 columns, md5 calc is failing in AWS/EMR if > 430 columns are used. Cconfirmed that
+#   including the first few columns alone will guarantee uniqueness, below will result in first 400 columns being used
+export WIDE_COLUMNS_MD5=1
 
 export JSON_INFO="
 {

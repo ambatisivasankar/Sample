@@ -2,7 +2,7 @@ export PROJECT_ID=teradata_qa
 export WAREHOUSE_DIR='/_wh/'
 export SQL_TEMPLATE='%s'
 export INCLUDE_VIEWS=1
-export INCLUDE_TABLES='AGMT_CMN_VERTICA_VW,AGMT_VAL_CMN_VW,CUST_AGMT_CMN_VW,CUST_DEMOGRAPHICS_VW,PDCR_AGMT_CMN_VW,PDCR_DEMOGRAPHICS_VW,SLLNG_AGMT_CMN_VW'
+export INCLUDE_TABLES='AGMT_CMN_VERTICA_VW,AGMT_VAL_CMN_VW,CUST_AGMT_CMN_VW,CUST_DEMOGRAPHICS_VW,PDCR_AGMT_CMN_VW,PDCR_DEMOGRAPHICS_VW,SLLNG_AGMT_CMN_VW,AGMT_UWRT_CMN_VW'
 export CONNECTION_ID=teradata_qa
 export SPARK_YARN_QUEUE='datalayer'
 # expected at least 2 _qa.sh jobs + the _prty_qa.sh (same id, diff db) job will be running simultaneously, limit connections
