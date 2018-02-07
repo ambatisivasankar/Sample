@@ -29,7 +29,7 @@ export JSON_INFO="
             'PDCR_AGMT_CMN_VW': {
               'partitionColumn': 'AGREEMENT_ID',
               'lowerBound': 1,
-              'upperBound': 30000000,≠
+              'upperBound': 30000000,
               'numPartitions': 50
             },
             'CUST_AGMT_CMN_VW': {
