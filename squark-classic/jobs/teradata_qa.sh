@@ -49,6 +49,12 @@ export JSON_INFO="
               'lowerBound': 100000,
               'upperBound': 470000,
               'numPartitions': 50
+            },
+            'AGMT_CVG_CMN_VW': {
+              'partitionColumn': 'AGREEMENT_ID',
+              'lowerBound': 5700000,
+              'upperBound': 39000000,
+              'numPartitions': 50
             }
         }
    }
