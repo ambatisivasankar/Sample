@@ -9,6 +9,7 @@ export SPARK_YARN_QUEUE='datalayer'
 export SPARK_MAX_EXECUTORS=10
 
 # need to occasionally monitor CUST_DEMOGRAPHICS_VW for further growth in PRTY_ID values
+# 2018.02.07 FND_ID = 425115 in FUND_CMN_VW does NOT want to write to S3, skipping via subquery
 export JSON_INFO="
 {
     'PARTITION_INFO':{
@@ -28,7 +29,7 @@ export JSON_INFO="
             'PDCR_AGMT_CMN_VW': {
               'partitionColumn': 'AGREEMENT_ID',
               'lowerBound': 1,
-              'upperBound': 30000000,
+              'upperBound': 30000000,≠
               'numPartitions': 50
             },
             'CUST_AGMT_CMN_VW': {
@@ -41,6 +42,12 @@ export JSON_INFO="
               'partitionColumn': 'PRTY_ID',
               'lowerBound': 21800000,
               'upperBound': 33000000,
+              'numPartitions': 50
+            },
+            'FUND_CMN_VW': {
+              'partitionColumn': 'FND_ID NOT IN (425115) AND FND_ID',
+              'lowerBound': 100000,
+              'upperBound': 470000,
               'numPartitions': 50
             }
         }
