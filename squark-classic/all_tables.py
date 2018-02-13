@@ -383,9 +383,8 @@ def save_table(sqlctx, table_name, squark_metadata):
             if 'driver' in properties:
                 # if no source_row_count, driver_name hasn't been set and need to do so on this connection
                 lazy_read = lazy_read.option('driver', properties['driver'])
-            df = lazy_read.load()
-        else:
-            df = lazy_read.load()
+
+        df = lazy_read.load()
     else:
         if db_name.lower().startswith('db2'):
             # per documentation, and logic, this is how we should be doing all queries, but would need to test broadly,
