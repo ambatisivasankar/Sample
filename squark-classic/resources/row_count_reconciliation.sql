@@ -21,13 +21,17 @@ WITH cteAllTables AS
 -- select * from cteDeleted ORDER BY schema_name, projection_name
 ,cteUnadjustedRowCounts AS
 (
-	SELECT A.schema_name, A.anchor_table_name, A.projection_name, SUM(A.row_count) as total_row_count
+	SELECT A.schema_name, A.anchor_table_name, A.projection_name,
+		--orig: SUM(A.row_count) as total_row_count
+		-- 2018.02.14, add trickery for this table because we subset to skip a single bad row and I'm tired of receiveing false alerts
+		CASE WHEN A.schema_name IN ('teradata_qa','teradata_prd') AND A.anchor_table_name = 'FUND_CMN_VW' THEN 1 ELSE 0 END
+			+ SUM(A.row_count) as total_row_count
 	FROM (
 	SELECT node_name,
 		projection_schema AS schema_name,
 		anchor_table_name,
 		projection_name,
-		
+
 		row_count,
 	ROW_NUMBER() OVER (PARTITION BY node_name, projection_schema, anchor_table_name ORDER BY projection_name) AS row_num
 	FROM projection_storage ps
