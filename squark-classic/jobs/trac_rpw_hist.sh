@@ -12,9 +12,9 @@ export JSON_INFO='{
 	"PARTITION_INFO": {
 		"tables": {
 			"AHPS_MONEYTYPE": {
-				"partitionColumn": "AH_BTCH_DT >= """01-JAN-2016""" AND PLAN_ID",
-				"lowerBound": 1,
-				"upperBound": 46701,
+				"partitionColumn": "AH_BTCH_DT >= """01-JAN-2016""" AND AH_RCRD_ID",
+				"lowerBound": 400433862,
+				"upperBound": 518548517,
 				"numPartitions": 100
 			}
 		}
