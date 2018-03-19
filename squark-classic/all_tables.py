@@ -396,8 +396,12 @@ def save_table(sqlctx, table_name, squark_metadata):
     print('--- Sanitizing columns for %r: %r' % (dbtable, df.schema.names))
     df = sanitize_columns(df)
     print('--- Sanitized columns for %r are %r' % (dbtable, df.schema.names))
-    print('--- Conforming DecimalType as necessary for %r: %r' % (dbtable, df.schema.names))
-    df = conform_any_extreme_decimals(df)
+
+    print('--- SKIP IN THIS BRANCH: Conforming DecimalType as necessary for %r: %r' % (dbtable, df.schema.names))
+
+#    print('--- Conforming DecimalType as necessary for %r: %r' % (dbtable, df.schema.names))
+#    df = conform_any_extreme_decimals(df)
+
     if CONVERT_ARRAYS_TO_STRING:
         print('--- Converting array fields to string for %r' % dbtable)
         df = convert_array_to_string(df)
