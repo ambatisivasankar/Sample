@@ -1,0 +1,6 @@
+export PROJECT_ID=reflex_balances_initial
+export WAREHOUSE_DIR='/_wh/'
+export SQL_TEMPLATE='%s'
+export INCLUDE_VIEWS=1
+export INCLUDE_TABLES="ACCOUNT_PERIODIC_BAL_DLLOG_FV,PARTC_CAT_SUMMARY_DLLOG_FV,PARTC_PERIODIC_BAL_DLLOG_FV"
+export CONNECTION_ID=reflex_balances_initial
