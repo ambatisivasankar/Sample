@@ -7,26 +7,33 @@ export CONNECTION_ID=haven
 export SPARK_MAX_EXECUTORS=30
 export SQUARK_METADATA=1
 
+# SECONDs returned as fractional values, e.g. 59.565992, so 60 partitions works
 export JSON_INFO="
 {
     'PARTITION_INFO':{
         'tables': {
             'analytics_event': {
               'partitionColumn': 'DATE_PART('''MINUTE''', COALESCE(\\\"createdTime\\\", '''1970-01-01T00:00:00'''::timestamp))',
-              'lowerBound': 1,
-              'upperBound': 60,
-              'numPartitions': 60
+              'lowerBound': 0,
+              'upperBound': 59,
+              'numPartitions': 59
             },
             'interaction': {
               'partitionColumn': 'DATE_PART('''MINUTE''', COALESCE(\\\"createdTime\\\", '''1970-01-01T00:00:00'''::timestamp))',
-              'lowerBound': 1,
-              'upperBound': 60,
-              'numPartitions': 60
+              'lowerBound': 0,
+              'upperBound': 59,
+              'numPartitions': 59
             },
             'policy_doc': {
               'partitionColumn': 'DATE_PART('''MINUTE''', COALESCE(\\\"createdTime\\\", '''1970-01-01T00:00:00'''::timestamp))',
-              'lowerBound': 1,
-              'upperBound': 60,
+              'lowerBound': 0,
+              'upperBound': 59,
+              'numPartitions': 59
+            },
+            'workflow_history': {
+              'partitionColumn': 'DATE_PART('''SECOND''', COALESCE(\\\"createdTime\\\", '''1970-01-01T00:00:00'''::timestamp))',
+              'lowerBound': 0,
+              'upperBound': 59,
               'numPartitions': 60
             }
         }
