@@ -41,6 +41,12 @@ export JSON_INFO="
               'lowerBound': 1,
               'upperBound': 20000000,
               'numPartitions': 50
+            },
+            'AGMT_COMM_TXN_CMN_VW': {
+              'partitionColumn': 'COALESCE(COMM_TXN_ID,0)',
+              'lowerBound': 50000000,
+              'upperBound': 230000000,
+              'numPartitions': 50
             }
         }
    }
