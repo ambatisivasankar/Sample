@@ -28,6 +28,18 @@ export JSON_INFO="
               'lowerBound': 1,
               'upperBound': 30000000,
               'numPartitions': 50
+            },
+            'FUND_CMN_VW': {
+              'partitionColumn': 'FND_ID NOT IN (425115) AND FND_ID',
+              'lowerBound': 100000,
+              'upperBound': 700000,
+              'numPartitions': 50
+            },
+            'AGMT_CVG_CMN_VW': {
+              'partitionColumn': 'AGREEMENT_ID',
+              'lowerBound': 5700000,
+              'upperBound': 39000000,
+              'numPartitions': 50
             }
         }
    }
@@ -49,3 +61,4 @@ export JSON_INFO="
 #    }
 #}
 #"
+
