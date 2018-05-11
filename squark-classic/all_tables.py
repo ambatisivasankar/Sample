@@ -380,9 +380,10 @@ def save_table(sqlctx, table_name, squark_metadata):
 
         if db_name.lower().startswith('oracle'):
             lazy_read = lazy_read.option('oracle.jdbc.timezoneAsRegion', 'False')
-            if 'driver' in properties:
-                # if no source_row_count, driver_name hasn't been set and need to do so on this connection
-                lazy_read = lazy_read.option('driver', properties['driver'])
+
+        if 'driver' in properties:
+            # if no source_row_count, driver_name hasn't been set and need to do so on this connection
+            lazy_read = lazy_read.option('driver', properties['driver'])
 
         df = lazy_read.load()
     else:
