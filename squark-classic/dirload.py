@@ -41,7 +41,7 @@ if INCLUDE_TABLES is not None:
     INCLUDE_TABLES = [s.strip() for s in INCLUDE_TABLES.split(',') if s]
 
 EXCLUDE_TABLES = os.environ.get('EXCLUDE_TABLES', [])
-if EXCLUDE_TABLES is not None:
+if EXCLUDE_TABLES:
     EXCLUDE_TABLES = [s.strip() for s in EXCLUDE_TABLES.split(',') if s]
 
 if LOAD_FROM_AWS:
