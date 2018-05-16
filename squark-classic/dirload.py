@@ -36,6 +36,14 @@ JOB_NAME = os.environ.get('JOB_NAME', '')
 BUILD_NUMBER = os.environ.get('BUILD_NUMBER', '-1')
 SKIP_UNIQUE_ID_CHECK = os.environ.get('SKIP_UNIQUE_ID_CHECK', '').lower() in ['1', 'true', 'yes']
 
+INCLUDE_TABLES = os.environ.get('INCLUDE_TABLES')
+if INCLUDE_TABLES is not None:
+    INCLUDE_TABLES = [s.strip() for s in INCLUDE_TABLES.split(',') if s]
+
+EXCLUDE_TABLES = os.environ.get('EXCLUDE_TABLES', [])
+if EXCLUDE_TABLES is not None:
+    EXCLUDE_TABLES = [s.strip() for s in EXCLUDE_TABLES.split(',') if s]
+
 if LOAD_FROM_AWS:
     aws = squarkenv.sources[S3_CONNECTION_ID]
     AWS_ACCESS_KEY_ID = aws.cfg['access_key_id']
@@ -71,6 +79,17 @@ def get_s3_urls(project_id):
     urls = defaultdict(list)
     for orc_file in all_orcs:
         tablename = orc_file.replace(prefix,'').strip('/').split('/')[0]
+
+        if INCLUDE_TABLES is not None:
+            if tablename not in INCLUDE_TABLES:
+                print('*******SKIPPING NOT INCLUDED TABLE: %r' % tablename)
+                continue
+
+        if EXCLUDE_TABLES is not None:
+            if tablename in EXCLUDE_TABLES:
+                print('*******SKIPPING EXCLUDE_TABLES TABLE: %r' % tablename)
+                continue
+
         urls[tablename].append(orc_file)
     return urls
 
