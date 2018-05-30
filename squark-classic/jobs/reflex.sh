@@ -7,6 +7,7 @@ export INCLUDE_VIEWS=1
 export SKIP_SOURCE_ROW_COUNT=1
 export CONNECTION_ID=reflex
 
+
 export JSON_INFO='
 {
     "PARTITION_INFO":{
@@ -34,6 +35,12 @@ export JSON_INFO='
               "lowerBound": 100,
               "upperBound": 216000,
               "numPartitions": 50
+            },
+            "PERSON_LOG": {
+              "partitionColumn": "DATEPART(SECOND, UPDATE_DATETIME)",
+              "lowerBound": 0,
+              "upperBound": 59,
+              "numPartitions": 60
             }
         }
    }
