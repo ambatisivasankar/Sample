@@ -36,7 +36,7 @@ export JSON_INFO='
               "upperBound": 216000,
               "numPartitions": 50
             },
-            "PERSON_LOG": {
+            "skip-this-table--------------PERSON_LOG": {
               "partitionColumn": "DATEPART(SECOND, UPDATE_DATETIME)",
               "lowerBound": 0,
               "upperBound": 59,
