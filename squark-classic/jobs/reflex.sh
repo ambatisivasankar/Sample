@@ -35,19 +35,19 @@ export JSON_INFO='
               "lowerBound": 100,
               "upperBound": 216000,
               "numPartitions": 50
-            },
-            "skip-this-table--------------PERSON_LOG": {
-              "partitionColumn": "DATEPART(SECOND, UPDATE_DATETIME)",
-              "lowerBound": 0,
-              "upperBound": 59,
-              "numPartitions": 60
             }
         }
    }
 }
 '
 
-
+## 2018.06.04: this one not working out too well
+#            "PERSON_LOG": {
+#              "partitionColumn": "DATEPART(SECOND, UPDATE_DATETIME)",
+#              "lowerBound": 0,
+#              "upperBound": 59,
+#              "numPartitions": 60
+#            }
 
 
 #export STATS_CONFIG="
