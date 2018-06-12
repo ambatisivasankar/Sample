@@ -530,6 +530,13 @@ def main():
                 print('**********SKIPPING NON-TABLE/VIEW, table_type: {}'.format(table['table_type']))
                 continue
 
+            #2018.06.12 apparently INCLUDE_VIEWS never implemented on the pull side, i.e. in this file
+            # w/o any resources to test wider impact need to add yet another special-case for haven
+            if PROJECT_ID.lower().startswith('haven'):
+                if not INCLUDE_VIEWS and table['table_type'] == 'VIEW':
+                    print('**********SKIPPING VIEW, view: {}'.format(table))
+                    continue
+
             if CHECK_PRIVILEGES:
                 # Skip if we can't read the table.
                 privs = conn._metadata.getTablePrivileges(conn._jconn.getCatalog(), "%", table["table_name"])
