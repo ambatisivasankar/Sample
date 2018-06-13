@@ -30,6 +30,12 @@ export JSON_INFO="
               'upperBound': 59,
               'numPartitions': 59
             },
+            'old_interaction': {
+              'partitionColumn': 'DATE_PART('''MINUTE''', COALESCE(\\\"createdTime\\\", '''1970-01-01T00:00:00'''::timestamp))',
+              'lowerBound': 0,
+              'upperBound': 59,
+              'numPartitions': 59
+            },
             'policy_doc': {
               'partitionColumn': 'DATE_PART('''MINUTE''', COALESCE(\\\"createdTime\\\", '''1970-01-01T00:00:00'''::timestamp))',
               'lowerBound': 0,
