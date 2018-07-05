@@ -278,9 +278,9 @@ if __name__ == '__main__':
         if not INCLUDE_VIEWS and table['table_type'].upper() != 'TABLE':
             print('>>>> skipping non table: %s' % table[table_name_key])
             continue
-        if INCLUDE_VIEWS and table['table_type'].upper() not in ['TABLE','VIEW']:
-            print('>>>> INCLUDE_VIEWS is enabled, skipping non table/view: %s' % table[table_name_key])
-            continue
+        # if INCLUDE_VIEWS and table['table_type'].upper() not in ['TABLE','VIEW']:
+        #     print('>>>> INCLUDE_VIEWS is enabled, skipping non table/view: %s' % table[table_name_key])
+        #     continue
         table_name = sanitize(table[table_name_key])
         if INCLUDE_TABLES and table_name not in INCLUDE_TABLES:
             continue
