@@ -278,6 +278,12 @@ if __name__ == '__main__':
         if not INCLUDE_VIEWS and table['table_type'].upper() != 'TABLE':
             print('>>>> skipping non table: %s' % table[table_name_key])
             continue
+        # 2018.07.05, similar to pull side, without resources for proper testing below is safest approach
+        #   likely would want for any postgresql data sources, for now aiming only for good enough
+        if PROJECT_ID.lower().startswith('haven'):
+            if INCLUDE_VIEWS and table['table_type'].upper() not in ['TABLE','VIEW']:
+                print('>>>> INCLUDE_VIEWS is enabled, skipping non table/view: %s' % table[table_name_key])
+                continue
         table_name = sanitize(table[table_name_key])
         if INCLUDE_TABLES and table_name not in INCLUDE_TABLES:
             continue
