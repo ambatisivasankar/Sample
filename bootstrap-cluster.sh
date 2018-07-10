@@ -3,7 +3,7 @@
 # Need to tell the script what branch we are going to be running
 echo "--------------------------------------------------------"
 #echo "Setting up submodules..."
-GIT_BRANCH="master"
+
 # Check for options dev or develop for develop branch or prod/production/master for master branch
 for i in "$@"; do
     case $i in 
