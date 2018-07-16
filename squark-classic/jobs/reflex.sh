@@ -47,6 +47,8 @@ INCLUDE_TABLES_ARRAY=(
   "RMAP_EXTRACT_REQ"
   "MM_EMPLOYEE"
   "SPONSOR_PSR"
+  "FUND_ACTIVITY"
+  "PLAN_FUND_CMPNT"
 )
 
 export EXCLUDE_TABLES="$(IFS=, ; echo "${EXCLUDE_TABLES_ARRAY[*]}")"
@@ -79,6 +81,12 @@ export JSON_INFO='
               "lowerBound": 100,
               "upperBound": 216000,
               "numPartitions": 50
+            },
+            "FUND_ACTIVITY": {
+              "partitionColumn": "DATEPART(DAY, VALUATION_DT)",
+              "lowerBound": 1,
+              "upperBound": 31,
+              "numPartitions": 40
             }
         }
    }
