@@ -1,5 +1,6 @@
 .squark-password
 .vault
+vault-password-file
 derby.log
 metastore_db/
 *.py[cod]
