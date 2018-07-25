@@ -64,8 +64,8 @@ export JSON_INFO="
         'tables': {
             'SLS_AND_DTRB_FACT_VW': {
               'partitionColumn': 'SLS_DTRB_SID',
-              'lowerBound': 1,
-              'upperBound': 80000000,
+              'lowerBound':  80000000,
+              'upperBound': 300000000,
               'numPartitions': 50
             },
             'NFF_FACT_VW': {
