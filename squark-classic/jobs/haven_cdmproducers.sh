@@ -6,3 +6,14 @@ export CHECK_PRIVS=1
 export CONNECTION_ID=haven_cdm
 export SQUARK_METADATA=1
 
+
+export JSON_INFO="
+{
+	'SAVE_TABLE_SQL_SUBQUERY':{
+      'schema': 'dbo',
+      'table_queries': {
+      		'commissionable_event_info': '(SELECT \"id\" FROM ) as subquery'
+ 	}
+}"
+
+
