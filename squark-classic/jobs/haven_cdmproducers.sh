@@ -12,7 +12,7 @@ export JSON_INFO="
 	'SAVE_TABLE_SQL_SUBQUERY':{
       'schema': 'dbo',
       'table_queries': {
-      		'commissionable_event_info': '(SELECT \"id\" FROM ) as subquery'
+      		'commissionable_event_info': '(SELECT \"id\" FROM commissionable_event_info) as subquery'
  	}
 }"
 
