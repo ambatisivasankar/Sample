@@ -202,7 +202,8 @@ if [ -z $SKIP_VERTICA_LOAD ]; then
     echo " --- Running Load wh..."
     ./load_wh.sh ${JOB_FILE_NAME}
 
-    if [ $LOAD_FROM_AWS && $CREATE_PROJECTIONS ]; then
+    if [[ ($LOAD_FROM_AWS && $CREATE_PROJECTIONS) ]]; then
+        echo " --- Checking for projections to create..."
         vsql_base="$VERTICA_VSQL -C -h $AWS_VERTICA_HOST -p $AWS_VERTICA_PORT -U $VERTICA_USER -w $AWS_VERTICA_PASSWORD -d $VERTICA_DATABASE -f "
         projections_out_file="create_projections.out"
         # in theory would query per-schema for enabled create-projections defs
