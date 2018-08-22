@@ -212,8 +212,8 @@ if [ -z $SKIP_VERTICA_LOAD ]; then
         $vsql_base ./resources/get_projections_to_create.sql -v VERTICA_SCHEMA="'$JOB_FILE_NAME'" -o $projections_out_file -t
         echo "RETRIEVED FROM admin.squark_vertica_projections, contents of $projections_out_file:"
         cat $projections_out_file
-        #echo "EXECUTE contents of $projections_out_file"
-        #$vsql_base ./$projections_out_file
+        echo "EXECUTE contents of $projections_out_file"
+        $vsql_base ./$projections_out_file
     fi
 
 else
