@@ -66,3 +66,12 @@ CREATE TABLE admin.squark_table_timings
     job_name varchar(75)
 );
 
+CREATE TABLE admin.squark_vertica_projections
+(
+    id int,
+    schema_name varchar(255),
+    table_name varchar(255),
+    is_enabled boolean DEFAULT true,
+    description varchar(5000),
+    projection_sql varchar(65000)
+);
