@@ -206,9 +206,6 @@ if [ -z $SKIP_VERTICA_LOAD ]; then
         echo " --- Checking for projections to create..."
         vsql_base="$VERTICA_VSQL -C -h $AWS_VERTICA_HOST -p $AWS_VERTICA_PORT -U $VERTICA_USER -w $AWS_VERTICA_PASSWORD -d $VERTICA_DATABASE -f "
         projections_out_file="create_projections.out"
-        # in theory would query per-schema for enabled create-projections defs
-        #   and then make sure tables being loaded cover the tables involved in the projection(s)
-        #fail: $vsql_base" -f " ./resources/get_projections_to_create.sql -v VERTICA_SCHEMA="'$JOB_FILE_NAME'" -o $projections_out_file
         $vsql_base ./resources/get_projections_to_create.sql -v VERTICA_SCHEMA="'$JOB_FILE_NAME'" -o $projections_out_file -t
         echo "RETRIEVED FROM admin.squark_vertica_projections, contents of $projections_out_file:"
         cat $projections_out_file
