@@ -82,6 +82,9 @@ for i in "$@"; do
        --skip-cutover)
            SKIP_CUTOVER=1
         ;;
+       --create-projections)
+           CREATE_PROJECTIONS=1
+        ;;
         *)
             # Unknown option -- assume to be job_name
             JOB_FILE_NAME=${i}
@@ -161,6 +164,7 @@ export VERTICA_HOST=$VERTICA_HOST
 export USE_AWS=$USE_AWS
 export USE_HDFS=$USE_HDFS
 export LOAD_FROM_AWS=$LOAD_FROM_AWS
+export CREATE_PROJECTIONS=$CREATE_PROJECTIONS
 export LOAD_FROM_HDFS=$LOAD_FROM_HDFS
 export SQUARK_TEMP=$WAREHOUSE_DIR
 export S3_CONNECTION_ID=$S3_CONNECTION_ID
@@ -197,6 +201,18 @@ fi
 if [ -z $SKIP_VERTICA_LOAD ]; then
     echo " --- Running Load wh..."
     ./load_wh.sh ${JOB_FILE_NAME}
+
+    if [[ ($LOAD_FROM_AWS && $CREATE_PROJECTIONS) ]]; then
+        echo " --- Checking for projections to create..."
+        vsql_base="$VERTICA_VSQL -C -h $AWS_VERTICA_HOST -p $AWS_VERTICA_PORT -U $VERTICA_USER -w $AWS_VERTICA_PASSWORD -d $VERTICA_DATABASE -f "
+        projections_out_file="create_projections.out"
+        $vsql_base ./resources/get_projections_to_create.sql -v VERTICA_SCHEMA="'$JOB_FILE_NAME'" -o $projections_out_file -t
+        echo "RETRIEVED FROM admin.squark_vertica_projections, contents of $projections_out_file:"
+        cat $projections_out_file
+        echo "EXECUTE contents of $projections_out_file"
+        $vsql_base ./$projections_out_file
+    fi
+
 else
     echo " --- SKIPPING LOADING DATA INTO VERTICA!"
 fi

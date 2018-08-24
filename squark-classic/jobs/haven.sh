@@ -59,6 +59,12 @@ export JSON_INFO="
               'lowerBound': 0,
               'upperBound': 59,
               'numPartitions': 60
+            },
+            'uw_rule_result_desc_value': {
+              'partitionColumn': 'DATE_PART('''SECOND''', COALESCE(\\\"createdTime\\\", '''1970-01-01T00:00:00'''::timestamp))',
+              'lowerBound': 0,
+              'upperBound': 59,
+              'numPartitions': 60
             }
         }
    }
