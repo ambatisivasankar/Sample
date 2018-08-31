@@ -58,6 +58,9 @@ for i in "$@"; do
         -s=*|--s3-id=*)
             S3_CONNECTION_ID="${i#*=}"
         ;;
+        -s=*|--facing-schema=*)
+           FACING_SCHEMA="${i#*=}"
+        ;;
         --skip-hdfs-load)
             SKIP_HDFS_LOAD=YES
         ;;
@@ -168,6 +171,8 @@ export CREATE_PROJECTIONS=$CREATE_PROJECTIONS
 export LOAD_FROM_HDFS=$LOAD_FROM_HDFS
 export SQUARK_TEMP=$WAREHOUSE_DIR
 export S3_CONNECTION_ID=$S3_CONNECTION_ID
+export FACING_SCHEMA=$FACING_SCHEMA
+export IS_INCREMENTAL_SCHEMA=$IS_INCREMENTAL_SCHEMA
 if [ -z $SQUARK_WAREHOUSE ]; then
     export SQUARK_WAREHOUSE=$TMP_SQUARK_WAREHOUSE
 fi

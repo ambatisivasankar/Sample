@@ -9,6 +9,66 @@ def check_and_commit(vertica_conn):
     if not vertica_conn.autocommit:
         vertica_conn.commit()
 
+
+def get_vertica_timezone_setting(vertica_conn):
+    """
+    Function: get_vertica_timezone_setting - Return timezone setting of selected Vertica instance
+    Args:
+        vertica_conn - The connection to the vertica instance
+    Returns: single string value, e.g. 'America/New_York' or 'US/Eastern'
+    """
+    sql_query = """
+        SHOW TIMEZONE;
+        """
+    cursor = vertica_conn.cursor()
+    cursor.execute(sql_query)
+    timezone_setting = cursor.fetchone()[1]
+    print('"' + ' '.join(sql_query.split()) + '" -> {timezone_setting}'.format(timezone_setting=timezone_setting))
+
+    return timezone_setting
+
+
+def get_haven_max_last_updated_time(vertica_conn, schema_name, table_name, column_name='lastUpdatedTime'):
+    """
+    Function: get_haven_max_last_updated_time - Return latest updated time from selected table in haven weekly schema
+    Args:
+        vertica_conn - The connection to the vertica instance
+        schema_name (str) - name of weekly/base haven schema
+        table_name (str) - Name of source haven table to query
+        column_name (str) - Name of column in table_name from which to get latest timestamp value
+    Returns: single timestamp value
+    """
+    sql_query = """
+        SELECT MAX(COALESCE({column_name}, '1900-01-01'))
+        FROM {schema_name}.{table_name};
+        """.format(schema_name=schema_name, table_name=table_name, column_name=column_name)
+    cursor = vertica_conn.cursor()
+    cursor.execute(sql_query)
+    last_updated_time = cursor.fetchone()[0]
+    print('"' + ' '.join(sql_query.split()) + '" -> {last_updated_time}'.format(last_updated_time=last_updated_time))
+
+    # could do a get-timestamp-string-at-vertica-timezone-setting but we are only looking at haven behavior right now
+    vertica_timezone_setting = get_vertica_timezone_setting(vertica_conn)
+    # fold the timestamp value into a string that includes time zone setting, get that as a GMT value to match haven RDS
+    sql_query_strict = """
+        SELECT TIMESTAMP '{last_updated_time} {vertica_timezone_setting}' AT TIME ZONE 'GMT';
+    """.format(last_updated_time=last_updated_time, vertica_timezone_setting=vertica_timezone_setting)
+    # really need to grab any that are really close to the cutoff, found a newly created analytics_event row
+    # that showed up following day and had a lastUpdatedTime older than latest lastUpdatedTime in previous day's RDS
+    # probably within a few seconds would be good enough but start out w/any >= curr lastUpdatedTime - 5 minutes
+    sql_query_flex = """
+        SELECT TIMESTAMPADD(MINUTE, -5,
+            (SELECT TIMESTAMP '{last_updated_time} {vertica_timezone_setting}' AT TIME ZONE 'GMT'));
+    """.format(last_updated_time=last_updated_time, vertica_timezone_setting=vertica_timezone_setting)
+
+    cursor = vertica_conn.cursor()
+    cursor.execute(sql_query_flex)
+    last_updated_time_adjusted = cursor.fetchone()[0]
+    print('"' + ' '.join(sql_query_flex.split()) + '" -> {last_updated_time}'.format(last_updated_time=last_updated_time_adjusted))
+
+    return last_updated_time_adjusted
+
+
 def send_table_timings_to_vertica(vertica_conn, project_id, table_timings, build_number, job_name):
     """
     Function: send_table_timings_to_vertica - Send the time taken for each table at the given time to the vertica table

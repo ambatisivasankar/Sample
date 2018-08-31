@@ -39,6 +39,9 @@ SKIP_UNIQUE_ID_CHECK = os.environ.get('SKIP_UNIQUE_ID_CHECK', '').lower() in ['1
 INCLUDE_TABLES = os.environ.get('INCLUDE_TABLES')
 if INCLUDE_TABLES is not None:
     INCLUDE_TABLES = [s.strip() for s in INCLUDE_TABLES.split(',') if s]
+    SQUARK_DELETED_TABLE_SUFFIX = os.environ.get('SQUARK_DELETED_TABLE_SUFFIX', '_ADVANA_DELETED')
+    INCLUDE_TABLES_VARIANTS = ['{}{}'.format(s, SQUARK_DELETED_TABLE_SUFFIX) for s in INCLUDE_TABLES]
+    INCLUDE_TABLES_ALL = INCLUDE_TABLES + INCLUDE_TABLES_VARIANTS
 
 EXCLUDE_TABLES = os.environ.get('EXCLUDE_TABLES', [])
 if EXCLUDE_TABLES:
@@ -81,7 +84,7 @@ def get_s3_urls(project_id):
         tablename = orc_file.replace(prefix,'').strip('/').split('/')[0]
 
         if INCLUDE_TABLES is not None:
-            if tablename not in INCLUDE_TABLES:
+            if tablename not in INCLUDE_TABLES_ALL:
                 print('*******SKIPPING NOT INCLUDED TABLE: %r' % tablename)
                 continue
 
