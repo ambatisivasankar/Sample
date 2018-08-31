@@ -6,8 +6,8 @@ export SQL_TEMPLATE='%s'
 # 2018.08.31 adding an INCLUDE_TABLES to only those being accessed on Vertica, comment out above since it would be redundant
 export INCLUDE_TABLES="Acrcy_Adt,Anny_Wrk,Dept,div,Rqstr_Typ,Rsrc,stus,svc_chnl_cde,Wrk,wrk_cmnt,wrk_data,wrk_evnt,wrk_que,Wrk_Xtn"
 export CONNECTION_ID=rilcats
-# 2017.08.09, source row count queries adding < 20 minutes to reflex duration, worth it for now during testing & transition
-#export SKIP_SOURCE_ROW_COUNT=1
+# 2018.08.31, source count queries take long time and also may be doing filter queries soon
+export SKIP_SOURCE_ROW_COUNT=1
 
 #export STATS_CONFIG="
 #{
