@@ -17,6 +17,7 @@ export SQUARK_PASSWORD_FILE=$(pwd)/.squark_password
 export SQUARK_CONFIG_DIR=$(pwd)/config
 export PYTHON_VENV=$(pwd)/virt
 export WAREHOUSE_DIR="/_wh_dev/"
+export SQUARK_DELETED_TABLE_SUFFIX="_ADVANA_DELETED"
 
 # SPARK SETTINGS
 export SPARK_HOME=/hadoop/spark/2.2

@@ -1,5 +1,6 @@
 import os
 import re
+import json
 
 from jinja2 import Template
 
@@ -158,9 +159,24 @@ create table if not exists {{schema}}.{{table}}(
 );
 ''', trim_blocks=True)
 
+tmpl_deleted_table = Template('''
+drop table if exists {{schema}}.{{table}}{{deleted_table_suffix}} cascade;
+create table if not exists {{schema}}.{{table}}{{deleted_table_suffix}} (
+    {{pkid}} varchar(255)
+);
+''', trim_blocks=True)
+
+
 def make_ddl(schema, table, colspec, squark_metadata):
     colspec = map(lambda args: ColSpec(args[0], args[1]), [(spec, squark_metadata) for spec in colspec])
     return tmpl.render(schema=schema, table=table, colspec=colspec)
+
+
+def make_deleted_table_ddl(schema_name, base_table_name, pkid_column_name):
+    return tmpl_deleted_table.render(schema=schema_name,
+                                     table=base_table_name,
+                                     deleted_table_suffix=SQUARK_DELETED_TABLE_SUFFIX,
+                                     pkid=pkid_column_name)
 
 
 def copy_table_ddl(
@@ -191,6 +207,14 @@ def copy_table_ddl(
     print(ddl)
     cur = to_conn.cursor()
     rs = cur.execute(ddl)
+
+    if squark_metadata.get('is_incremental'):
+        pkid_column_name = squark_metadata['pkid_column_name']
+        deleted_table_ddl = make_deleted_table_ddl(to_schema, to_table, pkid_column_name)
+        print('creating table {}{}'.format(from_table, SQUARK_DELETED_TABLE_SUFFIX))
+        print(deleted_table_ddl)
+        cur = to_conn.cursor()
+        rs = cur.execute(deleted_table_ddl)
 
 
 def log_squark_metadata_contents(to_conn):
@@ -241,8 +265,17 @@ if __name__ == '__main__':
     if INCLUDE_TABLES is not None:
         INCLUDE_TABLES = [s.strip() for s in INCLUDE_TABLES.split(',') if s]
 
+    JSON_INFO = os.environ.get('JSON_INFO')
+    TABLES_WITH_PARTITION_INFO = {}
+    if JSON_INFO:
+        parsed_json = json.loads(JSON_INFO.replace("'", '"').replace('"""', "'"))
+        if 'PARTITION_INFO' in parsed_json.keys():
+            TABLES_WITH_PARTITION_INFO = parsed_json['PARTITION_INFO']['tables']
+            print('TABLES_WITH_PARTITION_INFO: %r' % TABLES_WITH_PARTITION_INFO)
+
     SQUARK_METADATA = os.environ.get('SQUARK_METADATA', '').lower() in ['1', 'true', 'yes']
     SKIP_ERRORS = os.environ.get('SKIP_ERRORS')
+    SQUARK_DELETED_TABLE_SUFFIX = os.environ.get('SQUARK_DELETED_TABLE_SUFFIX', '_ADVANA_DELETED')
 
     from_conn = squarkenv.sources[CONNECTION_ID].conn
     to_conn = squarkenv.sources[VERTICA_CONNECTION_ID].conn
@@ -287,6 +320,18 @@ if __name__ == '__main__':
         table_name = sanitize(table[table_name_key])
         if INCLUDE_TABLES and table_name not in INCLUDE_TABLES:
             continue
+        squark_metadata['is_incremental'] = False
+        if TABLES_WITH_PARTITION_INFO and table_name.lower() in [table.lower() for table in
+                                                                 TABLES_WITH_PARTITION_INFO.keys()]:
+            table_with_partitions_lower = {k.lower(): v for k, v in TABLES_WITH_PARTITION_INFO.items()}
+            partition_info = table_with_partitions_lower[table_name.lower()]
+            print('>>>>>  Partition info: %r' % partition_info, flush=True)
+            is_incremental = partition_info.get('is_incremental', '').lower() in ['1', 'true', 'yes']
+            if is_incremental:
+                squark_metadata['is_incremental'] = True
+                print('>>>>>  is_incremental is True', flush=True)
+                squark_metadata['pkid_column_name'] = partition_info['pkid_column_name']
+
         #if LOAD_FROM_HDFS:
         try:
             copy_table_ddl(

@@ -44,13 +44,22 @@ try:
     JDBC_SCHEMA = squarkenv.sources[CONNECTION_ID].default_schema
 except:
     JDBC_SCHEMA = ''
-
 print('CONNECTION_ID:',CONNECTION_ID)
 print('JDBC_USER:',JDBC_USER)
 #print('JDBC_PASSWORD:',JDBC_PASSWORD)
 print('JDBC_URL:',JDBC_URL)
 print('JDBC_SCHEMA:',JDBC_SCHEMA)
 print('CONNECTION_TYPE:',CONNECTION_TYPE)
+
+VERTICA_CONNECTION_TYPE = squarkenv.sources[VERTICA_CONNECTION_ID].type
+VERTICA_JDBC_USER = squarkenv.sources[VERTICA_CONNECTION_ID].user
+VERTICA_JDBC_PASSWORD = squarkenv.sources[VERTICA_CONNECTION_ID].password
+VERTICA_JDBC_URL = squarkenv.sources[VERTICA_CONNECTION_ID].url
+print('VERTICA_CONNECTION_ID:',VERTICA_CONNECTION_ID)
+print('VERTICA_JDBC_USER:',VERTICA_JDBC_USER)
+print('VERTICA_JDBC_URL:',VERTICA_JDBC_URL)
+print('VERTICA_CONNECTION_TYPE:',VERTICA_CONNECTION_TYPE)
+
 WAREHOUSE_DIR = os.environ['WAREHOUSE_DIR']
 print('WAREHOUSE_DIR:', WAREHOUSE_DIR)
 DATA_DIR = os.path.join(WAREHOUSE_DIR, PROJECT_ID)
@@ -61,6 +70,7 @@ SKIP_ERRORS = os.environ.get('SKIP_ERRORS')
 INCLUDE_VIEWS = os.environ.get('INCLUDE_VIEWS')
 SKIP_MIN_MAX_ON_CAST = os.environ.get('SKIP_MIN_MAX_ON_CAST')
 SKIP_SOURCE_ROW_COUNT = os.environ.get('SKIP_SOURCE_ROW_COUNT', '').lower() in ['1', 'true', 'yes']
+SQUARK_DELETED_TABLE_SUFFIX = os.environ.get('SQUARK_DELETED_TABLE_SUFFIX', '_ADVANA_DELETED')
 
 JSON_INFO = os.environ.get('JSON_INFO')
 TABLES_WITH_SUBQUERIES = {}
@@ -326,6 +336,7 @@ def push_data_catalog_stats(stats, DOMAIN, TOKEN, SCHEMA, TABLE):
 
 def save_table(sqlctx, table_name, squark_metadata):
     dbtable = SQL_TEMPLATE % table_name
+    is_incremental = False
     print('********* EXECUTE SQL: %r' % dbtable)
     properties = dict(user=JDBC_USER, password=JDBC_PASSWORD)
     if USE_CLUSTER_EMR:
@@ -367,6 +378,45 @@ def save_table(sqlctx, table_name, squark_metadata):
         lower_bound = partition_info['lowerBound']
         upper_bound = partition_info['upperBound']
         num_partitions = partition_info['numPartitions']
+
+        is_incremental = partition_info.get('is_incremental', '').lower() in ['1', 'true', 'yes']
+        if is_incremental:
+            # 2018.07.06, to date incremental solely developed/tested agains PROJECT_ID="haven", the "prod" postgres db
+            if not PROJECT_ID.lower().startswith('haven'):
+                raise NotImplementedError('Incremental data pull only implemented for haven job')
+
+            base_schema_name = partition_info['base_schema_name']
+            last_updated_column_name = partition_info['last_updated_column_name']
+            pkid_column_name = partition_info['pkid_column_name']
+            print('--- Incremental, parse PARTITION_INFO and get last updated time from {}.{}.{}'.format(
+                                                                        base_schema_name,
+                                                                        table_name,
+                                                                        last_updated_column_name), flush=True)
+            max_last_updated_time = utils.get_haven_max_last_updated_time(vertica_conn,
+                                                                        schema_name=base_schema_name,
+                                                                        table_name=table_name,
+                                                                        column_name=last_updated_column_name)
+            print('--- Incremental, updated partitionColumn value: {}'.format(partition_column), flush=True)
+            partition_column = '"{column_name}" >= \'{max_last_updated_time}\' AND {orig_partition_column}'.format(
+                                                                        column_name=last_updated_column_name,
+                                                                        max_last_updated_time=max_last_updated_time,
+                                                                        orig_partition_column=partition_column)
+            print('--- Incremental, updated partitionColumn value: {}'.format(partition_column), flush=True)
+
+            curr_pk_sql_query = '(SELECT {pkid_column_name} FROM {table_name}) as subquery'.format(table_name=table_name,
+                                                                                            pkid_column_name=pkid_column_name)
+            df_curr = sqlctx.read.jdbc(JDBC_URL, curr_pk_sql_query, properties=properties)
+            # print('### DEBUG: df_curr.count(): {}'.format(df_curr.count()))
+
+            # get all the _id values that are currently in Vertica's _weekly schema for this table
+            vert_pk_sql_query = '(SELECT {pkid_column_name} FROM {schema_name}.{table_name}) as subquery'.format(
+                pkid_column_name=pkid_column_name,
+                schema_name=base_schema_name,
+                table_name=table_name)
+            vert_properties = dict(user=VERTICA_JDBC_USER, password=VERTICA_JDBC_PASSWORD)
+            vert_properties['driver'] = 'com.vertica.jdbc.Driver'
+            df_vertica = sqlctx.read.jdbc(VERTICA_JDBC_URL, vert_pk_sql_query, properties=vert_properties)
+            # print('### DEBUG: df_vertica.count(): {}'.format(df_vertica.count()))
 
         lazy_read = sqlctx.read.format('jdbc').options(
             url=JDBC_URL,
@@ -418,8 +468,9 @@ def save_table(sqlctx, table_name, squark_metadata):
     #print(stats)
 
     if USE_AWS:
-        s2 = time.time()
         s3_file_system = 's3a' if USE_CLUSTER_EMR else 's3n'
+        opts = dict(codec=WRITE_CODEC)
+        s2 = time.time()
         #s3_file_system = 's3n'
         save_path = "{S3_FILESYSTEM}://{AWS_ACCESS_KEY_ID}:{AWS_SECRET_ACCESS_KEY}@{SQUARK_BUCKET}/{SQUARK_TYPE}/{PROJECT_ID}/{TABLE_NAME}/{TABLE_NAME}.orc/".format(
                 S3_FILESYSTEM = s3_file_system,
@@ -431,7 +482,6 @@ def save_table(sqlctx, table_name, squark_metadata):
                 TABLE_NAME=table_name
         )
         print('******* SAVING TABLE TO S3: %r' % save_path.replace(AWS_SECRET_ACCESS_KEY,'********'))
-        opts = dict(codec=WRITE_CODEC)
         print('Attempting to save {table}'.format(table=dbtable))
         try:
             df.write.format('orc').options(**opts).save(save_path, mode=WRITE_MODE)
@@ -444,6 +494,38 @@ def save_table(sqlctx, table_name, squark_metadata):
         print('-----------------------------------------')
         e2 = time.time()
         print(' ----- Writing to S3 took: %.3f seconds'%(e2-s2))
+
+        if is_incremental:
+            print('******* IS_INCREMENTAL SAVE {} TABLE TO S3: ********'.format(SQUARK_DELETED_TABLE_SUFFIX))
+            df_deleted = df_vertica.subtract(df_curr)
+            # print('### DEBUG: df_deleted.count(): {}'.format(df_deleted.count()))
+            table_name_deleted = '{table}{deleted_table_suffix}'.format(table=table_name,
+                                                                        deleted_table_suffix=SQUARK_DELETED_TABLE_SUFFIX)
+            s2d = time.time()
+            save_path = "{S3_FILESYSTEM}://{AWS_ACCESS_KEY_ID}:{AWS_SECRET_ACCESS_KEY}@{SQUARK_BUCKET}/{SQUARK_TYPE}/{PROJECT_ID}/{TABLE_NAME}/{TABLE_NAME}.orc/".format(
+                    S3_FILESYSTEM = s3_file_system,
+                    AWS_ACCESS_KEY_ID=AWS_ACCESS_KEY_ID,
+                    AWS_SECRET_ACCESS_KEY=AWS_SECRET_ACCESS_KEY,
+                    SQUARK_BUCKET=SQUARK_BUCKET,
+                    SQUARK_TYPE=SQUARK_TYPE,
+                    PROJECT_ID=PROJECT_ID,
+                    TABLE_NAME=table_name_deleted
+            )
+            print('******* SAVING TABLE TO S3: %r' % save_path.replace(AWS_SECRET_ACCESS_KEY,'********'))
+            print('Attempting to save {table}'.format(table=table_name_deleted))
+            try:
+                df_deleted.write.format('orc').options(**opts).save(save_path, mode=WRITE_MODE)
+            except Exception as e:
+                print('!! -- An Error occurred while trying to .save table: %r' % (table_name_deleted))
+                print(str(e))
+                raise squark.exceptions.SaveToS3Error('save to S3 failed', e)
+
+            print('Save successful...')
+            print('-----------------------------------------')
+            e2d = time.time()
+            # in terms of squark timing metadata being saved to Vertica, this time will be folded into parent table's
+            print(' ----- Writing to S3 took: %.3f seconds'%(e2d-s2d))
+
     if USE_HDFS or (not USE_AWS and not USE_HDFS):
         s3 = time.time()
         save_path = "%s/%s" % (DATA_DIR, table_name)
