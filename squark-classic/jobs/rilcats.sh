@@ -9,18 +9,35 @@ export CONNECTION_ID=rilcats
 # 2018.08.31, source count queries take long time and also may be doing filter queries soon
 export SKIP_SOURCE_ROW_COUNT=1
 
-#export STATS_CONFIG="
-#{
-#    'profiles': {
-#        'numeric': ['max','min','mean','countDistinct','count_null'],
-#        'string': ['max', 'min','countDistinct','count_null'],
-#        'datetype': ['max', 'min','countDistinct','count_null']
-#    },
-#    'field_types': {
-#        'NumericType': 'numeric',
-#        'StringType': 'string',
-#        'DateType': 'datetype',
-#        'TimestampType': 'datetype'
-#    }
-#}
-#"
+export JSON_INFO="
+{
+    'PARTITION_INFO':{
+        'tables': {
+            'Wrk': {
+              'partitionColumn': 'wrk_ident',
+              'lowerBound': 5000000000,
+              'upperBound': 5100000000,
+              'numPartitions': 100
+            },
+            'wrk_cmnt': {
+              'partitionColumn': 'fk_wrk_ident',
+              'lowerBound': 5000000000,
+              'upperBound': 5100000000,
+              'numPartitions': 100
+            },
+            'wrk_txn': {
+              'partitionColumn': 'wrk_ident',
+              'lowerBound': 5000000000,
+              'upperBound': 5100000000,
+              'numPartitions': 50
+            },
+            'Wrk_Xtn': {
+              'partitionColumn': 'fk_wrk_ident',
+              'lowerBound': 5019927040,
+              'upperBound': 5100000000,
+              'numPartitions': 50
+            }
+        }
+   }
+}
+"
