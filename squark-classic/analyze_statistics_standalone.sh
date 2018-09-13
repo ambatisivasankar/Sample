@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 # quick and dirty to have available in a shell file
-# env variables that need to have been set: STAT_SCHEMA_NAME, $STAT_VERTICA_HOST, $STAT_VERTICA_USER, $STAT_VERTICA_PASSWORD
+# env variables that need to have been set: STAT_SCHEMA_NAME, STAT_VERTICA_HOST, STAT_VERTICA_USER, STAT_VERTICA_PASSWORD
 analyze_statistics_sql="analyze_statistics.sql"
 
 stats_sql=$(cat <<-EOM
