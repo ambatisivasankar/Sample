@@ -1,7 +1,14 @@
 #!/usr/bin/env bash
 
 # quick and dirty to have available in a shell file
-# env variables that need to have been set: STAT_SCHEMA_NAME, STAT_VERTICA_HOST, STAT_VERTICA_USER, STAT_VERTICA_PASSWORD
+# if executing in same shell as jenkins job would only need to set STAT_SCHEMA_NAME
+# as a standalone jenkins job, assuming global pwds available, something like below
+#   source "./aws-env-cluster.sh"
+#   export AWS_VERTICA_HOST=$AWS_VERTICA_QA
+#   export AWS_VERTICA_PORT=5433
+#   export STAT_SCHEMA_NAME="haven_weekly"
+#   ./squark-classic/analyze_statistics_standalone.sh
+
 analyze_statistics_sql="analyze_statistics.sql"
 
 stats_sql=$(cat <<-EOM
@@ -12,12 +19,12 @@ EOM
 )
 
 # 1) create the statements to execute, e.g.   SELECT ANALYZE_STATISTICS ('haven_daily.address');
-# vsql -h $STAT_VERTICA_HOST -U $STAT_VERTICA_USER -w $STAT_VERTICA_PASSWORD -d advana -c "$stats_sql" -o $analyze_statistics_sql -At
-vsql -h $AWS_VERTICA_HOST -U $VERTICA_USER -w $AWS_VERTICA_PASSWORD -d $VERTICA_DATABASE -c "$stats_sql" -o $analyze_statistics_sql -At
+$VERTICA_VSQL -h $AWS_VERTICA_HOST -U $VERTICA_USER -w $AWS_VERTICA_PASSWORD -d $VERTICA_DATABASE -c "$stats_sql" -o $analyze_statistics_sql -At
 
+echo ">> list contents of "$analyze_statistics_sql
 cat $analyze_statistics_sql
 
+echo ">> execute contents of "$analyze_statistics_sql
 # 2) execute all of the ANALYZE_STATISTICS statements
-# vsql -h $STAT_VERTICA_HOST -U $STAT_VERTICA_USER -w $STAT_VERTICA_PASSWORD -d advana -f $analyze_statistics_sql
-vsql -h $AWS_VERTICA_HOST -U $VERTICA_USER -w $AWS_VERTICA_PASSWORD -d $VERTICA_DATABASE -f $analyze_statistics_sql
+$VERTICA_VSQL  -h $AWS_VERTICA_HOST -U $VERTICA_USER -w $AWS_VERTICA_PASSWORD -d $VERTICA_DATABASE -f $analyze_statistics_sql
 
