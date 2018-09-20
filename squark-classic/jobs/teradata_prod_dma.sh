@@ -26,7 +26,7 @@ export JSON_INFO='{
 				"lowerBound": 10000000,
 				"upperBound": 163048206,
 				"numPartitions": 100
-			},
+			}
 		}
 	}
 }'
