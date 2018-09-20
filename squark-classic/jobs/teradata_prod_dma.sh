@@ -21,6 +21,12 @@ export JSON_INFO='{
 				"upperBound": 163048206,
 				"numPartitions": 100
 			},
+            "ACT_DIC_INTEGRATED_FCT_VW": {
+				"partitionColumn": "IntegratedActivityID",
+				"lowerBound": 10000000,
+				"upperBound": 163048206,
+				"numPartitions": 100
+			},
 		}
 	}
 }'
