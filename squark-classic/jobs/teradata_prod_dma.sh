@@ -44,6 +44,12 @@ export JSON_INFO='{
 				"lowerBound": 1,
 				"upperBound": 40000000,
 				"numPartitions": 20
+			},
+			"ACT_TREX_WORK_FCT_VW": {
+				"partitionColumn": "ActivityID",
+				"lowerBound": 100000,
+				"upperBound": 5000000,
+				"numPartitions": 25
 			}
 		}
 	}
