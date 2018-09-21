@@ -26,6 +26,24 @@ export JSON_INFO='{
 				"lowerBound": 10000000,
 				"upperBound": 163048206,
 				"numPartitions": 100
+			},
+			"ACT_DIC_PIT_INTEGRATED_VW": {
+				"partitionColumn": "IntegratedActivityID",
+				"lowerBound": 10000000,
+				"upperBound": 163048206,
+				"numPartitions": 100
+			},
+			"DBO_REQUIREMENTS_ALL_VW": {
+				"partitionColumn": "CaseId",
+				"lowerBound": 1,
+				"upperBound": 12000000,
+				"numPartitions": 20
+			},
+			"DBO_TCASE_BUS_PRCS_ALL_VW": {
+				"partitionColumn": "CaseId",
+				"lowerBound": 1,
+				"upperBound": 40000000,
+				"numPartitions": 20
 			}
 		}
 	}
