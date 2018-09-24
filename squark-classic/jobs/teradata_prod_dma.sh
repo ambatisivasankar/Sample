@@ -7,51 +7,51 @@ export INCLUDE_VIEWS=1
 export CONNECTION_ID=teradata_prod_dma
 
 export SPARK_MAX_EXECUTORS=10
-export JSON_INFO='{
-	"PARTITION_INFO": {
-		"tables": {
-			"ACTIVITY_FCT_VW": {
-				"partitionColumn": "SourceTransactionID",
-				"lowerBound": 5050000000,
-				"upperBound": 5099339861,
-				"numPartitions": 100
-			},
-            "ACT_DIC_CURR_INTEGRATED_VW": {
-				"partitionColumn": "IntegratedActivityID",
-				"lowerBound": 10000000,
-				"upperBound": 163048206,
-				"numPartitions": 100
-			},
-            "ACT_DIC_INTEGRATED_FCT_VW": {
-				"partitionColumn": "IntegratedActivityID",
-				"lowerBound": 10000000,
-				"upperBound": 163048206,
-				"numPartitions": 100
-			},
-			"ACT_DIC_PIT_INTEGRATED_VW": {
-				"partitionColumn": "IntegratedActivityID",
-				"lowerBound": 10000000,
-				"upperBound": 163048206,
-				"numPartitions": 100
-			},
-			"DBO_REQUIREMENTS_ALL_VW": {
-				"partitionColumn": "CaseId",
-				"lowerBound": 1,
-				"upperBound": 12000000,
-				"numPartitions": 20
-			},
-			"DBO_TCASE_BUS_PRCS_ALL_VW": {
-				"partitionColumn": "CaseId",
-				"lowerBound": 1,
-				"upperBound": 40000000,
-				"numPartitions": 20
-			},
-			"ACT_TREX_WORK_FCT_VW": {
-				"partitionColumn": "ActivityID",
-				"lowerBound": 100000,
-				"upperBound": 5000000,
-				"numPartitions": 25
-			}
-		}
-	}
-}'
+#export JSON_INFO='{
+#	"PARTITION_INFO": {
+#		"tables": {
+#			"ACTIVITY_FCT_VW": {
+#				"partitionColumn": "SourceTransactionID",
+#				"lowerBound": 5050000000,
+#				"upperBound": 5099339861,
+#				"numPartitions": 100
+#			},
+#            "ACT_DIC_CURR_INTEGRATED_VW": {
+#				"partitionColumn": "IntegratedActivityID",
+#				"lowerBound": 10000000,
+#				"upperBound": 163048206,
+#				"numPartitions": 100
+#			},
+#            "ACT_DIC_INTEGRATED_FCT_VW": {
+#				"partitionColumn": "IntegratedActivityID",
+#				"lowerBound": 10000000,
+#				"upperBound": 163048206,
+#				"numPartitions": 100
+#			},
+#			"ACT_DIC_PIT_INTEGRATED_VW": {
+#				"partitionColumn": "IntegratedActivityID",
+#				"lowerBound": 10000000,
+#				"upperBound": 163048206,
+#				"numPartitions": 100
+#			},
+#			"DBO_REQUIREMENTS_ALL_VW": {
+#				"partitionColumn": "CaseId",
+#				"lowerBound": 1,
+#				"upperBound": 12000000,
+#				"numPartitions": 20
+#			},
+#			"DBO_TCASE_BUS_PRCS_ALL_VW": {
+#				"partitionColumn": "CaseId",
+#				"lowerBound": 1,
+#				"upperBound": 40000000,
+#				"numPartitions": 20
+#			},
+#			"ACT_TREX_WORK_FCT_VW": {
+#				"partitionColumn": "ActivityID",
+#				"lowerBound": 100000,
+#				"upperBound": 5000000,
+#				"numPartitions": 25
+#			}
+#		}
+#	}
+#}'
