@@ -75,6 +75,12 @@ export JSON_INFO='{
 				"lowerBound": 0,
 				"upperBound": 750000000,
 				"numPartitions": 100
+			},
+            "TRANS_PIT_INTEGRATED_VW": {
+				"partitionColumn": "ActivityID",
+				"lowerBound": 0,
+				"upperBound": 500000000,
+				"numPartitions": 100
 			}
 		}
 	}
