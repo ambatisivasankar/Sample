@@ -57,6 +57,24 @@ export JSON_INFO='{
 				"lowerBound": 0,
 				"upperBound": 45000000,
 				"numPartitions": 50
+			},
+            "PSC_MART_PIT_IVW": {
+				"partitionColumn": "IntegratedActivityID",
+				"lowerBound": 0,
+				"upperBound": 50000000,
+				"numPartitions": 50
+			},
+            "PSC_MART_VW": {
+				"partitionColumn": "IntegratedActivityID",
+				"lowerBound": 0,
+				"upperBound": 50000000,
+				"numPartitions": 50
+			},
+            "TRANS_CURR_INTEGRATED_VW": {
+				"partitionColumn": "ActivityID",
+				"lowerBound": 0,
+				"upperBound": 750000000,
+				"numPartitions": 100
 			}
 		}
 	}
