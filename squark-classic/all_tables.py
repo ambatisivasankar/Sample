@@ -168,7 +168,8 @@ def convert_timestamps_to_string(df):
     sch=df.schema
     cols=[a.name for a in sch.fields if isinstance(a.dataType, TimestampType)]
     for col in cols:
-        df = df.withColumn(col, df[col].cast('string'))
+        #df = df.withColumn(col, df[col].cast('string'))
+        df = df.withColumn(col, F.to_utc_timestamp(df[col], 'America/New_York'))
     return df
 
 def log_source_row_count(sqlctx, table_name, properties, db_product_name):
