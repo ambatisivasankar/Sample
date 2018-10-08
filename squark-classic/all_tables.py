@@ -7,7 +7,7 @@ from pyspark import SparkContext
 from pyspark.conf import SparkConf
 from pyspark.sql import HiveContext, functions as F, Row
 import hashlib
-from pyspark.sql.types import ArrayType
+from pyspark.sql.types import ArrayType, TimestampType
 
 import squark.config.environment
 import squark.stats
@@ -165,9 +165,10 @@ def convert_array_to_string(df):
     return df
 
 def convert_timestamps_to_string(df):
-    for field in df.schema.fields:
-        if field.dataType.typeName().lower() == 'timestamp':
-            df = df.withColumn(field, df[field].cast('string'))
+    sch=df.schema
+    cols=[a.name for a in sch.fields if isinstance(a.dataType, TimestampType)]
+    for col in cols:
+        df = df.withColumn(col, df[col].cast('string'))
     return df
 
 def log_source_row_count(sqlctx, table_name, properties, db_product_name):
