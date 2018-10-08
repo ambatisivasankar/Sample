@@ -109,6 +109,8 @@ WIDE_COLUMNS_MD5 = os.environ.get('WIDE_COLUMNS_MD5', '').lower() in ['1', 'true
 
 # Get the environment variable for whether to stringify the columns which are array types (for SOG mainly)
 CONVERT_ARRAYS_TO_STRING = os.environ.get('CONVERT_ARRAYS_TO_STRING')
+# Similar pattern, only going to test on Teradata, don't want any timezone conversion to happen between TD and Vertica
+CONVERT_TIMESTAMPS_TO_STRING = os.environ.get('CONVERT_TIMESTAMPS_TO_STRING', '').lower() in ['1', 'true', 'yes']
 
 # Check hostedgraphite and get settings
 graphite = squarkenv.sources['hostedgraphite']
@@ -160,6 +162,12 @@ def convert_array_to_string(df):
     cols=[a.name for a in sch.fields if isinstance(a.dataType, ArrayType)]
     for col in cols:
         df = df.withColumn(col, df[col].cast('string'))
+    return df
+
+def convert_timestamps_to_string(df):
+    for field in df.schema.fields:
+        if field.dataType.typeName().lower() == 'timestamp':
+            df = df.withColumn(field, df[field].cast('string'))
     return df
 
 def log_source_row_count(sqlctx, table_name, properties, db_product_name):
@@ -455,6 +463,10 @@ def save_table(sqlctx, table_name, squark_metadata):
     if db_name.lower().startswith('teradata'):
         print('--- Post-dating min teradata date/timestamp values for %r' % dbtable)
         df = post_date_teradata_dates_and_timestamps(df)
+        # only going to test this with Teradata, restrict usage to Teradata
+        if CONVERT_TIMESTAMPS_TO_STRING:
+            print('--- Converting timestamp fields to string for %r' % dbtable)
+            df = convert_timestamps_to_string(df)
     print('--- Adding md5 column for %r' % dbtable)
     df = add_md5_column(df)
     print('--- Adding incr column for %r' % dbtable)
