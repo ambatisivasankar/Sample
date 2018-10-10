@@ -8,6 +8,7 @@ export CONNECTION_ID=teradata
 export SPARK_YARN_QUEUE='datalayer'
 # expected at least 2 _prd.sh jobs + the _prty_prd.sh (same id, diff db) job will be running simultaneously, limit connections
 export SPARK_MAX_EXECUTORS=10
+export CONVERT_TIMESTAMPS_TO_AMERICA_NEW_YORK=1
 
 # need to occasionally monitor CUST_DEMOGRAPHICS_VW for further growth in PRTY_ID values
 # 2018.02.07 FND_ID = 425115 in FUND_CMN_VW does NOT want to write to S3, skipping via subquery
