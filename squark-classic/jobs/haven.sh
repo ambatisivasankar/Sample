@@ -10,6 +10,12 @@ export SQUARK_METADATA=1
 # SECONDs returned as fractional values, e.g. 59.565992, so 60 partitions works
 export JSON_INFO="
 {
+	'SAVE_TABLE_SQL_SUBQUERY':{
+      'schema': 'dbo',
+      'table_queries': {
+            'policy_doc': '(SELECT \\\"_id\\\",\\\"_template\\\",\\\"__version__\\\",\\\"type\\\",\\\"docType\\\",\\\"docSource\\\",\\\"appType\\\",\\\"subType\\\",\\\"policyId\\\",\\\"name\\\",\\\"date\\\",\\\"uploadedBy\\\",\\\"language\\\",\\\"roles\\\",\\\"x_order\\\",\\\"follow_up_qa_id\\\",\\\"createdTime\\\",\\\"lastUpdatedTime\\\",\\\"status\\\" FROM policy_doc) as subquery'
+        }
+    },
     'PARTITION_INFO':{
         'tables': {
             'analytics_container': {
@@ -36,7 +42,7 @@ export JSON_INFO="
               'upperBound': 59,
               'numPartitions': 59
             },
-            'policy_doc': {
+            'policy_doc_SKIP': {
               'partitionColumn': 'DATE_PART('''MINUTE''', COALESCE(\\\"createdTime\\\", '''1970-01-01T00:00:00'''::timestamp))',
               'lowerBound': 0,
               'upperBound': 59,
