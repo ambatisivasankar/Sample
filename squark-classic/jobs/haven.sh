@@ -7,6 +7,8 @@ export CONNECTION_ID=haven
 export SPARK_MAX_EXECUTORS=60
 export SQUARK_METADATA=1
 
+# 2018.10.11, hard-code the SELECT for policy_doc in order to skip the BLOBy doc column that we don't need and slows down the ingestion
+#   partitioning becomes unnecessary but the workflow is much more fragile, need to sync the SELECT w/any policy_doc DDL changes
 # SECONDs returned as fractional values, e.g. 59.565992, so 60 partitions works
 export JSON_INFO="
 {
