@@ -7,7 +7,7 @@ from pyspark import SparkContext
 from pyspark.conf import SparkConf
 from pyspark.sql import HiveContext, functions as F, Row
 import hashlib
-from pyspark.sql.types import ArrayType
+from pyspark.sql.types import ArrayType, TimestampType
 
 import squark.config.environment
 import squark.stats
@@ -109,6 +109,8 @@ WIDE_COLUMNS_MD5 = os.environ.get('WIDE_COLUMNS_MD5', '').lower() in ['1', 'true
 
 # Get the environment variable for whether to stringify the columns which are array types (for SOG mainly)
 CONVERT_ARRAYS_TO_STRING = os.environ.get('CONVERT_ARRAYS_TO_STRING')
+# Similar pattern, only going to test on Teradata, don't want any timezone conversion to happen between TD and Vertica
+CONVERT_TIMESTAMPS_TO_AMERICA_NEW_YORK = os.environ.get('CONVERT_TIMESTAMPS_TO_AMERICA_NEW_YORK', '').lower() in ['1', 'true', 'yes']
 
 # Check hostedgraphite and get settings
 graphite = squarkenv.sources['hostedgraphite']
@@ -160,6 +162,13 @@ def convert_array_to_string(df):
     cols=[a.name for a in sch.fields if isinstance(a.dataType, ArrayType)]
     for col in cols:
         df = df.withColumn(col, df[col].cast('string'))
+    return df
+
+def convert_timestamp_values_to_america_new_york(df):
+    sch=df.schema
+    cols=[a.name for a in sch.fields if isinstance(a.dataType, TimestampType)]
+    for col in cols:
+        df = df.withColumn(col, F.to_utc_timestamp(df[col], 'America/New_York'))
     return df
 
 def log_source_row_count(sqlctx, table_name, properties, db_product_name):
@@ -455,6 +464,10 @@ def save_table(sqlctx, table_name, squark_metadata):
     if db_name.lower().startswith('teradata'):
         print('--- Post-dating min teradata date/timestamp values for %r' % dbtable)
         df = post_date_teradata_dates_and_timestamps(df)
+        # only going to test this with Teradata, restrict usage to Teradata
+        if CONVERT_TIMESTAMPS_TO_AMERICA_NEW_YORK:
+            print('--- Converting timestamp fields to string for %r' % dbtable)
+            df = convert_timestamp_values_to_america_new_york(df)
     print('--- Adding md5 column for %r' % dbtable)
     df = add_md5_column(df)
     print('--- Adding incr column for %r' % dbtable)
