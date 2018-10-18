@@ -184,7 +184,10 @@ def copy_table_ddl(
     to_conn, to_schema, to_table, squark_metadata):
 
     if SQUARK_METADATA:
-        large_ddl = utils.get_large_data_ddl_def(to_conn, PROJECT_ID, to_table)
+        ddl_project_key = PROJECT_ID
+        if PROJECT_ID in ['haven_daily','haven_weekly','haven_full']:
+            ddl_project_key = 'haven'
+        large_ddl = utils.get_large_data_ddl_def(to_conn, ddl_project_key, to_table)
         squark_metadata['large_ddl'] = large_ddl if large_ddl else dict()
 
     db_product_name = squark_metadata['conn_metadata']['db_product_name']
