@@ -60,10 +60,11 @@ class ColSpec:
     has_size = ('BINARY', 'VARBINARY', 'CHAR', 'VARCHAR', 'NVARCHAR')
     numby = ('DOUBLE', 'BIGINT', 'NUMERIC')
 
-    def __init__(self, jdbc_spec, squark_spec):
+    def __init__(self, jdbc_spec, squark_spec, source_conn):
         self.spec = jdbc_spec
         self.squark_metadata = squark_spec
         self.is_db2 = squark_spec['conn_metadata']['db_product_name'].lower().startswith('db2')
+        self.source_conn = source_conn
 
     def ddl(self):
 
@@ -86,12 +87,25 @@ class ColSpec:
 
         if 'CHAR' in from_type or 'BINARY' in from_type:
             if 65000 < (data['COLUMN_SIZE'] or 1):
+
+                import time
+                start_query_time = time.time()
+                max_len = utils.get_col_max_data_length(self.source_conn, self.spec.TABLE_NAME, self.spec.COLUMN_NAME)
+                print('#' * 20, 'self.spec.TABLE_NAME: {}  self.spec.COLUMN_NAME: {}  max_len: {}'.format(
+                    self.spec.TABLE_NAME, self.spec.COLUMN_NAME, max_len
+                ), flush=True)
+                max_len_query_duration = time.time() - start_query_time
+                print('#' * 20, 'max_len_query_duration: {}'.format(max_len_query_duration))
+
+
+                # existing code (mostly... TODO: in live, condition the "LONG" prefix, >65k only
                 data['COLUMN_SIZE'] = 65000
                 if self.squark_metadata and 'large_ddl' in self.squark_metadata:
                     large_ddl = self.squark_metadata['large_ddl']
                     if self.name in large_ddl:
-                        data['to_type'] = 'LONG ' + data['to_type']
                         data['COLUMN_SIZE'] = large_ddl[self.name]
+                        if data['COLUMN_SIZE'] > 65000:
+                            data['to_type'] = 'LONG ' + data['to_type']
                         print('--- Overriding default 650000 length for {}, final ddl will be: {}({})'.format(
                             self.name,
                             data['to_type'],
@@ -167,8 +181,8 @@ create table if not exists {{schema}}.{{table}}{{deleted_table_suffix}} (
 ''', trim_blocks=True)
 
 
-def make_ddl(schema, table, colspec, squark_metadata):
-    colspec = map(lambda args: ColSpec(args[0], args[1]), [(spec, squark_metadata) for spec in colspec])
+def make_ddl(schema, table, source_conn, colspec, squark_metadata):
+    colspec = map(lambda args: ColSpec(args[0], args[1]), [(spec, squark_metadata) for spec in colspec], source_conn)
     return tmpl.render(schema=schema, table=table, colspec=colspec)
 
 
@@ -202,7 +216,7 @@ def copy_table_ddl(
         cols_connection = from_conn.get_columns(schema=from_schema, table=from_table)
 
     from_cols = list(cols_connection)
-    ddl = make_ddl(to_schema, to_table, from_cols, squark_metadata)
+    ddl = make_ddl(to_schema, to_table, from_conn, from_cols, squark_metadata)
 
     if not is_db2:
         cols_connection.close()
