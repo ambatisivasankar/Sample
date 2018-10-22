@@ -182,7 +182,7 @@ create table if not exists {{schema}}.{{table}}{{deleted_table_suffix}} (
 
 
 def make_ddl(schema, table, source_conn, colspec, squark_metadata):
-    colspec = map(lambda args: ColSpec(args[0], args[1], args[2]), [(spec, squark_metadata) for spec in colspec])
+    colspec = map(lambda args: ColSpec(args[0], args[1], args[2]), [(spec, squark_metadata, source_conn) for spec in colspec])
     return tmpl.render(schema=schema, table=table, colspec=colspec)
 
 
