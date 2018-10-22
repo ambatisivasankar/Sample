@@ -198,7 +198,7 @@ def get_col_max_data_length(postgres_conn, table_name, column_name):
     Returns: int
     """
     sql_query = """
-        SELECT MAX(LENGTH({column_name})) 
+        SELECT MAX(LENGTH("{column_name}")) 
         FROM {table_name}
         """.format(column_name=column_name, table_name=table_name)
     cursor = postgres_conn.cursor()
