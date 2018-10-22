@@ -91,10 +91,13 @@ class ColSpec:
                 import time
                 start_query_time = time.time()
                 max_len = utils.get_col_max_data_length(self.source_conn, self.spec.TABLE_NAME, self.spec.COLUMN_NAME)
-                print('#' * 20, 'self.spec.TABLE_NAME: {}  self.spec.COLUMN_NAME: {}  max_len: {}'.format(
-                    self.spec.TABLE_NAME, self.spec.COLUMN_NAME, max_len
-                ), flush=True)
                 max_len_query_duration = time.time() - start_query_time
+                warning_msg = 'meh...'
+                if max_len_query_duration > 5:
+                    warning_msg = 'LOOOOKOUT'
+                print('#' * 20, 'column_path: {}.{}  max_len: {:,}  max_len_query_duration: {:4f}  warning_msg: {}'.format(
+                    self.spec.TABLE_NAME, self.spec.COLUMN_NAME, max_len, max_len_query_duration, warning_msg
+                ), flush=True)
                 print('#' * 20, 'max_len_query_duration: {}'.format(max_len_query_duration))
 
 
