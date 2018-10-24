@@ -90,6 +90,7 @@ class ColSpec:
 
 
                 # TODO: remove timing & related debug, add RUN_LIVE_MAX_LEN_QUERIES to haven job(s) as appropriate
+                # TODO: if col name ends-with "id", hard-code those to be 255
                 import time
                 start_query_time = time.time()
 
@@ -101,7 +102,7 @@ class ColSpec:
                     if self.name in large_ddl:
                         data['COLUMN_SIZE'] = large_ddl[self.name]
                         custom_column_definition = 'squark_config_large_ddl table'
-                elif RUN_LIVE_MAX_LEN_QUERIES:
+                if not custom_column_definition and RUN_LIVE_MAX_LEN_QUERIES:
                     max_len = utils.get_postgres_col_max_data_length(self.source_conn, self.spec.TABLE_NAME, self.spec.COLUMN_NAME)
                     custom_column_definition = 'live query on source db'
                     if not max_len or max_len < 256:
@@ -312,7 +313,7 @@ if __name__ == '__main__':
     SQUARK_METADATA = os.environ.get('SQUARK_METADATA', '').lower() in ['1', 'true', 'yes']
     SKIP_ERRORS = os.environ.get('SKIP_ERRORS')
     SQUARK_DELETED_TABLE_SUFFIX = os.environ.get('SQUARK_DELETED_TABLE_SUFFIX', '_ADVANA_DELETED')
-    RUN_LIVE_MAX_LEN_QUERIES =  os.environ.get('RUN_LIVE_MAX_LEN_QUERIES', '').lower() in ['1', 'true', 'yes']
+    RUN_LIVE_MAX_LEN_QUERIES = os.environ.get('RUN_LIVE_MAX_LEN_QUERIES', '').lower() in ['1', 'true', 'yes']
 
     from_conn = squarkenv.sources[CONNECTION_ID].conn
     to_conn = squarkenv.sources[VERTICA_CONNECTION_ID].conn
