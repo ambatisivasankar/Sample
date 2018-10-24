@@ -88,33 +88,48 @@ class ColSpec:
         if 'CHAR' in from_type or 'BINARY' in from_type:
             if 65000 < (data['COLUMN_SIZE'] or 1):
 
+
+                # TODO: remove timing & related debug, add RUN_LIVE_MAX_LEN_QUERIES to haven job(s) as appropriate
                 import time
                 start_query_time = time.time()
-                max_len = utils.get_col_max_data_length(self.source_conn, self.spec.TABLE_NAME, self.spec.COLUMN_NAME)
-                max_len_query_duration = time.time() - start_query_time
-                warning_msg = 'meh...'
-                if not max_len:
-                    max_len = -1
-                if max_len_query_duration > 5:
-                    warning_msg = 'LOOOOKOUT'
-                print('#' * 20, 'column_path: {}.{}  max_len: {:,}  max_len_query_duration: {:4f}  warning_msg: {}'.format(
-                    self.spec.TABLE_NAME, self.spec.COLUMN_NAME, max_len, max_len_query_duration, warning_msg
-                ), flush=True)
 
-
-                # existing code (mostly... TODO: in live, condition the "LONG" prefix, >65k only
+                custom_column_definition = None
                 data['COLUMN_SIZE'] = 65000
+
                 if self.squark_metadata and 'large_ddl' in self.squark_metadata:
                     large_ddl = self.squark_metadata['large_ddl']
                     if self.name in large_ddl:
                         data['COLUMN_SIZE'] = large_ddl[self.name]
-                        if data['COLUMN_SIZE'] > 65000:
-                            data['to_type'] = 'LONG ' + data['to_type']
-                        print('--- Overriding default 650000 length for {}, final ddl will be: {}({})'.format(
-                            self.name,
-                            data['to_type'],
-                            data['COLUMN_SIZE']
-                        ), flush=True)
+                        custom_column_definition = 'squark_config_large_ddl table'
+                elif RUN_LIVE_MAX_LEN_QUERIES:
+                    max_len = utils.get_postgres_col_max_data_length(self.source_conn, self.spec.TABLE_NAME, self.spec.COLUMN_NAME)
+                    custom_column_definition = 'live query on source db'
+                    if not max_len or max_len < 256:
+                        max_len = 255
+                    data['COLUMN_SIZE'] = max_len
+
+                if custom_column_definition:
+
+                    warning_msg = 'meh...'
+                    max_len_query_duration = time.time() - start_query_time
+                    if max_len_query_duration > 5:
+                        warning_msg = 'LOOOOKOUT'
+                    print('#' * 20, 'column_path: {}.{}  max_len: {:,}  max_len_query_duration: {:4f}  warning_msg: {}'.format(
+                        self.spec.TABLE_NAME, self.spec.COLUMN_NAME, data['COLUMN_SIZE'], max_len_query_duration, warning_msg
+                    ), flush=True)
+
+                    if data['COLUMN_SIZE'] > 65000:
+                        data['to_type'] = 'LONG ' + data['to_type']
+                    print('--- Overriding default 650000 length for {}, use value from {}, final ddl will be: {}({})'.format(
+                        self.name,
+                        custom_column_definition,
+                        data['to_type'],
+                        data['COLUMN_SIZE']
+                    ), flush=True)
+
+
+
+
 
         if from_type in self.has_size:
             tmpl = '{to_type}({COLUMN_SIZE})'
@@ -297,6 +312,7 @@ if __name__ == '__main__':
     SQUARK_METADATA = os.environ.get('SQUARK_METADATA', '').lower() in ['1', 'true', 'yes']
     SKIP_ERRORS = os.environ.get('SKIP_ERRORS')
     SQUARK_DELETED_TABLE_SUFFIX = os.environ.get('SQUARK_DELETED_TABLE_SUFFIX', '_ADVANA_DELETED')
+    RUN_LIVE_MAX_LEN_QUERIES =  os.environ.get('RUN_LIVE_MAX_LEN_QUERIES', '').lower() in ['1', 'true', 'yes']
 
     from_conn = squarkenv.sources[CONNECTION_ID].conn
     to_conn = squarkenv.sources[VERTICA_CONNECTION_ID].conn

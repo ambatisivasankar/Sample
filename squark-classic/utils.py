@@ -188,13 +188,13 @@ def get_large_data_ddl_def(vertica_conn, project_id, table_name):
     return large_ddl
 
 
-def get_col_max_data_length(postgres_conn, table_name, column_name):
+def get_postgres_col_max_data_length(postgres_conn, table_name, column_name):
     """
-    Function: get_col_max_data_length
+    Function: get maximum length of data in existing column, only testing on haven/postgres, hence naming conventions
     Args:
         postgres_conn - The connection to the postgres instance being queried
-        table_name (str) -
-        column_name (str) -
+        table_name (str) - table name in source db
+        column_name (str) - column name in table of source db
     Returns: int
     """
     sql_query = """
