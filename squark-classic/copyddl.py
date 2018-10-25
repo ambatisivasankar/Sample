@@ -93,7 +93,6 @@ class ColSpec:
                 start_query_time = time.time()
                 custom_column_definition = None
                 data['COLUMN_SIZE'] = 65000
-                print('#'*20, 'from_type: {}'.format(from_type))
 
                 if self.squark_metadata and 'large_ddl' in self.squark_metadata:
                     large_ddl = self.squark_metadata['large_ddl']
