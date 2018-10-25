@@ -1,6 +1,7 @@
 import os
 import re
 import json
+import time
 
 from jinja2 import Template
 
@@ -91,7 +92,6 @@ class ColSpec:
 
                 # TODO: remove timing & related debug, add RUN_LIVE_MAX_LEN_QUERIES to haven job(s) as appropriate
                 # TODO: if col name ends-with "id", hard-code those to be 255
-                import time
                 start_query_time = time.time()
 
                 custom_column_definition = None
@@ -217,6 +217,7 @@ def copy_table_ddl(
     from_conn, from_schema, from_table,
     to_conn, to_schema, to_table, squark_metadata):
 
+    start_time = time.time()
     if SQUARK_METADATA:
         ddl_project_key = PROJECT_ID
         if PROJECT_ID in ['haven_daily','haven_weekly','haven_full']:
@@ -253,14 +254,22 @@ def copy_table_ddl(
         cur = to_conn.cursor()
         rs = cur.execute(deleted_table_ddl)
 
+    if RUN_LIVE_MAX_LEN_QUERIES:
+        time_taken = time.time() - start_time
+        total_table_count = squark_metadata.get('num_tables_ddl')
+        update_load_timings_with_ddl_create_duration(to_conn, table_name, time_taken, total_table_count)
+
 
 def log_squark_metadata_contents(to_conn):
 
     large_ddl_table_name = 'squark_config_large_ddl'
-    rs_large_ddl = utils.get_squark_metadata_for_project(to_conn, PROJECT_ID, large_ddl_table_name)
+    ddl_project_key = PROJECT_ID
+    if PROJECT_ID in ['haven_daily', 'haven_weekly', 'haven_full']:
+        ddl_project_key = 'haven'
+    rs_large_ddl = utils.get_squark_metadata_for_project(to_conn, ddl_project_key, large_ddl_table_name)
     print('--- SQUARK_METADATA=TRUE, contents of {squark_metadata_table_name} for PROJECT_ID "{project_id}":'.format(
         squark_metadata_table_name=large_ddl_table_name,
-        project_id=PROJECT_ID))
+        project_id=ddl_project_key))
     if rs_large_ddl:
         column_names = rs_large_ddl[0]._fieldnames
         print('\t'.join(column_names))
@@ -269,6 +278,15 @@ def log_squark_metadata_contents(to_conn):
             print('\t'.join(str(val) for val in (list(row))))
     else:
         print('< NO ROWS RETURNED >')
+
+
+def update_load_timings_with_ddl_create_duration(vertica_conn, base_table_name, time_taken, total_table_count):
+    jenkins_name = JENKINS_URL.split('.')[0].split('/')[-1]
+    attempt_count = None
+    source = 'n.a.'
+    final_table_name = '{}_SQUARK_DDL'.format(base_table_name)
+    utils.send_load_timing_to_vertica(vertica_conn, jenkins_name, JOB_NAME, BUILD_NUMBER, PROJECT_ID, final_table_name,
+                                      time_taken, attempt_count, source, total_table_count)
 
 
 if __name__ == '__main__':
@@ -310,6 +328,10 @@ if __name__ == '__main__':
             TABLES_WITH_PARTITION_INFO = parsed_json['PARTITION_INFO']['tables']
             print('TABLES_WITH_PARTITION_INFO: %r' % TABLES_WITH_PARTITION_INFO)
 
+    JENKINS_URL = os.environ.get('JENKINS_URL', '')
+    JOB_NAME = os.environ.get('JOB_NAME', '')
+    BUILD_NUMBER = os.environ.get('BUILD_NUMBER', '-1')
+
     SQUARK_METADATA = os.environ.get('SQUARK_METADATA', '').lower() in ['1', 'true', 'yes']
     SKIP_ERRORS = os.environ.get('SKIP_ERRORS')
     SQUARK_DELETED_TABLE_SUFFIX = os.environ.get('SQUARK_DELETED_TABLE_SUFFIX', '_ADVANA_DELETED')
@@ -340,6 +362,7 @@ if __name__ == '__main__':
     else:
         tables = from_conn.get_tables(schema=from_schema)
 
+    squark_metadata['num_tables_ddl'] = len(tables)
     for table in tables:
         table = dict(zip([k.lower() for k in table._fieldnames], table))
         print("Checking table: {tbl} {tbltype}".format(tbl=table[table_name_key], tbltype=table['table_type']))
