@@ -197,6 +197,7 @@ def get_postgres_col_max_data_length(postgres_conn, table_name, column_name):
         column_name (str) - column name in table of source db
     Returns: int
     """
+    # haven_cdmproducers (at least) has USER-DEFINED columns translating as CHAR, MAX(LENGTH(x)) fails on these
     sql_query = """
         SELECT MAX(LENGTH("{column_name}")) 
         FROM {table_name}

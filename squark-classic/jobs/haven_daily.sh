@@ -7,6 +7,7 @@ export CONNECTION_ID=haven
 export SPARK_MAX_EXECUTORS=60
 export SQUARK_METADATA=1
 export SKIP_SOURCE_ROW_COUNT=1
+export RUN_LIVE_MAX_LEN_QUERIES=1
 
 # 2018.07.06, application2 & workflow_history2 are in here only to test deletes, we create via SELECT INTO on RDS and then we own
 # SECONDs returned as fractional values, e.g. 59.565992, so 60 partitions works
