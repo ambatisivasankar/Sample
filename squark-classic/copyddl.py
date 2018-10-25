@@ -102,8 +102,16 @@ class ColSpec:
                     if self.name in large_ddl:
                         data['COLUMN_SIZE'] = large_ddl[self.name]
                         custom_column_definition = 'squark_config_large_ddl table'
+
+                # test setting any columns ending with 'id' as length = 255
                 if not custom_column_definition and RUN_LIVE_MAX_LEN_QUERIES:
-                    max_len = utils.get_postgres_col_max_data_length(self.source_conn, self.spec.TABLE_NAME, self.spec.COLUMN_NAME)
+                    if self.name.lower().endswith('id'):
+                        id_like_column_size = 255
+                        data['COLUMN_SIZE'] = id_like_column_size
+                        custom_column_definition = '.endswith("id") to {}'.format(id_like_column_size)
+
+                if not custom_column_definition and RUN_LIVE_MAX_LEN_QUERIES:
+                    max_len = utils.get_postgres_col_max_data_length(self.source_conn, self.spec.TABLE_NAME, self.name)
                     custom_column_definition = 'live query on source db'
                     if not max_len or max_len < 256:
                         max_len = 255
