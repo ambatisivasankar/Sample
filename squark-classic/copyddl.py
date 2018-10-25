@@ -89,11 +89,8 @@ class ColSpec:
         if 'CHAR' in from_type or 'BINARY' in from_type:
             if 65000 < (data['COLUMN_SIZE'] or 1):
 
-
-                # TODO: remove timing & related debug, add RUN_LIVE_MAX_LEN_QUERIES to haven job(s) as appropriate
-                # TODO: if col name ends-with "id", hard-code those to be 255
+                # TODO: add RUN_LIVE_MAX_LEN_QUERIES to haven job(s) as appropriate
                 start_query_time = time.time()
-
                 custom_column_definition = None
                 data['COLUMN_SIZE'] = 65000
 
@@ -102,31 +99,29 @@ class ColSpec:
                     if self.name in large_ddl:
                         data['COLUMN_SIZE'] = large_ddl[self.name]
                         custom_column_definition = 'squark_config_large_ddl table'
-
-                # test setting any columns ending with 'id' as length = 255
+                # 2018.10.25, *_id check covers ~360 columns in curr haven db, any new *_id columns > 255 char = badness
+                #  ddl-create w/combo of large_ddl table and live queries is curr < 5min, below saves up to 90 seconds
                 if not custom_column_definition and RUN_LIVE_MAX_LEN_QUERIES:
                     if self.name.lower().endswith('_id'):
                         id_like_column_size = 255
                         data['COLUMN_SIZE'] = id_like_column_size
                         custom_column_definition = '.endswith("_id") to {}'.format(id_like_column_size)
-
                 if not custom_column_definition and RUN_LIVE_MAX_LEN_QUERIES:
-                    # use self.spec.COLUMN_NAME - this is the orig, non-sanitized column name
+                    # use self.spec.COLUMN_NAME = the orig, non-sanitized column name
                     max_len = utils.get_postgres_col_max_data_length(self.source_conn, self.spec.TABLE_NAME, self.spec.COLUMN_NAME)
                     custom_column_definition = 'live query on source db'
-                    if not max_len or max_len < 256:
+                    if not max_len or max_len < 255:
                         max_len = 255
                     data['COLUMN_SIZE'] = max_len
 
                 if custom_column_definition:
-
                     warning_msg = 'meh...'
                     max_len_query_duration = time.time() - start_query_time
                     if max_len_query_duration > 5:
                         warning_msg = 'LOOOOKOUT'
-                    print('#' * 20, 'column_path: {}.{}  max_len: {:,}  max_len_query_duration: {:4f}  warning_msg: {}'.format(
-                        self.spec.TABLE_NAME, self.spec.COLUMN_NAME, data['COLUMN_SIZE'], max_len_query_duration, warning_msg
-                    ), flush=True)
+                    debug_msg = 'column_path: {}.{}  max_len: {:,}  max_len_query_duration: {:4f}  warning_msg: {}'.format(
+                        self.spec.TABLE_NAME, self.spec.COLUMN_NAME, data['COLUMN_SIZE'], max_len_query_duration, warning_msg)
+                    print(debug_msg, flush=True)
 
                     if data['COLUMN_SIZE'] > 65000:
                         data['to_type'] = 'LONG ' + data['to_type']
@@ -136,10 +131,6 @@ class ColSpec:
                         data['to_type'],
                         data['COLUMN_SIZE']
                     ), flush=True)
-
-
-
-
 
         if from_type in self.has_size:
             tmpl = '{to_type}({COLUMN_SIZE})'
