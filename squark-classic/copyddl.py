@@ -265,8 +265,7 @@ def copy_table_ddl(
 
     if RUN_LIVE_MAX_LEN_QUERIES:
         time_taken = time.time() - start_time
-        total_table_count = squark_metadata.get('num_tables_ddl')
-        update_load_timings_with_ddl_create_duration(to_conn, table_name, time_taken, total_table_count)
+        update_load_timings_with_ddl_create_duration(to_conn, table_name, time_taken)
 
 
 def log_squark_metadata_contents(to_conn):
@@ -289,10 +288,12 @@ def log_squark_metadata_contents(to_conn):
         print('< NO ROWS RETURNED >')
 
 
-def update_load_timings_with_ddl_create_duration(vertica_conn, base_table_name, time_taken, total_table_count):
+def update_load_timings_with_ddl_create_duration(vertica_conn, base_table_name, time_taken):
     jenkins_name = JENKINS_URL.split('.')[0].split('/')[-1]
     attempt_count = 1
     source = 'n.a.'
+    # there isn't straightforward way to get total number of tables/views that will get DDL'd before iteration
+    total_table_count = 0
     final_table_name = '{}_SQUARK_DDL'.format(base_table_name)
     utils.send_load_timing_to_vertica(vertica_conn, jenkins_name, JOB_NAME, BUILD_NUMBER, PROJECT_ID, final_table_name,
                                       time_taken, attempt_count, source, total_table_count)
@@ -370,10 +371,6 @@ if __name__ == '__main__':
         tables = from_conn.get_tables(schema=JDBC_SCHEMA).fetchmany(table_count)
     else:
         tables = from_conn.get_tables(schema=from_schema)
-
-    if RUN_LIVE_MAX_LEN_QUERIES:
-        tables_for_count = from_conn.get_tables(schema=from_schema)
-        squark_metadata['num_tables_ddl'] = len(list(tables_for_count))
 
     for table in tables:
         table = dict(zip([k.lower() for k in table._fieldnames], table))
