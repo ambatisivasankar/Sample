@@ -111,7 +111,8 @@ class ColSpec:
                         custom_column_definition = '.endswith("id") to {}'.format(id_like_column_size)
 
                 if not custom_column_definition and RUN_LIVE_MAX_LEN_QUERIES:
-                    max_len = utils.get_postgres_col_max_data_length(self.source_conn, self.spec.TABLE_NAME, self.name)
+                    # use self.spec.COLUMN_NAME - this is the orig, non-sanitized column name
+                    max_len = utils.get_postgres_col_max_data_length(self.source_conn, self.spec.TABLE_NAME, self.spec.COLUMN_NAME)
                     custom_column_definition = 'live query on source db'
                     if not max_len or max_len < 256:
                         max_len = 255
