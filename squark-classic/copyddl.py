@@ -362,7 +362,10 @@ if __name__ == '__main__':
     else:
         tables = from_conn.get_tables(schema=from_schema)
 
-    squark_metadata['num_tables_ddl'] = len(list(tables))
+    if RUN_LIVE_MAX_LEN_QUERIES:
+        tables_for_count = from_conn.get_tables(schema=from_schema)
+        squark_metadata['num_tables_ddl'] = len(list(tables_for_count))
+
     for table in tables:
         table = dict(zip([k.lower() for k in table._fieldnames], table))
         print("Checking table: {tbl} {tbltype}".format(tbl=table[table_name_key], tbltype=table['table_type']))
