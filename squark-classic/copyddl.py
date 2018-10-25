@@ -282,7 +282,7 @@ def log_squark_metadata_contents(to_conn):
 
 def update_load_timings_with_ddl_create_duration(vertica_conn, base_table_name, time_taken, total_table_count):
     jenkins_name = JENKINS_URL.split('.')[0].split('/')[-1]
-    attempt_count = None
+    attempt_count = 1
     source = 'n.a.'
     final_table_name = '{}_SQUARK_DDL'.format(base_table_name)
     utils.send_load_timing_to_vertica(vertica_conn, jenkins_name, JOB_NAME, BUILD_NUMBER, PROJECT_ID, final_table_name,
