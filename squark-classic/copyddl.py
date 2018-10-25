@@ -105,10 +105,10 @@ class ColSpec:
 
                 # test setting any columns ending with 'id' as length = 255
                 if not custom_column_definition and RUN_LIVE_MAX_LEN_QUERIES:
-                    if self.name.lower().endswith('id'):
+                    if self.name.lower().endswith('_id'):
                         id_like_column_size = 255
                         data['COLUMN_SIZE'] = id_like_column_size
-                        custom_column_definition = '.endswith("id") to {}'.format(id_like_column_size)
+                        custom_column_definition = '.endswith("_id") to {}'.format(id_like_column_size)
 
                 if not custom_column_definition and RUN_LIVE_MAX_LEN_QUERIES:
                     # use self.spec.COLUMN_NAME - this is the orig, non-sanitized column name
