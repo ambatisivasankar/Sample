@@ -7,6 +7,7 @@ export CONNECTION_ID=haven
 export SPARK_MAX_EXECUTORS=60
 export SQUARK_METADATA=1
 export SKIP_SOURCE_ROW_COUNT=1
+export RUN_LIVE_MAX_LEN_QUERIES=1
 
 # SECONDs returned as fractional values, e.g. 59.565992, so 60 partitions works
 # 2018.10.12, hard-code the SELECT for policy_doc in order to skip the BLOBy doc column that we don't need and slows down the ingestion

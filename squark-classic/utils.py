@@ -188,6 +188,27 @@ def get_large_data_ddl_def(vertica_conn, project_id, table_name):
     return large_ddl
 
 
+def get_postgres_col_max_data_length(postgres_conn, table_name, column_name):
+    """
+    Function: get maximum length of data in existing column, only testing on haven/postgres, hence naming conventions
+    Args:
+        postgres_conn - The connection to the postgres instance being queried
+        table_name (str) - table name in source db
+        column_name (str) - column name in table of source db
+    Returns: int
+    """
+    # haven_cdmproducers (at least) has USER-DEFINED columns translating as CHAR, MAX(LENGTH(x)) fails on these
+    sql_query = """
+        SELECT MAX(LENGTH("{column_name}")) 
+        FROM {table_name}
+        """.format(column_name=column_name, table_name=table_name)
+    cursor = postgres_conn.cursor()
+    cursor.execute(sql_query)
+    max_len = cursor.fetchone()[0]
+
+    return max_len
+
+
 def get_squark_metadata_for_project(vertica_conn, project_id, squark_metadata_table_name, limit=1000):
     """
     Function: get_squark_metadata_for_project - Return contents of specified table in admin schema
