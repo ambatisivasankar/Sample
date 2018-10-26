@@ -89,7 +89,6 @@ class ColSpec:
         if 'CHAR' in from_type or 'BINARY' in from_type:
             if 65000 < (data['COLUMN_SIZE'] or 1):
 
-                # TODO: add RUN_LIVE_MAX_LEN_QUERIES to haven job(s) as appropriate
                 start_query_time = time.time()
                 custom_column_definition = None
                 data['COLUMN_SIZE'] = 65000
@@ -110,8 +109,11 @@ class ColSpec:
                     # use self.spec.COLUMN_NAME = the orig, non-sanitized column name
                     max_len = utils.get_postgres_col_max_data_length(self.source_conn, self.spec.TABLE_NAME, self.spec.COLUMN_NAME)
                     custom_column_definition = 'live query on source db'
-                    if not max_len or max_len < 255:
+                    if not max_len or max_len < 245:
                         max_len = 255
+                    else:
+                        # need gap between actual & defined length, else vertica check-for-truncation SQL won't work
+                        max_len += 10
                     data['COLUMN_SIZE'] = max_len
 
                 if custom_column_definition:
