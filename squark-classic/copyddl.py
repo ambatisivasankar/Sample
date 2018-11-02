@@ -1,6 +1,7 @@
 import os
 import re
 import json
+import time
 
 from jinja2 import Template
 
@@ -60,10 +61,11 @@ class ColSpec:
     has_size = ('BINARY', 'VARBINARY', 'CHAR', 'VARCHAR', 'NVARCHAR')
     numby = ('DOUBLE', 'BIGINT', 'NUMERIC')
 
-    def __init__(self, jdbc_spec, squark_spec):
+    def __init__(self, jdbc_spec, squark_spec, source_conn):
         self.spec = jdbc_spec
         self.squark_metadata = squark_spec
         self.is_db2 = squark_spec['conn_metadata']['db_product_name'].lower().startswith('db2')
+        self.source_conn = source_conn
 
     def ddl(self):
 
@@ -86,17 +88,51 @@ class ColSpec:
 
         if 'CHAR' in from_type or 'BINARY' in from_type:
             if 65000 < (data['COLUMN_SIZE'] or 1):
+
+                start_query_time = time.time()
+                custom_column_definition = None
                 data['COLUMN_SIZE'] = 65000
+
                 if self.squark_metadata and 'large_ddl' in self.squark_metadata:
                     large_ddl = self.squark_metadata['large_ddl']
                     if self.name in large_ddl:
-                        data['to_type'] = 'LONG ' + data['to_type']
                         data['COLUMN_SIZE'] = large_ddl[self.name]
-                        print('--- Overriding default 650000 length for {}, final ddl will be: {}({})'.format(
-                            self.name,
-                            data['to_type'],
-                            data['COLUMN_SIZE']
-                        ), flush=True)
+                        custom_column_definition = 'squark_config_large_ddl table'
+                # 2018.10.25, *_id check covers ~360 columns in curr haven db, any new *_id columns > 255 char = badness
+                #  ddl-create w/combo of large_ddl table and live queries is curr < 5min, below saves up to 90 seconds
+                if not custom_column_definition and RUN_LIVE_MAX_LEN_QUERIES:
+                    if self.name.lower().endswith('_id'):
+                        id_like_column_size = 255
+                        data['COLUMN_SIZE'] = id_like_column_size
+                        custom_column_definition = '.endswith("_id") to {}'.format(id_like_column_size)
+                if not custom_column_definition and RUN_LIVE_MAX_LEN_QUERIES:
+                    # use self.spec.COLUMN_NAME = the orig, non-sanitized column name
+                    max_len = utils.get_postgres_col_max_data_length(self.source_conn, self.spec.TABLE_NAME, self.spec.COLUMN_NAME)
+                    custom_column_definition = 'live query on source db'
+                    if not max_len or max_len < 245:
+                        max_len = 255
+                    else:
+                        # need gap between actual & defined length, else vertica check-for-truncation SQL won't work
+                        max_len += 10
+                    data['COLUMN_SIZE'] = max_len
+
+                if custom_column_definition:
+                    warning_msg = 'meh...'
+                    max_len_query_duration = time.time() - start_query_time
+                    if max_len_query_duration > 5:
+                        warning_msg = 'LOOOOKOUT'
+                    debug_msg = 'column_path: {}.{}  max_len: {:,}  max_len_query_duration: {:4f}  warning_msg: {}'.format(
+                        self.spec.TABLE_NAME, self.spec.COLUMN_NAME, data['COLUMN_SIZE'], max_len_query_duration, warning_msg)
+                    print(debug_msg, flush=True)
+
+                    if data['COLUMN_SIZE'] > 65000:
+                        data['to_type'] = 'LONG ' + data['to_type']
+                    print('--- Overriding default 650000 length for {}, use value from {}, final ddl will be: {}({})'.format(
+                        self.name,
+                        custom_column_definition,
+                        data['to_type'],
+                        data['COLUMN_SIZE']
+                    ), flush=True)
 
         if from_type in self.has_size:
             tmpl = '{to_type}({COLUMN_SIZE})'
@@ -167,8 +203,8 @@ create table if not exists {{schema}}.{{table}}{{deleted_table_suffix}} (
 ''', trim_blocks=True)
 
 
-def make_ddl(schema, table, colspec, squark_metadata):
-    colspec = map(lambda args: ColSpec(args[0], args[1]), [(spec, squark_metadata) for spec in colspec])
+def make_ddl(schema, table, source_conn, colspec, squark_metadata):
+    colspec = map(lambda args: ColSpec(args[0], args[1], args[2]), [(spec, squark_metadata, source_conn) for spec in colspec])
     return tmpl.render(schema=schema, table=table, colspec=colspec)
 
 
@@ -183,8 +219,12 @@ def copy_table_ddl(
     from_conn, from_schema, from_table,
     to_conn, to_schema, to_table, squark_metadata):
 
+    start_time = time.time()
     if SQUARK_METADATA:
-        large_ddl = utils.get_large_data_ddl_def(to_conn, PROJECT_ID, to_table)
+        ddl_project_key = PROJECT_ID
+        if PROJECT_ID in ['haven_daily','haven_weekly','haven_full']:
+            ddl_project_key = 'haven'
+        large_ddl = utils.get_large_data_ddl_def(to_conn, ddl_project_key, to_table)
         squark_metadata['large_ddl'] = large_ddl if large_ddl else dict()
 
     db_product_name = squark_metadata['conn_metadata']['db_product_name']
@@ -199,7 +239,7 @@ def copy_table_ddl(
         cols_connection = from_conn.get_columns(schema=from_schema, table=from_table)
 
     from_cols = list(cols_connection)
-    ddl = make_ddl(to_schema, to_table, from_cols, squark_metadata)
+    ddl = make_ddl(to_schema, to_table, from_conn, from_cols, squark_metadata)
 
     if not is_db2:
         cols_connection.close()
@@ -216,14 +256,21 @@ def copy_table_ddl(
         cur = to_conn.cursor()
         rs = cur.execute(deleted_table_ddl)
 
+    if RUN_LIVE_MAX_LEN_QUERIES:
+        time_taken = time.time() - start_time
+        update_load_timings_with_ddl_create_duration(to_conn, table_name, time_taken)
+
 
 def log_squark_metadata_contents(to_conn):
 
     large_ddl_table_name = 'squark_config_large_ddl'
-    rs_large_ddl = utils.get_squark_metadata_for_project(to_conn, PROJECT_ID, large_ddl_table_name)
+    ddl_project_key = PROJECT_ID
+    if PROJECT_ID in ['haven_daily', 'haven_weekly', 'haven_full']:
+        ddl_project_key = 'haven'
+    rs_large_ddl = utils.get_squark_metadata_for_project(to_conn, ddl_project_key, large_ddl_table_name)
     print('--- SQUARK_METADATA=TRUE, contents of {squark_metadata_table_name} for PROJECT_ID "{project_id}":'.format(
         squark_metadata_table_name=large_ddl_table_name,
-        project_id=PROJECT_ID))
+        project_id=ddl_project_key))
     if rs_large_ddl:
         column_names = rs_large_ddl[0]._fieldnames
         print('\t'.join(column_names))
@@ -232,6 +279,17 @@ def log_squark_metadata_contents(to_conn):
             print('\t'.join(str(val) for val in (list(row))))
     else:
         print('< NO ROWS RETURNED >')
+
+
+def update_load_timings_with_ddl_create_duration(vertica_conn, base_table_name, time_taken):
+    jenkins_name = JENKINS_URL.split('.')[0].split('/')[-1]
+    attempt_count = 1
+    source = 'n.a.'
+    # there isn't straightforward way to get total number of tables/views that will get DDL'd before iteration
+    total_table_count = 0
+    final_table_name = '{}_SQUARK_DDL'.format(base_table_name)
+    utils.send_load_timing_to_vertica(vertica_conn, jenkins_name, JOB_NAME, BUILD_NUMBER, PROJECT_ID, final_table_name,
+                                      time_taken, attempt_count, source, total_table_count)
 
 
 if __name__ == '__main__':
@@ -273,9 +331,14 @@ if __name__ == '__main__':
             TABLES_WITH_PARTITION_INFO = parsed_json['PARTITION_INFO']['tables']
             print('TABLES_WITH_PARTITION_INFO: %r' % TABLES_WITH_PARTITION_INFO)
 
+    JENKINS_URL = os.environ.get('JENKINS_URL', '')
+    JOB_NAME = os.environ.get('JOB_NAME', '')
+    BUILD_NUMBER = os.environ.get('BUILD_NUMBER', '-1')
+
     SQUARK_METADATA = os.environ.get('SQUARK_METADATA', '').lower() in ['1', 'true', 'yes']
     SKIP_ERRORS = os.environ.get('SKIP_ERRORS')
     SQUARK_DELETED_TABLE_SUFFIX = os.environ.get('SQUARK_DELETED_TABLE_SUFFIX', '_ADVANA_DELETED')
+    RUN_LIVE_MAX_LEN_QUERIES = os.environ.get('RUN_LIVE_MAX_LEN_QUERIES', '').lower() in ['1', 'true', 'yes']
 
     from_conn = squarkenv.sources[CONNECTION_ID].conn
     to_conn = squarkenv.sources[VERTICA_CONNECTION_ID].conn

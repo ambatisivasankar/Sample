@@ -116,7 +116,14 @@ def main():
         base_table_name = table_name
         facing_table_name = table_name
         if table_name.startswith('old_'):
-            facing_table_name = table_name[4:]
+            # 2018.10.29, should probably allow EXCLUDE_TABLES for any table but add here to limit testing
+            #  will be a period in which valid tables with both orig & "old_" names will exist, allow skip of latter
+            if table_name not in EXCLUDE_TABLES:
+                facing_table_name = table_name[4:]
+            else:
+                print('>>>> skipping "old" table in EXCLUDE_TABLES: {}'.format(table_name), flush=True)
+                continue
+
 
         try:
             if is_incremental_table and base_schema and pkid_column_name:
