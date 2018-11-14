@@ -18,7 +18,7 @@ export JSON_INFO="
 	'SAVE_TABLE_SQL_SUBQUERY':{
       'schema': 'dbo',
       'table_queries': {
-            'policy_doc': '(SELECT \\\"_id\\\",\\\"_template\\\",\\\"__version__\\\",NULL AS doc,\\\"type\\\",\\\"docType\\\",\\\"docSource\\\",\\\"appType\\\",\\\"subType\\\",\\\"policyId\\\",\\\"name\\\",\\\"language\\\",\\\"date\\\",\\\"uploadedBy\\\",\\\"follow_up_qa_id\\\",\\\"roles\\\",\\\"order\\\",\\\"status\\\",\\\"createdTime\\\",\\\"lastUpdatedTime\\\" FROM policy_doc) as subquery'
+            'policy_doc': '(SELECT \\\"_id\\\",\\\"_template\\\",\\\"__version__\\\",NULL AS doc,\\\"type\\\",\\\"docType\\\",\\\"docSource\\\",\\\"appType\\\",\\\"subType\\\",\\\"policyId\\\",\\\"name\\\",\\\"date\\\",\\\"uploadedBy\\\",\\\"language\\\",\\\"roles\\\",\\\"order\\\",\\\"follow_up_qa_id\\\",\\\"createdTime\\\",\\\"lastUpdatedTime\\\",\\\"status\\\" FROM policy_doc) as subquery'
         }
     },
     'PARTITION_INFO':{
