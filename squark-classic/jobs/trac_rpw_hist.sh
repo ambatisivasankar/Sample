@@ -15,7 +15,7 @@ export JSON_INFO='{
 				"partitionColumn": "AH_BTCH_DT >= """01-JAN-2016""" AND SRC_CD",
 				"lowerBound": 101,
 				"upperBound": 160,
-				"numPartitions": 60
+				"numPartitions": 59
 			}
 		}
 	}
