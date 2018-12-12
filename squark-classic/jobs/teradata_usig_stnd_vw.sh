@@ -9,7 +9,7 @@ export SPARK_MAX_EXECUTORS=15
 
 export JSON_INFO="
 {
-    'PARTITION_INFO':{
+    'PARTITION_INFO': {
         'tables': {
             'AGMT_CMN_VW': {
               'partitionColumn': 'AGREEMENT_ID',
@@ -22,7 +22,7 @@ export JSON_INFO="
               'lowerBound': 1,
               'upperBound': 34000000,
               'numPartitions': 50
-            },
+            }
         }
    }
 }
