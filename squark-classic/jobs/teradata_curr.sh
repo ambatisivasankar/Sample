@@ -13,10 +13,10 @@ export JSON_INFO="
     'PARTITION_INFO':{
         'tables': {
             'AGMT_COMM_TXN_CMN_VW': {
-              'partitionColumn': 'COALESCE(COMM_TXN_ID,0)',
-              'lowerBound': 50000000,
-              'upperBound': 230000000,
-              'numPartitions': 50
+              'partitionColumn': 'COALESCE(RUN_ID,0)',
+              'lowerBound': 0,
+              'upperBound': 800,
+              'numPartitions': 80
             }
         }
    }
