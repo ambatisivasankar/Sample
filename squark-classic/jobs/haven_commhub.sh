@@ -14,6 +14,12 @@ export JSON_INFO="
               'lowerBound': 27000,
               'upperBound': 600000,
               'numPartitions': 50
+            },
+            'zd_comment_raw': {
+              'partitionColumn': 'id',
+              'lowerBound': 27000,
+              'upperBound': 600000,
+              'numPartitions': 50
             }
         }
    }
