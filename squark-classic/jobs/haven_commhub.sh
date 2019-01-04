@@ -4,6 +4,7 @@ export SQL_TEMPLATE='"%s"'
 export CHECK_PRIVS=1
 export CONNECTION_ID=haven_commhub
 export SQUARK_METADATA=1
+export CONVERT_ARRAYS_TO_STRING=1
 
 export JSON_INFO="
 {
