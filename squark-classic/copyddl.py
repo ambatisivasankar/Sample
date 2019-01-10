@@ -79,7 +79,7 @@ class ColSpec:
         data = dict(zip((k.upper() for k in self.spec._fieldnames), self.spec))
         data.update(to_type=to_type)
 
-        if from_type in ('ARRAY', 'OTHER'):
+        if from_type in ('ARRAY', 'OTHER') and not CONVERT_ARRAYS_TO_STRING:
             # Hstore
             return 'VARCHAR(65000)'
 
@@ -339,6 +339,7 @@ if __name__ == '__main__':
     SKIP_ERRORS = os.environ.get('SKIP_ERRORS')
     SQUARK_DELETED_TABLE_SUFFIX = os.environ.get('SQUARK_DELETED_TABLE_SUFFIX', '_ADVANA_DELETED')
     RUN_LIVE_MAX_LEN_QUERIES = os.environ.get('RUN_LIVE_MAX_LEN_QUERIES', '').lower() in ['1', 'true', 'yes']
+    CONVERT_ARRAYS_TO_STRING = os.environ.get('CONVERT_ARRAYS_TO_STRING')
 
     from_conn = squarkenv.sources[CONNECTION_ID].conn
     to_conn = squarkenv.sources[VERTICA_CONNECTION_ID].conn
