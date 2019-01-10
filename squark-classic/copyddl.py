@@ -82,6 +82,7 @@ class ColSpec:
         if from_type in ('ARRAY', 'OTHER'):
             if from_type == 'ARRAY' and CONVERT_ARRAYS_TO_STRING:
                 from_type = 'VARCHAR'
+                data['to_type'] = 'VARCHAR'
                 data['COLUMN_SIZE'] = 65000
             else:
                 # Hstore
