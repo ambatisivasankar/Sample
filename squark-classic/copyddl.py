@@ -79,9 +79,13 @@ class ColSpec:
         data = dict(zip((k.upper() for k in self.spec._fieldnames), self.spec))
         data.update(to_type=to_type)
 
-        if from_type in ('ARRAY', 'OTHER') and not CONVERT_ARRAYS_TO_STRING:
-            # Hstore
-            return 'VARCHAR(65000)'
+        if from_type in ('ARRAY', 'OTHER'):
+            if from_type == 'ARRAY' and CONVERT_ARRAYS_TO_STRING:
+                from_type = 'VARCHAR'
+                data['COLUMN_SIZE'] = 65000
+            else:
+                # Hstore
+                return 'VARCHAR(65000)'
 
         if from_type in ('NVARCHAR', 'NCHAR', 'NVARBINARY'):
             data['COLUMN_SIZE'] = data['COLUMN_SIZE'] * 3
