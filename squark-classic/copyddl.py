@@ -80,8 +80,14 @@ class ColSpec:
         data.update(to_type=to_type)
 
         if from_type in ('ARRAY', 'OTHER'):
-            # Hstore
-            return 'VARCHAR(65000)'
+            print('--- "{}" self.spec.data_type: {}, unless ARRAY + CONVERT_ARRAYS_TO_STRING, set as VARCHAR(65000)'.format(
+                self.name, from_type), flush=True)
+            if from_type == 'ARRAY' and CONVERT_ARRAYS_TO_STRING:
+                from_type = 'VARCHAR'
+                data['to_type'] = 'VARCHAR'
+            else:
+                # Hstore
+                return 'VARCHAR(65000)'
 
         if from_type in ('NVARCHAR', 'NCHAR', 'NVARBINARY'):
             data['COLUMN_SIZE'] = data['COLUMN_SIZE'] * 3
@@ -339,6 +345,7 @@ if __name__ == '__main__':
     SKIP_ERRORS = os.environ.get('SKIP_ERRORS')
     SQUARK_DELETED_TABLE_SUFFIX = os.environ.get('SQUARK_DELETED_TABLE_SUFFIX', '_ADVANA_DELETED')
     RUN_LIVE_MAX_LEN_QUERIES = os.environ.get('RUN_LIVE_MAX_LEN_QUERIES', '').lower() in ['1', 'true', 'yes']
+    CONVERT_ARRAYS_TO_STRING = os.environ.get('CONVERT_ARRAYS_TO_STRING')
 
     from_conn = squarkenv.sources[CONNECTION_ID].conn
     to_conn = squarkenv.sources[VERTICA_CONNECTION_ID].conn
