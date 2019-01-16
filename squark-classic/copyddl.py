@@ -80,8 +80,8 @@ class ColSpec:
         data.update(to_type=to_type)
 
         if from_type in ('ARRAY', 'OTHER'):
-            print('--- self.spec.data_type: {}, unless ARRAY + CONVERT_ARRAYS_TO_STRING, set as VARCHAR(65000)'.format(
-                from_type), flush=True)
+            print('--- "{}" self.spec.data_type: {}, unless ARRAY + CONVERT_ARRAYS_TO_STRING, set as VARCHAR(65000)'.format(
+                self.name, from_type), flush=True)
             if from_type == 'ARRAY' and CONVERT_ARRAYS_TO_STRING:
                 from_type = 'VARCHAR'
                 data['to_type'] = 'VARCHAR'
