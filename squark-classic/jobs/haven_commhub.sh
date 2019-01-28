@@ -6,10 +6,17 @@ export CONNECTION_ID=haven_commhub
 export SQUARK_METADATA=1
 export CONVERT_ARRAYS_TO_STRING=1
 
+# md_email_content_raw, remove any letters (g=global, i=case-insensitive), return first two digits and cast as INT
 export JSON_INFO="
 {
     'PARTITION_INFO':{
         'tables': {
+            'md_email_content_raw': {
+              'partitionColumn': 'CAST(LEFT(regexp_replace(id, '''[a-z]''', '''''', '''gi'''), 2) AS INTEGER)',
+              'lowerBound': 0,
+              'upperBound': 99,
+              'numPartitions': 99
+            },
             'zd_ticket': {
               'partitionColumn': 'id',
               'lowerBound': 27000,
