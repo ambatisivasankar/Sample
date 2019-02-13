@@ -54,14 +54,15 @@ INCLUDE_TABLES_ARRAY=(
 export EXCLUDE_TABLES="$(IFS=, ; echo "${EXCLUDE_TABLES_ARRAY[*]}")"
 export INCLUDE_TABLES="$(IFS=, ; echo "${INCLUDE_TABLES_ARRAY[*]}")"
 
+export SPARK_MAX_EXECUTORS=10
 export JSON_INFO='
 {
     "PARTITION_INFO":{
         "tables": {
             "DATA_EXCHANGE_DEMO": {
               "partitionColumn": "DATA_EXCH_ID",
-              "lowerBound": 2212800,
-              "upperBound": 9000000,
+              "lowerBound": 2138100,
+              "upperBound": 9630000,
               "numPartitions": 50
             },
             "PAYROLL_HISTORY": {
@@ -72,8 +73,8 @@ export JSON_INFO='
             },
             "PARTN1_PARTC_PERIODIC_BAL": {
               "partitionColumn": "SUBSCRIBER_ID",
-              "lowerBound": 3,
-              "upperBound": 216000,
+              "lowerBound": 0,
+              "upperBound": 210000,
               "numPartitions": 50
             },
             "CENSUS_EE": {
