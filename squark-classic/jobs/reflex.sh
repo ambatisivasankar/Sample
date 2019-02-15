@@ -67,9 +67,9 @@ export JSON_INFO='
             },
             "PAYROLL_HISTORY": {
               "partitionColumn": "SUBSCRIBER_ID",
-              "lowerBound": 1000,
-              "upperBound": 216000,
-              "numPartitions": 50
+              "lowerBound": 500,
+              "upperBound": 215000,
+              "numPartitions": 100
             },
             "PARTN1_PARTC_PERIODIC_BAL": {
               "partitionColumn": "SUBSCRIBER_ID",
