@@ -20,13 +20,19 @@ export JSON_INFO="
             'zd_ticket': {
               'partitionColumn': 'id',
               'lowerBound': 27000,
-              'upperBound': 600000,
+              'upperBound': 700000,
               'numPartitions': 50
             },
             'zd_comment_raw': {
               'partitionColumn': 'id',
               'lowerBound': 27000,
-              'upperBound': 600000,
+              'upperBound': 700000,
+              'numPartitions': 50
+            },
+            'zd_ticket_raw': {
+              'partitionColumn': 'id',
+              'lowerBound': 27000,
+              'upperBound': 700000,
               'numPartitions': 50
             }
         }
