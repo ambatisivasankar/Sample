@@ -1,8 +1,8 @@
-#Advana's Custom Squark Config
+# Advana's Custom Squark Config
 
 This repo contains encrypted Squark configuration files and a couple of scripts to make installing squark easier in Jenkins jobs. 
 
-###What the  
+### What the  
 
 ---
 
@@ -12,12 +12,12 @@ Using environment variables for secret storage is a mistake in a multi-user Linu
 
 There are other options too, such as using an encrypted secret storage system like Hashicorp's Vault server, which stores secrets as encypted binary objects in any of a number of different backends. Other job scheduling tools like Airflow include a database-backed encrypted storage facility. These options may very well be better than checking encrypted files into a git repo.  
 
-###How to Use
+### How to Use
 
 
 To use this Squark config repo, you'll need the Squark password file. Contact me (tneale@massmutual.com) and I'll email it to you. Next, save that file as ~/.squark-password or choose a different location and edit ~/.env.sh with that location as the SQUARK_PASSWORD_FILE environment variable. Now when you run Squark, it will use this repo for its config. 
 
-###How to Edit
+### How to Edit
 
 ---
 
@@ -26,7 +26,7 @@ Currently only the .squark/secrets.cfg file is encrypted. To edit it, use ansibl
     $ ansible-vault edit --vault-password-file ~/.squark-password .squark/secrets.cfg
 ```
 
-###RUNNING SQUARK-CLASSIC IN CONTAINER 
+### RUNNING SQUARK-CLASSIC IN CONTAINER 
 
 ---
 
@@ -50,7 +50,7 @@ That should be it. Most environment variables are being set in the docker file, 
 
 To add new jars: Just copy them into the .jars directory.
 
-###RUNNING SQUARK-CLASSIC (No Docker)
+### RUNNING SQUARK-CLASSIC (No Docker)
 
 ---
 
@@ -60,7 +60,7 @@ To Run squark-classic locally - without containerization - then run:
 2. `./bootstrap-cluster.sh <dev|prod>` - This will setup the virtual environment and setup the git submodules according to the dev or prod setup.
 3. `/launch_squark_job.sh [--dev|--prod] <job_name>` - This will set the standard variables for running the job and will source the proper job file and run the job.
 
-###Notes on files:
+### Notes on files:
 
 ---
 **bootstrap-cluster.sh** - This is the file which will take care of the following steps:
@@ -105,7 +105,7 @@ It takes the following arguments:
 12. --skip-cutover: This will skip the cutover, useful if you don't want a cutover to happen, even during a full run.
 13. job_name : This is a required arguement, and it tells the script which job to run. Just pass the name of the job here.
 
-###Example of running a job on the cluster:
+### Example of running a job on the cluster:
 
 ---
 
@@ -138,7 +138,7 @@ Here are some more options to play with:
 The only **Gotcha** here is is you are using the `--load-from-aws` option - you need to also have the `--use-aws` and `--use-hdfs` options as well. This is a temporary issue and will be fixed in later versions.
 
 
-###Notes on environment variables in use:
+### Notes on environment variables in use:
 - see [ENV_VARIABLES](ENV_VARIABLES.md)
 ---
 

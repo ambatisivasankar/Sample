@@ -31,7 +31,9 @@ executors to "this" job vs. all others. In AWS the auto-scaling properties of EM
 concern
 
 <br/>
+
 --- 
+
 ### usually set only in job file  
 
 ---
@@ -45,7 +47,9 @@ schema in Vertica
 different schemas from within the same database
 
 <br/>
+
 ---
+
 ### often set in the job file 
 - but also sometimes in the Jenkins shell, for temporary or ad-hoc reasons  
 
@@ -110,7 +114,9 @@ couple of those jobs
 - see [below](#JSON_INFO)
   
 <br/>
+
 ---
+
 ### usually set in jenkins shell
  - mostly for historical reasons where the `squark` was running simultaneously on on-prem and AWS Jenkinses
  - both pulled from the same repo so additional configuration was necessary for the AWS versions  
@@ -132,7 +138,9 @@ base s3 bucket
 - Should be either `nonprd-squark-dev` or `dsprd-squark-prd` only
 
 <br/>
+
 ----
+
 ### JSON_INFO
 - extensible method for passing detailed configuration into a given job  
 - currently only two keys in use, **SAVE_TABLE_SQL_SUBQUERY** and **PARTITION_INFO**  
@@ -140,7 +148,7 @@ base s3 bucket
 make it rather tricky  
 
 ---
- **SAVE_TABLE_SQL_SUBQUERY** 
+**SAVE_TABLE_SQL_SUBQUERY** 
 - normally the pull-data process is executed via Spark with a `SELECT * FROM some_schema.some_table`
 - if this is set for a given table, the applicable query will be executed instead. This query is executed directly on 
 source db system, so the syntax must match a combination of that system + Spark. Recommended to look at existing jobs 
@@ -154,7 +162,7 @@ can be set to `NULL`
     - specifiying column names renders the pipeline more fragile and any unexpected changes in source DDL can cause the 
     job to immediately fail
  
- **PARTITION_INFO** 
+**PARTITION_INFO** 
 - see references at http://spark.apache.org/docs/latest/sql-data-sources-jdbc.html* to `partitionColumn`, 
 `lowerBound`, `upperBound`, and `numPartitions` for details on the Spark side but short version is that this allows Spark 
 to execute parallel reads on source tables, thereby speeding up time it takes to write data to s3  
@@ -199,6 +207,7 @@ notebook sql_partitioning.ipynb in [squark-research](https://github.com/massmutu
 This will only help as-is **if data is already in Vertica**, and isn't exactly user friendly in current state.
 
 <br/>
+
 ---
 
 ### random vars to be aware of
@@ -233,7 +242,9 @@ pre-existing schema, so any statistics related to that would be lost and need to
 `launch_squark_job.sh`
 
 <br/>
+
 ---
+
 ### related to incremental mode
 - created, targeted, and tested as regards the `haven` schema, which is sourced from a PostgresSQL db
 - adapting to other PostgresSQL dbs received from HavenLife shouldn't be too much of a lift  
