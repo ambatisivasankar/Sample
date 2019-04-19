@@ -15,13 +15,19 @@ export JSON_INFO="
             'AGMT_CMN_VW': {
               'partitionColumn': 'AGREEMENT_ID',
               'lowerBound': 1,
-              'upperBound': 34000000,
+              'upperBound': 50000000,
+              'numPartitions': 50
+            },
+            'AGMT_CVG_CMN_VW': {
+              'partitionColumn': 'AGREEMENT_ID',
+              'lowerBound': 5100000,
+              'upperBound': 50000000,
               'numPartitions': 50
             },
             'AGMT_VAL_CMN_VW': {
               'partitionColumn': 'AGREEMENT_ID',
               'lowerBound': 1,
-              'upperBound': 34000000,
+              'upperBound': 50000000,
               'numPartitions': 50
             },
             'PDCR_AGMT_CMN_VW': {
@@ -39,7 +45,7 @@ export JSON_INFO="
             'CUST_DEMOGRAPHICS_VW': {
               'partitionColumn': 'PRTY_ID',
               'lowerBound': 1,
-              'upperBound': 20000000,
+              'upperBound': 31000000,
               'numPartitions': 50
             },
             'BENE_DATA_CMN_VW': {
@@ -52,6 +58,12 @@ export JSON_INFO="
               'partitionColumn': 'AGREEMENT_ID',
               'lowerBound': 5700000,
               'upperBound': 49000000,
+              'numPartitions': 50
+            },
+            'PDCR_AGMT_HIST_VW': {
+              'partitionColumn': 'AGREEMENT_ID',
+              'lowerBound': 1,
+              'upperBound': 50000000,
               'numPartitions': 50
             }
         }
