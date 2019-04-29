@@ -65,6 +65,18 @@ export JSON_INFO="
               'lowerBound': 1,
               'upperBound': 50000000,
               'numPartitions': 50
+            },
+            'BENE_DATA_CMN_VW': {
+              'partitionColumn': 'AGREEMENT_ID',
+              'lowerBound': 5700000,
+              'upperBound': 39000000,
+              'numPartitions': 50
+            },
+            'BENE_DATA_HIST_VW': {
+              'partitionColumn': 'AGREEMENT_ID',
+              'lowerBound': 5700000,
+              'upperBound': 49000000,
+              'numPartitions': 50
             }
         }
    }
