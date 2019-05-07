@@ -56,9 +56,12 @@ def get_haven_max_last_updated_time(vertica_conn, schema_name, table_name, colum
     # really need to grab any that are really close to the cutoff, found a newly created analytics_event row
     # that showed up following day and had a lastUpdatedTime older than latest lastUpdatedTime in previous day's RDS
     # probably within a few seconds would be good enough but start out w/any >= curr lastUpdatedTime - 5 minutes
+    # 2019.05.07 remove "AT TIME ZONE 'GMT'" adjustment, v9.2 of Vertica is handling timestamps differently vs. 8.1
+    #  will v9 eon be diff? won't really know for sure if this is a permanent fix until Nov 3rd, 2019+, when DST ends
+    # v8.1 query:     (SELECT TIMESTAMP '{last_updated_time} {vertica_timezone_setting}' AT TIME ZONE 'GMT'));
     sql_query_flex = """
         SELECT TIMESTAMPADD(MINUTE, -5,
-            (SELECT TIMESTAMP '{last_updated_time} {vertica_timezone_setting}' AT TIME ZONE 'GMT'));
+            (SELECT TIMESTAMP '{last_updated_time} {vertica_timezone_setting}'));
     """.format(last_updated_time=last_updated_time, vertica_timezone_setting=vertica_timezone_setting)
 
     cursor = vertica_conn.cursor()
