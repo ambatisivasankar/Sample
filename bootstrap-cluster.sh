@@ -56,7 +56,8 @@ echo "--------------------------------------------------------"
 
 echo "Setting up the virtual environment..."
 if [ $USE_CLUSTER_EMR ]; then
-    virtualenv -p python3.5 virt
+    #virtualenv -p python3.5 virt
+    python35 -m venv virt
 else
     virtualenv -p /usr/local/bin/python3.5 virt
 fi
