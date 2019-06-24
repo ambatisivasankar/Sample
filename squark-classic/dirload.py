@@ -126,7 +126,7 @@ def do_s3_copyfrom(schema_name, table_name, table_prefix, urls):
                 break
         tmpl = "copy %s.%s from %s on any node orc direct;"
         table_name = table_prefix + table_name
-        sql = tmpl % (schema_name, table_name, ',\n'.join(["'%s'"%(os.path.join(S3_FUSE_LOCATION, x)) for x in _urls]))
+        sql = tmpl % (schema_name, table_name, ',\n'.join(["'%s'"%(os.path.join('s3://', SQUARK_BUCKET, x)) for x in _urls]))
         #sql = tmpl % (schema_name, table_name, ',\n'.join([os.path.join(S3_FUSE_LOCATION, x) for x in _urls]))
         logging.info("sql: %r", sql)
         vertica_conn = squarkenv.sources[VERTICA_CONNECTION_ID].conn
@@ -227,4 +227,3 @@ def main():
 
 if __name__ == '__main__':
     main()
-

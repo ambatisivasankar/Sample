@@ -97,6 +97,10 @@ EXCLUDE_TABLES = os.environ.get('EXCLUDE_TABLES', [])
 if EXCLUDE_TABLES:
     EXCLUDE_TABLES = [s.strip() for s in EXCLUDE_TABLES.split(',') if s]
 
+EXCLUDE_SCHEMA = os.environ.get('EXCLUDE_SCHEMA', [])
+if EXCLUDE_SCHEMA:
+    EXCLUDE_SCHEMA = [s.strip() for s in EXCLUDE_SCHEMA.split(',') if s]
+
 WRITE_MODE = os.environ.get('WRITE_MODE', 'overwrite')
 WRITE_CODEC = os.environ.get('WRITE_CODEC', 'org.apache.hadoop.io.compress.GzipCodec')
 WRITE_FORMAT = os.environ.get('WRITE_FORMAT', 'orc')
@@ -346,6 +350,7 @@ def push_data_catalog_stats(stats, DOMAIN, TOKEN, SCHEMA, TABLE):
 def save_table(sqlctx, table_name, squark_metadata):
     dbtable = SQL_TEMPLATE % table_name
     is_incremental = False
+
     print('********* EXECUTE SQL: %r' % dbtable)
     properties = dict(user=JDBC_USER, password=JDBC_PASSWORD)
     if USE_CLUSTER_EMR:
@@ -604,6 +609,7 @@ def main():
 
         tables = [{k.lower(): v for (k,v) in x._asdict().items()} for x in tables]
         tables = [x for x in tables if x['table_type'] in ('TABLE','VIEW')]
+        tables = [x for x in tables if x['table_schem'] not in EXCLUDE_SCHEMA]
         processed_tables = []
         print('*************** TABLES: %r' % list(tables))
         s0 = time.time()

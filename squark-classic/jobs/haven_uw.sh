@@ -1,12 +1,13 @@
 # Dummy file required by load_wh.sh
-export PROJECT_ID=haven
+export PROJECT_ID=haven_uw
 export WAREHOUSE_DIR='/_wh/'
 export SQL_TEMPLATE='"%s"'
 export CHECK_PRIVS=1
-export CONNECTION_ID=haven_eon
+export CONNECTION_ID=haven_uw
 export SPARK_MAX_EXECUTORS=60
 export SQUARK_METADATA=1
 export RUN_LIVE_MAX_LEN_QUERIES=1
+export EXCLUDE_SCHEMA='hit'
 
 # SECONDs returned as fractional values, e.g. 59.565992, so 60 partitions works
 # 2018.10.11, hard-code the SELECT for policy_doc in order to skip the BLOBy doc column that we don't need and slows down the ingestion

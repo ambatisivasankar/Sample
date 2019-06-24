@@ -1,4 +1,5 @@
-WITH cteAllTables AS
+-- NOTE: this query will NOT work on projections that are not segmented on all nodes, i.e. is_segmented=False
+WITH /*+ENABLE_WITH_CLAUSE_MATERIALIZATION*/ cteAllTables AS
 (
 	SELECT s.schema_name, table_name, table_type, s.create_time AS schema_create_time
 	FROM all_tables t
@@ -8,36 +9,39 @@ WITH cteAllTables AS
 		AND s.schema_name = :VERTICA_SCHEMA
 	ORDER BY schema_name, table_name
 )
+,cteShardOffset AS
+(
+--	2019.06.17, until we can get a better handle on how dynamic node/cluster resizing affects this script, use a hard-coded value
+--		as of today "2" is working on eon-dev/qa/prod (for segmented projections at least)
+	SELECT 2 AS eonOffset
+)
 ,cteDeleted AS
 (
 	-- returns all projection_names, e.g. yadda_b0 and yadda_b1, later join will discard the dupes
-	SELECT A.schema_name, A.projection_name, A.deleted_row_count
+	SELECT A.schema_name, A.projection_name, (A.deleted_row_count/(SELECT eonOffset FROM cteShardOffset))::INT AS deleted_row_count
 	FROM (
 		SELECT schema_name, projection_name, SUM(deleted_row_count) as deleted_row_count
-		FROM delete_vectors
+		FROM delete_vectors dv
+		WHERE dv.schema_name IN (SELECT cat.schema_name FROM cteAllTables cat)
 		GROUP BY schema_name, projection_name
 	) A
 )
--- select * from cteDeleted ORDER BY schema_name, projection_name
 ,cteUnadjustedRowCounts AS
 (
 	SELECT A.schema_name, A.anchor_table_name, A.projection_name,
-		--orig: SUM(A.row_count) as total_row_count
 		-- 2018.02.14, add trickery for this table because we subset to skip a single bad row and I'm tired of receiveing false alerts
 		CASE WHEN A.schema_name IN ('teradata_qa','teradata_prd') AND A.anchor_table_name = 'FUND_CMN_VW' THEN 1 ELSE 0 END
-			+ SUM(A.row_count) as total_row_count
+			+ (A.total_row_count/(SELECT eonOffset FROM cteShardOffset))::INT as total_row_count
 	FROM (
-	SELECT node_name,
-		projection_schema AS schema_name,
-		anchor_table_name,
-		projection_name,
-
-		row_count,
-	ROW_NUMBER() OVER (PARTITION BY node_name, projection_schema, anchor_table_name ORDER BY projection_name) AS row_num
-	FROM projection_storage ps
+		SELECT
+			projection_schema AS schema_name,
+			anchor_table_name,
+			projection_name,
+			SUM(row_count) as total_row_count
+		FROM projection_storage ps
+		WHERE ps.projection_schema IN (SELECT cat.schema_name FROM cteAllTables cat)
+		GROUP BY projection_schema, anchor_table_name, projection_name
 	) A
-	WHERE A.row_num = 1
-	GROUP BY A.schema_name, A.anchor_table_name, A.projection_name
 )
 --SELECT * FROM cteUnadjustedRowCounts
 --WHERE schema_name = 'esp' ORDER BY schema_name, anchor_table_name

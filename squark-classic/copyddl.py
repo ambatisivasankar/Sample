@@ -228,7 +228,7 @@ def copy_table_ddl(
     start_time = time.time()
     if SQUARK_METADATA:
         ddl_project_key = PROJECT_ID
-        if PROJECT_ID in ['haven_daily','haven_weekly','haven_full']:
+        if PROJECT_ID in ['haven_daily','haven_weekly','haven_full', 'haven_uw']:
             ddl_project_key = 'haven'
         large_ddl = utils.get_large_data_ddl_def(to_conn, ddl_project_key, to_table)
         squark_metadata['large_ddl'] = large_ddl if large_ddl else dict()
@@ -347,6 +347,10 @@ if __name__ == '__main__':
     RUN_LIVE_MAX_LEN_QUERIES = os.environ.get('RUN_LIVE_MAX_LEN_QUERIES', '').lower() in ['1', 'true', 'yes']
     CONVERT_ARRAYS_TO_STRING = os.environ.get('CONVERT_ARRAYS_TO_STRING')
 
+    EXCLUDE_SCHEMA = os.environ.get('EXCLUDE_SCHEMA', [])
+    if EXCLUDE_SCHEMA:
+        EXCLUDE_SCHEMA = [s.strip() for s in EXCLUDE_SCHEMA.split(',') if s]
+
     from_conn = squarkenv.sources[CONNECTION_ID].conn
     to_conn = squarkenv.sources[VERTICA_CONNECTION_ID].conn
     #if LOAD_FROM_AWS:
@@ -377,6 +381,9 @@ if __name__ == '__main__':
         print("Checking table: {tbl} {tbltype}".format(tbl=table[table_name_key], tbltype=table['table_type']))
         if table['table_type'] is None:
             print('>>>>> skipping weird None table: %r' % table)
+            continue
+        if table['table_schem'] in EXCLUDE_SCHEMA:
+            print('>>>>> skipping table from excluded schema: %r' % table)
             continue
         if not INCLUDE_VIEWS and table['table_type'].upper() != 'TABLE':
             print('>>>> skipping non table: %s' % table[table_name_key])

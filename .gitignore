@@ -41,3 +41,5 @@ __pycache__/*
 
 .python_history
 htmlcov/*
+
+.idea/*

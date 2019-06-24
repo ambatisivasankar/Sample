@@ -65,6 +65,11 @@ to have two tables with the same name and differing only in case
 - comma-delimited string of tables, similar to above, only listing the tables that should NOT be pulled
 - if a source db has 50 tables and you want 48 of them, can use this to specifiy only the two do-not-collect tables
 
+**EXCLUDE_SCHEMA**
+- comma-delimited string of schema to exclude when pulling data. If this is not set `squark` would attempt to pull
+ all available schema
+- if a source db has some schema we want excluded, can use this to exclude it
+
 **INCLUDE_VIEWS**
  - by default `squark` will only attemp to pull db objects identified by JDBC as type = "TABLE", set this to also get 
  items of type = "VIEW"
