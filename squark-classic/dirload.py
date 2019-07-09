@@ -1,185 +1,262 @@
-import os
-import sys
-import subprocess
-import itertools
-from collections import defaultdict
-import tempfile
-import logging
-import boto3
 import glob
-import time
+import logging
+import os
 import re
+import sys
+import time
+from collections import defaultdict
 
+import boto3
 from pywebhdfs.webhdfs import PyWebHdfsClient
+
 import squark.config.environment
 import utils
-
-squarkenv = squark.config.environment.Environment()
-
-try:
-    VERTICA_CONNECTION_ID = os.environ['VERTICA_CONNECTION_ID']
-except:
-    VERTICA_CONNECTION_ID = "vertica_dev"
-
-MAX_CONNS = int(os.getenv('VERTICA_PARALLELISM', 10))
-
-PROJECT_ID = os.environ.get('PROJECT_ID')
-SQUARK_TYPE = os.environ.get('SQUARK_TYPE')
-LOAD_FROM_AWS = os.environ.get('LOAD_FROM_AWS')
-LOAD_FROM_HDFS = os.environ.get('LOAD_FROM_HDFS')
-S3_FUSE_LOCATION = os.environ.get('S3_FUSE_LOCATION','/mnt/s3/')
-TABLE_NUM_RETRY = int(os.environ.get('SQUARK_NUM_RETRY','1'))
-S3_CONNECTION_ID = os.environ.get('S3_CONNECTION_ID')
-
-JENKINS_URL = os.environ.get('JENKINS_URL', '')
-JOB_NAME = os.environ.get('JOB_NAME', '')
-BUILD_NUMBER = os.environ.get('BUILD_NUMBER', '-1')
-SKIP_UNIQUE_ID_CHECK = os.environ.get('SKIP_UNIQUE_ID_CHECK', '').lower() in ['1', 'true', 'yes']
-
-INCLUDE_TABLES = os.environ.get('INCLUDE_TABLES')
-if INCLUDE_TABLES is not None:
-    INCLUDE_TABLES = [s.strip() for s in INCLUDE_TABLES.split(',') if s]
-    SQUARK_DELETED_TABLE_SUFFIX = os.environ.get('SQUARK_DELETED_TABLE_SUFFIX', '_ADVANA_DELETED')
-    INCLUDE_TABLES_VARIANTS = ['{}{}'.format(s, SQUARK_DELETED_TABLE_SUFFIX) for s in INCLUDE_TABLES]
-    INCLUDE_TABLES_ALL = INCLUDE_TABLES + INCLUDE_TABLES_VARIANTS
-
-EXCLUDE_TABLES = os.environ.get('EXCLUDE_TABLES', [])
-if EXCLUDE_TABLES:
-    EXCLUDE_TABLES = [s.strip() for s in EXCLUDE_TABLES.split(',') if s]
-
-if LOAD_FROM_AWS:
-    aws = squarkenv.sources[S3_CONNECTION_ID]
-    AWS_ACCESS_KEY_ID = aws.cfg['access_key_id']
-    AWS_SECRET_ACCESS_KEY = aws.cfg['secret_access_key']
-    SQUARK_BUCKET = os.environ['SQUARK_BUCKET']
-    if SQUARK_BUCKET.lower() in ['squark','squark-dsprd']:
-        raise TypeError('Invalid bucket specified: {}'.format(SQUARK_BUCKET))
-    #SQUARK_BUCKET='squark'
-    #vertica_aws_conn = squarkenv.sources['vertica_aws'].conn
-if LOAD_FROM_HDFS:
-    HDFS_HOST = os.environ['HDFS_HOST']
-    HDFS_PORT = os.environ['HDFS_PORT']
-    HDFS_USER = os.environ['HDFS_USER']
+import new_utils
 
 logging.basicConfig(level=logging.DEBUG)
 
-def get_s3_urls(project_id):
-    session = boto3.Session(aws_access_key_id=AWS_ACCESS_KEY_ID, aws_secret_access_key=AWS_SECRET_ACCESS_KEY, region_name='us-east-1')
-    client = session.client('s3')
-    prefix = '{SQUARK_TYPE}/{PROJECT_ID}/'.format(
-                SQUARK_TYPE=SQUARK_TYPE,
-                PROJECT_ID=project_id
-                )
-    tmp_paths = client.list_objects(Bucket=SQUARK_BUCKET, Prefix=prefix)
-    paths = [x['Key'] for x in tmp_paths['Contents']]
-    while tmp_paths['IsTruncated']:
-        nextMarker = paths[-1]
-        tmp_paths = client.list_objects(Bucket=SQUARK_BUCKET, Prefix=prefix, Marker=nextMarker)
-        paths.extend([x['Key'] for x in tmp_paths['Contents']])
+# Environmental Variables
 
-    print('--- Total pulled paths: %i    --- Total set of pulled paths: %i'%(len(paths), len(set(paths))))
-    all_orcs = [x for x in paths if glob.re.search('.*\.orc/.*\.orc', x)]
+# vars loaded with os.environ() which raises KeyError
+ENV_VARS_TO_LOAD_AS_IS = [
+    # Empty list currently
+]
+
+# vars which are considered to be truthy
+ENV_VARS_TO_LOAD_AS_BOOL = ["SKIP_UNIQUE_ID_CHECK"]
+
+# vars loaded with os.environ.get() which defaults in case of KeyError
+ENV_VARS_TO_LOAD_WITH_DEFAULTS = [
+    ("VERTICA_CONNECTION_ID", "vertica_dev"),
+    ("VERTICA_PARALLELISM", 10),  # MAX_CONNS  # Cast to int
+    ("PROJECT_ID", None),
+    ("SQUARK_TYPE", None),
+    ("LOAD_FROM_AWS", None),
+    ("LOAD_FROM_HDFS", None),  # Logic
+    ("S3_FUSE_LOCATION", "/mnt/s3/"),
+    ("TABLE_NUM_RETRY", "1"),  # Cast to int
+    ("S3_CONNECTION_ID", None),
+    ("JENKINS_URL", ""),
+    ("JOB_NAME", None),
+    ("BUILD_NUMBER", "-1"),  # Cast to int
+    ("INCLUDE_TABLES", None),  # Logic
+    ("EXCLUDE_TABLES", None),  # Logic
+    ("SQUARK_BUCKET", None),
+    ("HDFS_HOST", None),
+    ("HDFS_PORT", None),
+    ("HDFS_USER", None),
+    ("SQUARK_DELETED_TABLE_SUFFIX", "_ADVANA_DELETED"),
+]
+
+# vars which
+ENV_VARS_TO_CAST_TO_INT = [
+    "VERTICA_PARALLELISM",  # MAX_CONNS
+    "TABLE_NUM_RETRY",
+    "BUILD_NUMBER",
+]
+
+
+def get_s3_urls(
+    project_id,
+    aws_access_key_id,
+    aws_secret_access_key,
+    squark_type,
+    squark_bucket,
+    include_tables,
+    squark_deleted_table_suffix,
+    exclude_tables,
+):
+
+    session = boto3.Session(
+        aws_access_key_id=aws_access_key_id,
+        aws_secret_access_key=aws_secret_access_key,
+        region_name="us-east-1",
+    )
+    client = session.client("s3")
+    prefix = "{squark_type}/{project_id}/".format(
+        squark_type=squark_type, project_id=project_id
+    )
+    tmp_paths = client.list_objects(Bucket=squark_bucket, Prefix=prefix)
+    paths = [x["Key"] for x in tmp_paths["Contents"]]
+    while tmp_paths["IsTruncated"]:
+        nextMarker = paths[-1]
+        tmp_paths = client.list_objects(
+            Bucket=squark_bucket, Prefix=prefix, Marker=nextMarker
+        )
+        paths.extend([x["Key"] for x in tmp_paths["Contents"]])
+
+    print(
+        "--- Total pulled paths: {num_paths}    --- Total set of pulled paths: {num_unique_paths}".format(
+            num_paths=(len(paths)), num_unique_paths=len(set(paths))
+        )
+    )
+    all_orcs = [x for x in paths if glob.re.search(r".*\.orc/.*\.orc", x)]
     urls = defaultdict(list)
     for orc_file in all_orcs:
-        tablename = orc_file.replace(prefix,'').strip('/').split('/')[0]
+        tablename = orc_file.replace(prefix, "").strip("/").split("/")[0]
 
-        if INCLUDE_TABLES is not None:
-            if tablename not in INCLUDE_TABLES_ALL:
-                print('*******SKIPPING NOT INCLUDED TABLE: %r' % tablename)
+        if include_tables is not None:
+
+            include_tables_variants = [
+                "{}{}".format(s, squark_deleted_table_suffix) for s in include_tables
+            ]
+            include_tables_all = include_tables + include_tables_variants
+
+            if tablename not in include_tables_all:
+                print(
+                    "*******SKIPPING NOT INCLUDED TABLE: {tablename!r}".format(
+                        tablename=tablename
+                    )
+                )
                 continue
 
-        if EXCLUDE_TABLES is not None:
-            if tablename in EXCLUDE_TABLES:
-                print('*******SKIPPING EXCLUDE_TABLES TABLE: %r' % tablename)
+        if exclude_tables is not None:
+            if tablename in exclude_tables:
+                print(
+                    "*******SKIPPING EXCLUDE_TABLES TABLE: {tablename!r}".format(
+                        tablename=tablename
+                    )
+                )
                 continue
 
         urls[tablename].append(orc_file)
     return urls
 
-def get_urls(dirname):
+
+def get_urls(dirname, hdfs_host, hdfs_port, hdfs_user):
     urls = defaultdict(list)
-    hdfs_host = HDFS_HOST
-    hdfs_port = HDFS_PORT
-    hdfs_user = HDFS_USER
+
     hdfs = PyWebHdfsClient(host=hdfs_host, port=hdfs_port, user_name=hdfs_user)
-    for child in hdfs.list_dir(dirname)['FileStatuses']['FileStatus']:
-        if child['pathSuffix'].startswith('_'):
+    for child in hdfs.list_dir(dirname)["FileStatuses"]["FileStatus"]:
+        if child["pathSuffix"].startswith("_"):
             continue
-        table_dir = os.path.join(dirname, child['pathSuffix'])
-        for orcfile in hdfs.list_dir(table_dir)['FileStatuses']['FileStatus']:
-            if orcfile['pathSuffix'].startswith('_'):
+        table_dir = os.path.join(dirname, child["pathSuffix"])
+        for orcfile in hdfs.list_dir(table_dir)["FileStatuses"]["FileStatus"]:
+            if orcfile["pathSuffix"].startswith("_"):
                 continue
-            url = "'webhdfs://%s:%s%s/%s'" % (hdfs_host, hdfs_port, table_dir, orcfile['pathSuffix'])
-            urls[child['pathSuffix']].append(url)
+            url = "'webhdfs://%s:%s%s/%s'" % (
+                hdfs_host,
+                hdfs_port,
+                table_dir,
+                orcfile["pathSuffix"],
+            )
+            urls[child["pathSuffix"]].append(url)
     return urls
 
 
-def do_s3_copyfrom(schema_name, table_name, table_prefix, urls):
+def do_s3_copyfrom(
+    schema_name,
+    table_name,
+    table_prefix,
+    urls,
+    vertica_conn,
+    max_num_connections,
+    squark_bucket,
+    table_num_retry,
+):
     urls = urls[:]
     curr_retry = 0
     while urls:
         _urls = []
-        for i in range(MAX_CONNS):
+        for i in range(max_num_connections):
             try:
                 _urls.append(urls.pop(0))
             except IndexError:
                 break
         tmpl = "copy %s.%s from %s on any node orc direct;"
         table_name = table_prefix + table_name
-        sql = tmpl % (schema_name, table_name, ',\n'.join(["'%s'"%(os.path.join('s3://', SQUARK_BUCKET, x)) for x in _urls]))
-        #sql = tmpl % (schema_name, table_name, ',\n'.join([os.path.join(S3_FUSE_LOCATION, x) for x in _urls]))
+        sql = tmpl % (
+            schema_name,
+            table_name,
+            ",\n".join(
+                ["'%s'" % (os.path.join("s3://", squark_bucket, x)) for x in _urls]
+            ),
+        )
+        # sql = tmpl % (schema_name, table_name, ',\n'.join([os.path.join(S3_FUSE_LOCATION, x) for x in _urls]))
+
         logging.info("sql: %r", sql)
-        vertica_conn = squarkenv.sources[VERTICA_CONNECTION_ID].conn
+        # vertica_conn = squarkenv.sources[VERTICA_CONNECTION_ID].conn
         logging.info("---- Launching s3 copy command...")
         # Add retries for loading data from s3
         # curr_retry = 0
         retry_bool = True
-        print('----------------------------')
-        while retry_bool and curr_retry < TABLE_NUM_RETRY:
-            print('Attempting to load table {table}: [Attempt {curr}/{tot}]'.format(
-                    table=table_name, curr=curr_retry+1, tot=TABLE_NUM_RETRY))
+        print("----------------------------")
+        while retry_bool and curr_retry < table_num_retry:
+            print(
+                "Attempting to load table {table}: [Attempt {curr}/{tot}]".format(
+                    table=table_name, curr=curr_retry + 1, tot=table_num_retry
+                )
+            )
             try:
                 cursor = vertica_conn.cursor()
                 cursor.execute(sql)
                 cursor.close()
                 retry_bool = False
             except Exception as e:
-                print('!! -- An Error occurred while trying to load -- waiting 5 seconds to retry!')
+                print(
+                    "!! -- An Error occurred while trying to load -- waiting 5 seconds to retry!"
+                )
                 print(str(e))
                 curr_retry += 1
                 time.sleep(5)
         if retry_bool:
-            print('ERROR!! Number of allowed retries exceeded!! Exiting')
+            print("ERROR!! Number of allowed retries exceeded!! Exiting")
             raise
-        print('Load Successful...')
-        print('----------------------------')
+        print("Load Successful...")
+        print("----------------------------")
 
     return curr_retry + 1
 
-def do_copyfrom(schema_name, table_name, table_prefix, urls):
+
+def do_copyfrom(
+    schema_name, table_name, table_prefix, urls, vertica_conn, max_num_connections
+):
     urls = urls[:]
     while urls:
         _urls = []
-        for i in range(MAX_CONNS):
+        for i in range(max_num_connections):
             try:
                 _urls.append(urls.pop(0))
             except IndexError:
                 break
         tmpl = "copy %s.%s from %s on any node orc direct;"
         table_name = table_prefix + table_name
-        sql = tmpl % (schema_name, table_name, ',\n'.join(_urls))
+        sql = tmpl % (schema_name, table_name, ",\n".join(_urls))
         logging.info("sql: %r", sql)
-        vertica_conn = squarkenv.sources[VERTICA_CONNECTION_ID].conn
+        # vertica_conn = squarkenv.sources[VERTICA_CONNECTION_ID].conn
         cursor = vertica_conn.cursor()
         logging.info("---- Launching copy command...")
         cursor.execute(sql)
         cursor.close()
 
-def update_squark_load_timings(project_id, table_name, time_taken, attempt_count, source, total_table_count):
-    jenkins_name = JENKINS_URL.split('.')[0].split('/')[-1]
-    vertica_conn = squarkenv.sources[VERTICA_CONNECTION_ID].conn
-    utils.send_load_timing_to_vertica(vertica_conn, jenkins_name, JOB_NAME, BUILD_NUMBER, project_id, table_name,
-                                      time_taken, attempt_count, source, total_table_count)
+
+def update_squark_load_timings(
+    project_id,
+    table_name,
+    time_taken,
+    attempt_count,
+    source,
+    total_table_count,
+    vertica_conn,
+    jenkins_url,
+    job_name,
+    build_number,
+):
+    jenkins_name = jenkins_url.split(".")[0].split("/")[-1]
+    # vertica_conn = squarkenv.sources[VERTICA_CONNECTION_ID].conn
+    utils.send_load_timing_to_vertica(
+        vertica_conn,
+        jenkins_name,
+        job_name,
+        build_number,
+        project_id,
+        table_name,
+        time_taken,
+        attempt_count,
+        source,
+        total_table_count,
+    )
+
 
 def main():
     schema_name = sys.argv[1]
@@ -187,43 +264,126 @@ def main():
     try:
         table_prefix = sys.argv[3]
     except IndexError:
-        table_prefix = ''
-    if LOAD_FROM_AWS:
-        aws_urls = get_s3_urls(PROJECT_ID)
+        table_prefix = ""
+    env_vars = new_utils.load_env_vars(
+        vars_as_is=ENV_VARS_TO_LOAD_AS_IS,
+        vars_as_bool=ENV_VARS_TO_LOAD_AS_BOOL,
+        vars_with_defaults=ENV_VARS_TO_LOAD_WITH_DEFAULTS,
+        vars_to_cast_as_int=ENV_VARS_TO_CAST_TO_INT,
+    )
+
+    squarkenv = squark.config.environment.Environment()
+    vertica_conn = squarkenv.sources[env_vars["VERTICA_CONNECTION_ID"]].conn
+
+    if env_vars["LOAD_FROM_AWS"] and new_utils.squark_bucket_is_valid(
+        env_vars["SQUARK_BUCKET"]
+    ):
+
+        aws_access_key_id, aws_secret_access_key = new_utils.get_aws_credentials_from_squark(
+            squarkenv, env_vars["S3_CONNECTION_ID"]
+        )
+        include_tables = new_utils.split_strip_str(env_vars["INCLUDE_TABLES"])
+        exclude_tables = new_utils.split_strip_str(env_vars["EXCLUDE_TABLES"])
+        aws_urls = get_s3_urls(
+            project_id=env_vars["PROJECT_ID"],
+            aws_access_key_id=aws_access_key_id,
+            aws_secret_access_key=aws_secret_access_key,
+            squark_type=env_vars["SQUARK_TYPE"],
+            squark_bucket=env_vars["SQUARK_BUCKET"],
+            include_tables=include_tables,
+            squark_deleted_table_suffix=env_vars["SQUARK_DELETED_TABLE_SUFFIX"],
+            exclude_tables=exclude_tables,
+        )
         total_table_count = len(aws_urls.keys())
-        print('DEBUG: S3 .orc url listing, sorted: {}'.format(sorted(aws_urls.items())))
+        print(
+            "DEBUG: S3 .orc url listing, sorted: {urls}".format(
+                urls=sorted(aws_urls.items())
+            )
+        )
         # a "part" file, e.g. part-00000-c4492a53-615d-4787-b284-96f6848c0aee-c000.snappy.orc
-        p = re.compile('part-?\d{5}-?(\w{8}-?\w{4}-?\w{4}-?\w{4}-?\w{12}-?\w{4})')
+        p = re.compile(r"part-?\d{5}-?(\w{8}-?\w{4}-?\w{4}-?\w{4}-?\w{12}-?\w{4})")
         # sort by table to match all_tables processing -> last written table will be last loaded, better for S3 store
         for table_name, aws_urls in sorted(aws_urls.items()):
-            unique_ids = set(p.findall('|'.join(aws_urls)))
-            print('table {}, unique id values in part files: {}'.format(table_name, ', '.join(unique_ids)))
-            if not SKIP_UNIQUE_ID_CHECK:
+            unique_ids = set(p.findall("|".join(aws_urls)))
+            print(
+                "table {table_name}, unique id values in part files: {files}".format(
+                    table_name=table_name, files=", ".join(unique_ids)
+                )
+            )
+            if not env_vars["SKIP_UNIQUE_ID_CHECK"]:
                 if len(unique_ids) > 1:
                     raise ValueError(
-                        'S3 folder for table {} contains part files from multiple operations, unique ids: {}'.format(
-                            table_name, unique_ids))
-            print('XXX: Loading S3 %s (%d files)' % (table_name, len(aws_urls)))
+                        "S3 folder for table {} contains part files from multiple operations, unique ids: {}".format(
+                            table_name, unique_ids
+                        )
+                    )
+            print(
+                "XXX: Loading S3 {table_name} ({num_urls} files)".format(
+                    table_name=table_name, num_urls=len(aws_urls)
+                )
+            )
             s1 = time.time()
-            num_attempts = do_s3_copyfrom(schema_name, table_name, table_prefix, aws_urls)
+            num_attempts = do_s3_copyfrom(
+                schema_name=schema_name,
+                table_name=table_name,
+                table_prefix=table_prefix,
+                urls=aws_urls,
+                vertica_conn=vertica_conn,
+                max_num_connections=env_vars["VERTICA_PARALLELISM"],
+                squark_bucket=env_vars["SQUARK_BUCKET"],
+                table_num_retry=env_vars["TABLE_NUM_RETRY"],
+            )
             table_time = time.time() - s1
             # admin table will be updated after each table is loaded to vertica, i.e. even if full job later fails
-            update_squark_load_timings(project_id=PROJECT_ID, table_name=table_name, time_taken=table_time,
-                                       attempt_count=num_attempts, source='s3', total_table_count=total_table_count)
+            update_squark_load_timings(
+                project_id=env_vars["PROJECT_ID"],
+                table_name=table_name,
+                time_taken=table_time,
+                attempt_count=num_attempts,
+                source="s3",
+                total_table_count=total_table_count,
+                vertica_conn=vertica_conn,
+                jenkins_url=env_vars["JENKINS_URL"],
+                job_name=env_vars["JOB_NAME"],
+                build_number=env_vars["BUILD_NUMBER"],
+            )
 
-    if LOAD_FROM_HDFS:
-        urls = get_urls(dirname)
+    if env_vars["LOAD_FROM_HDFS"]:
+        urls = get_urls(
+            dirname, env_vars["HDFS_HOST"], env_vars["HDFS_PORT"], env_vars["HDFS_USER"]
+        )
         total_table_count = len(urls.keys())
         items = list(urls.items())
         items.sort(key=lambda item: len(item[1]), reverse=True)
         for table_name, urls in urls.items():
-            print('XXX: Loading %s (%d files)' % (table_name, len(urls)))
+            print(
+                "XXX: Loading {table_name} ({num_urls} files)".format(
+                    table_name=table_name, num_urls=len(urls)
+                )
+            )
             s1 = time.time()
-            do_copyfrom(schema_name, table_name, table_prefix, urls)
+            do_copyfrom(
+                schema_name=schema_name,
+                table_name=table_name,
+                table_prefix=table_prefix,
+                urls=urls,
+                vertica_conn=vertica_conn,
+                max_num_connections=env_vars["VERTICA_PARALLELISM"],
+            )
             table_time = time.time() - s1
-            update_squark_load_timings(project_id=PROJECT_ID, table_name=table_name, time_taken=table_time,
-                                       attempt_count=1, source='hdfs', total_table_count=total_table_count)
+            update_squark_load_timings(
+                project_id=env_vars["PROJECT_ID"],
+                table_name=table_name,
+                time_taken=table_time,
+                attempt_count=1,
+                source="hdfs",
+                total_table_count=total_table_count,
+                vertica_conn=vertica_conn,
+                jenkins_url=env_vars["JENKINS_URL"],
+                job_name=env_vars["JOB_NAME"],
+                build_number=env_vars["BUILD_NUMBER"],
+            )
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

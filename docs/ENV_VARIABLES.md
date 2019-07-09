@@ -54,6 +54,10 @@ different schemas from within the same database
 - but also sometimes in the Jenkins shell, for temporary or ad-hoc reasons  
 
 ---
+**MAKE_DDL_FROM_TARGET**
+- A flag to tell `squark` to build the temp table from the definition of the existing Vertica Table.   (The Default behavior is to build the temp table from the Source Table.)   Running with this flag preserves any Projections that have been built on the Vertica table.   
+- Note that Jobs running with this flag are intolerant of schema changes in the Source.  If the source table definition changes (for example, by adding or removing columns) a job running with this flag is likely to fail until the same changes are made in the target table.
+
 **INCLUDE_TABLES**
 - comma-delimited string of tables to retrieve from the source database. If this is not set `squark` would attempt to 
 pull all available tables
@@ -128,6 +132,9 @@ couple of those jobs
  
 ---
 **AWS_VERTICA_HOST**  
+- Vertica Hosts are configured as the environment variables in Jenkins.
+- The host variable is the following in dev, qa and prod respectively: ` $AWS_VERTICA_DEV_EON` , `$AWS_VERTICA_QA`, ` $AWS_VERTICA_PROD `
+
 **AWS_VERTICA_PORT**  
 - above relate to the Vertica cluster being populated, at this point think all the instances are available via port 
 5433 _within_ the AWS VPC
@@ -211,6 +218,39 @@ follow onto the second "part".
 notebook sql_partitioning.ipynb in [squark-research](https://github.com/massmutual/squark-research/tree/master/jupyter). 
 This will only help as-is **if data is already in Vertica**, and isn't exactly user friendly in current state.
 
+- another resource to aid in optimizing partitioning configurations is to use a SQL script like:
+```
+select
+    count(NOTIF_ID),
+    WIDTH_BUCKET (NOTIF_ID,
+    0,
+    4500000,
+    10) as "bins"
+from
+    blender.NOTIF
+GROUP by "bins"
+ORDER BY "bins";
+```
+
+which gives an output like
+```
+count      bins
+393964    1
+440177    2
+446927    3
+448823    4
+447841    5
+446249    6
+446128    7
+447088    8
+450000    9
+233804    10
+```
+
+Here we see for the column NOTIF_ID in blender that the bins are mostly the same size, though the last is a little small.
+Here, 10 would be the numPartitions, while 0 would be lowerBound, and 4500000 would be upperBound.
+
+Other variations on this idea may produce better results, like using the day part ofa date column, or using the modulus of an integer column. Experiment. 
 <br/>
 
 ---
@@ -254,7 +294,7 @@ pre-existing schema, so any statistics related to that would be lost and need to
 - created, targeted, and tested as regards the `haven` schema, which is sourced from a PostgresSQL db
 - adapting to other PostgresSQL dbs received from HavenLife shouldn't be too much of a lift  
     - but anything else would require more work
-- fullter description of the associated workflow would be document unto itself and as of this writing the process 
+- fuller description of the associated workflow would be document unto itself and as of this writing the process 
 hasn't made it out of beta mode
 ---
 

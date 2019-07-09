@@ -14,7 +14,7 @@ export JSON_INFO="
         'tables': {
           'BP_CREDENTIAL_VW': {
             'partitionColumn': 'PRTY_ID',
-            'lowerBound': 1,
+            'lowerBound': 8000000,
             'upperBound': 35000000,
             'numPartitions': 50
           },

@@ -2,7 +2,7 @@ export PROJECT_ID=teradata_qa
 export WAREHOUSE_DIR='/_wh/'
 export SQL_TEMPLATE='%s'
 export INCLUDE_VIEWS=1
-export INCLUDE_TABLES='AGMT_CMN_VERTICA_VW,AGMT_VAL_CMN_VW,CUST_AGMT_CMN_VW,CUST_DEMOGRAPHICS_VW,PDCR_AGMT_CMN_VW,PDCR_DEMOGRAPHICS_VW,SLLNG_AGMT_CMN_VW,AGMT_UWRT_CMN_VW,AGMT_ADDL_DATA_VW,AGMT_CVG_CMN_VW,AGMT_FND_CMN_VW,AGMT_FND_VAL_CMN_VW,AGMT_LOAN_CMN_VW,BENE_DATA_CMN_VW,FUND_CMN_VW,AGMT_WARNING_INFO_CMN_VW,AGMT_GRP_CMN_VW'
+export INCLUDE_TABLES='BP_CREDENTIAL_VW,AGMT_CMN_VERTICA_VW,AGMT_VAL_CMN_VW,CUST_AGMT_CMN_VW,CUST_DEMOGRAPHICS_VW,PDCR_AGMT_CMN_VW,PDCR_DEMOGRAPHICS_VW,SLLNG_AGMT_CMN_VW,AGMT_UWRT_CMN_VW,AGMT_ADDL_DATA_VW,AGMT_CVG_CMN_VW,AGMT_FND_CMN_VW,AGMT_FND_VAL_CMN_VW,AGMT_LOAN_CMN_VW,BENE_DATA_CMN_VW,FUND_CMN_VW,AGMT_WARNING_INFO_CMN_VW,AGMT_GRP_CMN_VW'
 export CONNECTION_ID=teradata_qa
 export SPARK_YARN_QUEUE='datalayer'
 # expected at least 2 _qa.sh jobs + the _prty_qa.sh (same id, diff db) job will be running simultaneously, limit connections
@@ -15,7 +15,13 @@ export JSON_INFO="
 {
     'PARTITION_INFO':{
         'tables': {
-            'AGMT_CMN_VERTICA_VW': {
+          'BP_CREDENTIAL_VW': {
+              'partitionColumn': 'PRTY_ID',
+              'lowerBound': 8000000,
+              'upperBound': 35000000,
+              'numPartitions': 50
+            },
+          'AGMT_CMN_VERTICA_VW': {
               'partitionColumn': 'AGREEMENT_ID',
               'lowerBound': 1,
               'upperBound': 30000000,

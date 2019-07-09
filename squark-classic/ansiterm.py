@@ -1,3 +1,4 @@
+# XXX: This file is 99% identical to `squark/squark/utils/ansistrm.py': Consolidate these files.
 #
 # Copyright (C) 2010-2012 Vinay Sajip. All rights reserved.
 # Licensed under the new BSD license.

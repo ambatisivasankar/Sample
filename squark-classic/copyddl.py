@@ -5,67 +5,144 @@ import time
 
 from jinja2 import Template
 
-from py4jdbc import GatewayProcess, connect
 import squark.config.environment
 import utils
+import new_utils
+import textwrap
 
 # Vertica reserved words
 
-reserved = ['ALL', 'ANALYSE', 'ANALYZE', 'AND', 'ANY', 'ARRAY', 'AS', 'ASC',
-'BINARY', 'BOTH', 'CASE', 'CAST', 'CHECK', 'COLUMN', 'CONSTRAINT',
-'CORRELATION', 'CREATE', 'CURRENT_DATABASE', 'CURRENT_DATE', 'CURRENT_SCHEMA',
-'CURRENT_TIME', 'CURRENT_TIMESTAMP', 'CURRENT_USER', 'DEFAULT', 'DEFERRABLE',
-'DESC', 'DISTINCT', 'DO', 'ELSE', 'ENCODED', 'END', 'EXCEPT', 'FALSE', 'FLEX',
-'FLEXIBLE', 'FOR', 'FOREIGN', 'FROM', 'GRANT', 'GROUP', 'GROUPED', 'HAVING',
-'IN', 'INITIALLY', 'INTERSECT', 'INTERVAL', 'INTERVALYM', 'INTO', 'JOIN',
-'KSAFE', 'LEADING', 'LIMIT', 'LOCALTIME', 'LOCALTIMESTAMP', 'MATCH', 'NEW',
-'NOT', 'NULL', 'NULLSEQUAL', 'OFF', 'OFFSET', 'OLD', 'ON', 'ONLY', 'OR',
-'ORDER', 'PINNED', 'PLACING', 'PRIMARY', 'PROJECTION', 'REFERENCES', 'SCHEMA',
-'SEGMENTED', 'SELECT', 'SESSION_USER', 'SOME', 'SYSDATE', 'TABLE', 'THEN',
-'TIMESERIES', 'TO', 'TRAILING', 'TRUE', 'UNBOUNDED', 'UNION', 'UNIQUE',
-'UNSEGMENTED', 'USER', 'USING', 'WHEN', 'WHERE', 'WINDOW', 'WITH', 'WITHIN']
+# fmt: off
+RESERVED = (
+    'ALL', 'ANALYSE', 'ANALYZE', 'AND', 'ANY', 'ARRAY', 'AS', 'ASC',
+    'BINARY', 'BOTH', 'CASE', 'CAST', 'CHECK', 'COLUMN', 'CONSTRAINT',
+    'CORRELATION', 'CREATE', 'CURRENT_DATABASE', 'CURRENT_DATE', 'CURRENT_SCHEMA',
+    'CURRENT_TIME', 'CURRENT_TIMESTAMP', 'CURRENT_USER', 'DEFAULT', 'DEFERRABLE',
+    'DESC', 'DISTINCT', 'DO', 'ELSE', 'ENCODED', 'END', 'EXCEPT', 'FALSE', 'FLEX',
+    'FLEXIBLE', 'FOR', 'FOREIGN', 'FROM', 'GRANT', 'GROUP', 'GROUPED', 'HAVING',
+    'IN', 'INITIALLY', 'INTERSECT', 'INTERVAL', 'INTERVALYM', 'INTO', 'JOIN',
+    'KSAFE', 'LEADING', 'LIMIT', 'LOCALTIME', 'LOCALTIMESTAMP', 'MATCH', 'NEW',
+    'NOT', 'NULL', 'NULLSEQUAL', 'OFF', 'OFFSET', 'OLD', 'ON', 'ONLY', 'OR',
+    'ORDER', 'PINNED', 'PLACING', 'PRIMARY', 'PROJECTION', 'REFERENCES', 'SCHEMA',
+    'SEGMENTED', 'SELECT', 'SESSION_USER', 'SOME', 'SYSDATE', 'TABLE', 'THEN',
+    'TIMESERIES', 'TO', 'TRAILING', 'TRUE', 'UNBOUNDED', 'UNION', 'UNIQUE',
+    'UNSEGMENTED', 'USER', 'USING', 'WHEN', 'WHERE', 'WINDOW', 'WITH', 'WITHIN'
+)
+# fmt: on
+
+# Environmental Variables
+
+# vars loaded with os.environ() which raises KeyError
+ENV_VARS_TO_LOAD_AS_IS = (
+    "PROJECT_ID",
+    "CONNECTION_ID",
+    "USE_AWS",
+    "LOAD_FROM_AWS",
+    "LOAD_FROM_HDFS",
+    "WAREHOUSE_DIR",
+)
+
+# vars which are considered to be truthy
+ENV_VARS_TO_LOAD_AS_BOOL = (
+    # Empty list currently
+    "SQUARK_METADATA",
+    "RUN_LIVE_MAX_LEN_QUERIES",
+    "MAKE_DDL_FROM_TARGET",
+)
+
+# vars loaded with os.environ.get() which defaults in case of KeyError
+ENV_VARS_TO_LOAD_WITH_DEFAULTS = (
+    ("VERTICA_CONNECTION_ID", "vertica_dev"),
+    ("INCLUDE_VIEWS", None),
+    ("INCLUDE_TABLES", None),  # Logic
+    ("EXCLUDE_SCHEMA", None),
+    ("JSON_INFO", None),
+    ("JENKINS_URL", ""),
+    ("JOB_NAME", ""),
+    ("BUILD_NUMBER", "-1"),
+    ("SKIP_ERRORS", None),
+    ("SQUARK_DELETED_TABLE_SUFFIX", "_ADVANA_DELETED"),
+    ("CONVERT_ARRAYS_TO_STRING", None),
+)
+
+# vars which are to be cast to int after loading
+# These should also appear in the above lists
+ENV_VARS_TO_CAST_TO_INT = (
+    # Empty list currently
+)
+
+UNICODE_TYPES = ("NVARCHAR", "NCHAR", "NVARBINARY")
+MAX_VARCHAR_LEN = 65000
 
 
-def sanitize(name):
+def sanitize(name, reserved=RESERVED):
+    """
+    Sanitize strings.
+    If `name` is in reserved then add "x_" to the start.
+    If bad characters exist in `name` replace with "_".
+    Bad characters include... "^" for example
+
+    :param name: String to sanitize
+    :param reserved: list of reserved strings which cannot be duplicated - must prepend "x_"
+    :return:
+    """
     if name.upper() in reserved:
-        name = 'x_%s' % name
-    name = re.sub(r'\W+', '_', name)
+        name = "x_%s" % name
+
+    # replace bad characters with "_"
+    name = re.sub(r"\W+", "_", name)
+
     return name
 
 
 class ColSpec:
 
-    typemap = dict((
-        # JDBC, vertica
-        # ('BINARY', 'BINARY,')
-        # ('VARBINARY', 'VARBINARY,')
-        ('BIT', 'BOOLEAN'),
-        ('NVARCHAR', 'VARCHAR'),
-        ('LONGNVARCHAR', 'LONG VARCHAR'),
-        ('LONGVARCHAR', 'LONG VARCHAR'),
-        ('NCHAR', 'CHAR'),
-        ('CLOB', 'LONG VARCHAR'),
-        ('BLOB', 'LONG VARBINARY'),
-        ('LONGVARBINARY', 'LONG VARBINARY'),
-        # ('CHAR', 'CHAR')
-        # ('VARCHAR', 'VARCHAR')
-        # ('DATE', 'DATE')
-        # ('TIMESTAMP', 'TIMESTAMP')
-        # ('TIME', 'TIME')
-        # ('TIMESTAMP', 'TIMESTAMP')
-        ('DOUBLE', 'FLOAT'),
-        #('BIGINT', 'INT,')
-        # ('NUMERIC', 'NUMERIC')
-        ))
+    typemap = dict(
+        (
+            # JDBC, vertica
+            # ('BINARY', 'BINARY,')
+            # ('VARBINARY', 'VARBINARY,')
+            ("BIT", "BOOLEAN"),
+            ("NVARCHAR", "VARCHAR"),
+            ("LONGNVARCHAR", "LONG VARCHAR"),
+            ("LONGVARCHAR", "LONG VARCHAR"),
+            ("NCHAR", "CHAR"),
+            ("CLOB", "LONG VARCHAR"),
+            ("BLOB", "LONG VARBINARY"),
+            ("LONGVARBINARY", "LONG VARBINARY"),
+            # ('CHAR', 'CHAR')
+            # ('VARCHAR', 'VARCHAR')
+            # ('DATE', 'DATE')
+            # ('TIMESTAMP', 'TIMESTAMP')
+            # ('TIME', 'TIME')
+            # ('TIMESTAMP', 'TIMESTAMP')
+            ("DOUBLE", "FLOAT"),
+            # ('BIGINT', 'INT,')
+            # ('NUMERIC', 'NUMERIC')
+        )
+    )
 
-    has_size = ('BINARY', 'VARBINARY', 'CHAR', 'VARCHAR', 'NVARCHAR')
-    numby = ('DOUBLE', 'BIGINT', 'NUMERIC')
+    has_size = ("BINARY", "VARBINARY", "CHAR", "VARCHAR", "NVARCHAR")
+    numby = ("DOUBLE", "BIGINT", "NUMERIC")
 
-    def __init__(self, jdbc_spec, squark_spec, source_conn):
+    def __init__(
+        self,
+        jdbc_spec,
+        squark_spec,
+        source_conn,
+        convert_arrays_to_string,
+        run_live_max_len_queries,
+        jdbc_url,
+    ):
         self.spec = jdbc_spec
         self.squark_metadata = squark_spec
-        self.is_db2 = squark_spec['conn_metadata']['db_product_name'].lower().startswith('db2')
+        self.is_db2 = (
+            squark_spec["conn_metadata"]["db_product_name"].lower().startswith("db2")
+        )
         self.source_conn = source_conn
+        self.convert_arrays_to_string = convert_arrays_to_string
+        self.run_live_max_len_queries = run_live_max_len_queries
+        self.jdbc_url = jdbc_url
 
     def ddl(self):
 
@@ -79,96 +156,122 @@ class ColSpec:
         data = dict(zip((k.upper() for k in self.spec._fieldnames), self.spec))
         data.update(to_type=to_type)
 
-        if from_type in ('ARRAY', 'OTHER'):
-            print('--- "{}" self.spec.data_type: {}, unless ARRAY + CONVERT_ARRAYS_TO_STRING, set as VARCHAR(65000)'.format(
-                self.name, from_type), flush=True)
-            if from_type == 'ARRAY' and CONVERT_ARRAYS_TO_STRING:
-                from_type = 'VARCHAR'
-                data['to_type'] = 'VARCHAR'
+        if from_type in ("ARRAY", "OTHER"):
+            print(
+                '--- "{name}" self.spec.data_type: {type}, unless ARRAY + CONVERT_ARRAYS_TO_STRING, set as VARCHAR({max_varchar_len})'.format(
+                    name=self.name, type=from_type, max_varchar_len=MAX_VARCHAR_LEN
+                ),
+                flush=True,
+            )
+            if from_type == "ARRAY" and self.convert_arrays_to_string:
+                from_type = "VARCHAR"
+                data["to_type"] = "VARCHAR"
             else:
                 # Hstore
-                return 'VARCHAR(65000)'
+                return "VARCHAR({max_varchar_len})".format(
+                    max_varchar_len=MAX_VARCHAR_LEN
+                )
 
-        if from_type in ('NVARCHAR', 'NCHAR', 'NVARBINARY'):
-            data['COLUMN_SIZE'] = data['COLUMN_SIZE'] * 3
+        # unicode types require more ~2x more space than their non-unicode brethren
+        # not sure why this is 3x ??
+        if from_type in UNICODE_TYPES:
+            data["COLUMN_SIZE"] = data["COLUMN_SIZE"] * 3
 
-        if 'CHAR' in from_type or 'BINARY' in from_type:
-            if 65000 < (data['COLUMN_SIZE'] or 1):
+        if "CHAR" in from_type or "BINARY" in from_type:
+            if MAX_VARCHAR_LEN < (data["COLUMN_SIZE"] or 1):
 
                 start_query_time = time.time()
                 custom_column_definition = None
-                data['COLUMN_SIZE'] = 65000
+                data["COLUMN_SIZE"] = MAX_VARCHAR_LEN
 
-                if self.squark_metadata and 'large_ddl' in self.squark_metadata:
-                    large_ddl = self.squark_metadata['large_ddl']
+                if self.squark_metadata and "large_ddl" in self.squark_metadata:
+                    large_ddl = self.squark_metadata["large_ddl"]
                     if self.name in large_ddl:
-                        data['COLUMN_SIZE'] = large_ddl[self.name]
-                        custom_column_definition = 'squark_config_large_ddl table'
+                        data["COLUMN_SIZE"] = large_ddl[self.name]
+                        custom_column_definition = "squark_config_large_ddl table"
                 # 2018.10.25, *_id check covers ~360 columns in curr haven db, any new *_id columns > 255 char = badness
                 #  ddl-create w/combo of large_ddl table and live queries is curr < 5min, below saves up to 90 seconds
-                if not custom_column_definition and RUN_LIVE_MAX_LEN_QUERIES:
-                    if self.name.lower().endswith('_id'):
+                if not custom_column_definition and self.run_live_max_len_queries:
+                    if self.name.lower().endswith("_id"):
                         id_like_column_size = 255
-                        data['COLUMN_SIZE'] = id_like_column_size
-                        custom_column_definition = '.endswith("_id") to {}'.format(id_like_column_size)
-                if not custom_column_definition and RUN_LIVE_MAX_LEN_QUERIES:
+                        data["COLUMN_SIZE"] = id_like_column_size
+                        custom_column_definition = '.endswith("_id") to {}'.format(
+                            id_like_column_size
+                        )
+                if not custom_column_definition and self.run_live_max_len_queries:
                     # use self.spec.COLUMN_NAME = the orig, non-sanitized column name
-                    max_len = utils.get_postgres_col_max_data_length(self.source_conn, self.spec.TABLE_NAME, self.spec.COLUMN_NAME)
-                    custom_column_definition = 'live query on source db'
+                    max_len = utils.get_postgres_col_max_data_length(
+                        self.source_conn, self.spec.TABLE_NAME, self.spec.COLUMN_NAME
+                    )
+                    custom_column_definition = "live query on source db"
                     if not max_len or max_len < 245:
                         max_len = 255
                     else:
                         # need gap between actual & defined length, else vertica check-for-truncation SQL won't work
                         max_len += 10
-                    data['COLUMN_SIZE'] = max_len
+                    data["COLUMN_SIZE"] = max_len
 
                 if custom_column_definition:
-                    warning_msg = 'meh...'
+                    warning_msg = "meh..."
                     max_len_query_duration = time.time() - start_query_time
                     if max_len_query_duration > 5:
-                        warning_msg = 'LOOOOKOUT'
-                    debug_msg = 'column_path: {}.{}  max_len: {:,}  max_len_query_duration: {:4f}  warning_msg: {}'.format(
-                        self.spec.TABLE_NAME, self.spec.COLUMN_NAME, data['COLUMN_SIZE'], max_len_query_duration, warning_msg)
+                        warning_msg = "LOOOOKOUT"
+                    debug_msg = "column_path: {table}.{column}  max_len: {size:,}  max_len_query_duration: {duration:4f}  warning_msg: {msg}".format(
+                        table=self.spec.TABLE_NAME,
+                        column=self.spec.COLUMN_NAME,
+                        size=data["COLUMN_SIZE"],
+                        duration=max_len_query_duration,
+                        msg=warning_msg,
+                    )
                     print(debug_msg, flush=True)
 
-                    if data['COLUMN_SIZE'] > 65000:
-                        data['to_type'] = 'LONG ' + data['to_type']
-                    print('--- Overriding default 650000 length for {}, use value from {}, final ddl will be: {}({})'.format(
-                        self.name,
-                        custom_column_definition,
-                        data['to_type'],
-                        data['COLUMN_SIZE']
-                    ), flush=True)
+                    if data["COLUMN_SIZE"] > MAX_VARCHAR_LEN:
+                        data["to_type"] = "LONG " + data["to_type"]
+                    print(
+                        "--- Overriding default {max_varchar_len} length for {name}, use value from {custom_def}, final ddl will be: {to_type}({size})".format(
+                            max_varchar_len=MAX_VARCHAR_LEN,
+                            name=self.name,
+                            custom_def=custom_column_definition,
+                            to_type=data["to_type"],
+                            size=data["COLUMN_SIZE"],
+                        ),
+                        flush=True,
+                    )
 
         if from_type in self.has_size:
-            tmpl = '{to_type}({COLUMN_SIZE})'
-        elif from_type == 'NUMERIC' or from_type == 'DECIMAL':
+            tmpl = "{to_type}({COLUMN_SIZE})"
+        elif from_type == "NUMERIC" or from_type == "DECIMAL":
             # Max precision is 1024.
-            if 1024 < data['COLUMN_SIZE']:
-                data['COLUMN_SIZE'] = 1024
-            elif 0 == data['COLUMN_SIZE'] and JDBC_URL.startswith('jdbc:oracle'):
+            if 1024 < data["COLUMN_SIZE"]:
+                data["COLUMN_SIZE"] = 1024
+            elif 0 == data["COLUMN_SIZE"] and self.jdbc_url.startswith("jdbc:oracle"):
                 # spark/sql/jdbc/OracleDialect.scala sets Oracle NUMBER types to (38,10) if size == 0, do same
-                data['COLUMN_SIZE'] = 38
-                data['DECIMAL_DIGITS'] = 10
+                data["COLUMN_SIZE"] = 38
+                data["DECIMAL_DIGITS"] = 10
             if self.spec.DECIMAL_DIGITS is not None:
-                tmpl = '{to_type}({COLUMN_SIZE},{DECIMAL_DIGITS})'
+                tmpl = "{to_type}({COLUMN_SIZE},{DECIMAL_DIGITS})"
             else:
-                tmpl = '{to_type}({COLUMN_SIZE})'
+                tmpl = "{to_type}({COLUMN_SIZE})"
         else:
             tmpl = to_type
 
         return tmpl.format(**data)
 
     def _get_db2_column_name(self):
-        first_name_index = self.spec._fieldnames.index('NAME')
+        first_name_index = self.spec._fieldnames.index("NAME")
         first_name = self.spec[first_name_index]
         assumed_column_name = first_name
-        if self.spec._fieldnames.count('NAME') > 1:
-            second_name_index = self.spec._fieldnames.index('NAME', first_name_index+1)
+        if self.spec._fieldnames.count("NAME") > 1:
+            second_name_index = self.spec._fieldnames.index(
+                "NAME", first_name_index + 1
+            )
             assumed_column_name = self.spec[second_name_index]
             # going by limited observations, there will be 2 NAME references, 1st = table name & 2nd = column name
             # only reverse that interpretation if the 2nd NAME == source table name
-            if assumed_column_name.upper() == self.squark_metadata['db2_table_name'].upper():
+            if (
+                assumed_column_name.upper()
+                == self.squark_metadata["db2_table_name"].upper()
+            ):
                 assumed_column_name = first_name
 
         return assumed_column_name
@@ -184,254 +287,394 @@ class ColSpec:
     def nullable(self):
         return self.spec.NULLABLE
 
+
 # self.j2_env = Environment(**dict(
 #     trim_blocks=True,
 #     extensions=['jinja2.ext.with_']))
 
-tmpl = Template('''
-drop table if exists {{schema}}.{{table}} cascade;
-create table if not exists {{schema}}.{{table}}(
-{% for col in colspec %}
-    {{ col.name }} {{ col.ddl() }}{% if not col.nullable %} NOT NULL{% endif %},
 
-{% endfor %}
-    _advana_md5 varchar(35),
-    _advana_id int,
-    _advana_load_date timestamp
-);
-''', trim_blocks=True)
+def make_ddl(
+    schema,
+    table,
+    source_conn,
+    colspec,
+    squark_metadata,
+    convert_arrays_to_string,
+    run_live_max_len_queries,
+    jdbc_url,
+):
+    template_sql = textwrap.dedent(
+        """
+    drop table if exists {{schema}}.{{table}} cascade;
+    create table if not exists {{schema}}.{{table}}(
+    {% for col in colspec %}
+        {{ col.name }} {{ col.ddl() }}{% if not col.nullable %} NOT NULL{% endif %},
 
-tmpl_deleted_table = Template('''
-drop table if exists {{schema}}.{{table}}{{deleted_table_suffix}} cascade;
-create table if not exists {{schema}}.{{table}}{{deleted_table_suffix}} (
-    {{pkid}} varchar(255)
-);
-''', trim_blocks=True)
+    {% endfor %}
+        _advana_md5 varchar(35),
+        _advana_id int,
+        _advana_load_date timestamp
+    );
+    """
+    )
 
+    tmpl = Template(template_sql, trim_blocks=True)
 
-def make_ddl(schema, table, source_conn, colspec, squark_metadata):
-    colspec = map(lambda args: ColSpec(args[0], args[1], args[2]), [(spec, squark_metadata, source_conn) for spec in colspec])
+    colspec = map(
+        lambda args: ColSpec(
+            args[0],
+            args[1],
+            args[2],
+            convert_arrays_to_string,
+            run_live_max_len_queries,
+            jdbc_url,
+        ),
+        [(spec, squark_metadata, source_conn) for spec in colspec],
+    )
+
     return tmpl.render(schema=schema, table=table, colspec=colspec)
 
 
-def make_deleted_table_ddl(schema_name, base_table_name, pkid_column_name):
-    return tmpl_deleted_table.render(schema=schema_name,
-                                     table=base_table_name,
-                                     deleted_table_suffix=SQUARK_DELETED_TABLE_SUFFIX,
-                                     pkid=pkid_column_name)
+def make_ddl_from_target(schema, table, project_id):
+    template_sql = textwrap.dedent(
+        """
+    drop table if exists {{schema}}.{{table}} cascade;
+    create table if not exists {{schema}}.{{table}} 
+    LIKE  {{project_id}}.{{table}} 
+    INCLUDING PROJECTIONS
+    ;
+    """
+    )
+
+    tmpl = Template(template_sql, trim_blocks=True)
+
+    return tmpl.render(schema=schema, table=table, project_id=project_id)
 
 
+def make_deleted_table_ddl(
+    schema_name, base_table_name, pkid_column_name, squark_deleted_table_suffix
+):
+    template_sql = textwrap.dedent(
+        """
+    drop table if exists {{schema}}.{{table}}{{deleted_table_suffix}} cascade;
+    create table if not exists {{schema}}.{{table}}{{deleted_table_suffix}} (
+        {{pkid}} varchar(255)
+    );
+    """
+    )
+    tmpl_deleted_table = Template(template_sql, trim_blocks=True)
+    return tmpl_deleted_table.render(
+        schema=schema_name,
+        table=base_table_name,
+        deleted_table_suffix=squark_deleted_table_suffix,
+        pkid=pkid_column_name,
+    )
+
+
+# squark_metadata_flag = env_vars["SQUARK_METADATA"]
 def copy_table_ddl(
-    from_conn, from_schema, from_table,
-    to_conn, to_schema, to_table, squark_metadata):
+    from_conn,
+    from_schema,
+    from_table,
+    to_conn,
+    to_schema,
+    to_table,
+    squark_metadata,
+    squark_metadata_flag,
+    project_id,
+    job_name,
+    build_number,
+    squark_deleted_table_suffix,
+    run_live_max_len_queries,
+    convert_arrays_to_string,
+    jdbc_url,
+    copy_ddl_from_target,
+    jenkins_url,
+):
 
     start_time = time.time()
-    if SQUARK_METADATA:
-        ddl_project_key = PROJECT_ID
-        if PROJECT_ID in ['haven_daily','haven_weekly','haven_full', 'haven_uw']:
-            ddl_project_key = 'haven'
-        large_ddl = utils.get_large_data_ddl_def(to_conn, ddl_project_key, to_table)
-        squark_metadata['large_ddl'] = large_ddl if large_ddl else dict()
 
-    db_product_name = squark_metadata['conn_metadata']['db_product_name']
-    is_db2 = db_product_name.lower().startswith('db2')
-    if is_db2:
-        # as with get_tables(), in db2 apparently we need to fetchmany() w/exact number of columns
-        column_count = utils.get_number_of_columns_in_db2_table(from_conn, from_schema, from_table)
-        print('*************** DB2 TABLE COLUMN COUNT: {}'.format(column_count))
-        cols_connection = from_conn.get_columns(schema=from_schema, table=from_table).fetchmany(column_count)
-        squark_metadata['db2_table_name'] = from_table
+    if copy_ddl_from_target:
+        ddl = make_ddl_from_target(
+            schema=to_schema, table=to_table, project_id=project_id
+        )
     else:
-        cols_connection = from_conn.get_columns(schema=from_schema, table=from_table)
+        if squark_metadata_flag:
+            ddl_project_key = project_id
+            if project_id in ["haven_daily", "haven_weekly", "haven_full", "haven_uw"]:
+                ddl_project_key = "haven"
+            large_ddl = utils.get_large_data_ddl_def(to_conn, ddl_project_key, to_table)
+            squark_metadata["large_ddl"] = large_ddl if large_ddl else dict()
 
-    from_cols = list(cols_connection)
-    ddl = make_ddl(to_schema, to_table, from_conn, from_cols, squark_metadata)
+        db_product_name = squark_metadata["conn_metadata"]["db_product_name"]
+        is_db2 = db_product_name.lower().startswith("db2")
+        if is_db2:
+            # as with get_tables(), in db2 apparently we need to fetchmany() w/exact number of columns
+            column_count = utils.get_number_of_columns_in_db2_table(
+                from_conn, from_schema, from_table
+            )
+            print(
+                "*************** DB2 TABLE COLUMN COUNT: {count}".format(
+                    count=column_count
+                )
+            )
+            cols_connection = from_conn.get_columns(
+                schema=from_schema, table=from_table
+            ).fetchmany(column_count)
+            squark_metadata["db2_table_name"] = from_table
+        else:
+            cols_connection = from_conn.get_columns(
+                schema=from_schema, table=from_table
+            )
 
-    if not is_db2:
-        cols_connection.close()
-    print('creating table %r' % from_table)
+        from_cols = list(cols_connection)
+
+        ddl = make_ddl(
+            to_schema,
+            to_table,
+            from_conn,
+            from_cols,
+            squark_metadata,
+            convert_arrays_to_string,
+            run_live_max_len_queries,
+            jdbc_url,
+        )
+
+        if not is_db2:
+            cols_connection.close()
+
+    print("creating table {from_table!r}".format(from_table=from_table))
     print(ddl)
     cur = to_conn.cursor()
     rs = cur.execute(ddl)
 
-    if squark_metadata.get('is_incremental'):
-        pkid_column_name = squark_metadata['pkid_column_name']
-        deleted_table_ddl = make_deleted_table_ddl(to_schema, to_table, pkid_column_name)
-        print('creating table {}{}'.format(from_table, SQUARK_DELETED_TABLE_SUFFIX))
+    if squark_metadata.get("is_incremental"):
+        pkid_column_name = squark_metadata["pkid_column_name"]
+        deleted_table_ddl = make_deleted_table_ddl(
+            to_schema, to_table, pkid_column_name, squark_deleted_table_suffix
+        )
+
+        print(
+            "creating table {from_table}{suffix}".format(
+                from_table=from_table, suffix=squark_deleted_table_suffix
+            )
+        )
         print(deleted_table_ddl)
         cur = to_conn.cursor()
         rs = cur.execute(deleted_table_ddl)
 
-    if RUN_LIVE_MAX_LEN_QUERIES:
+    if run_live_max_len_queries:
         time_taken = time.time() - start_time
-        update_load_timings_with_ddl_create_duration(to_conn, table_name, time_taken)
+        update_load_timings_with_ddl_create_duration(
+            vertica_conn=to_conn,
+            base_table_name=to_table,
+            time_taken=time_taken,
+            jenkins_url=jenkins_url,
+            job_name=job_name,
+            build_number=build_number,
+            project_id=project_id,
+        )
 
 
-def log_squark_metadata_contents(to_conn):
+def log_squark_metadata_contents(to_conn, project_id):
 
-    large_ddl_table_name = 'squark_config_large_ddl'
-    ddl_project_key = PROJECT_ID
-    if PROJECT_ID in ['haven_daily', 'haven_weekly', 'haven_full']:
-        ddl_project_key = 'haven'
-    rs_large_ddl = utils.get_squark_metadata_for_project(to_conn, ddl_project_key, large_ddl_table_name)
-    print('--- SQUARK_METADATA=TRUE, contents of {squark_metadata_table_name} for PROJECT_ID "{project_id}":'.format(
-        squark_metadata_table_name=large_ddl_table_name,
-        project_id=ddl_project_key))
+    large_ddl_table_name = "squark_config_large_ddl"
+    ddl_project_key = project_id
+    if project_id in ["haven_daily", "haven_weekly", "haven_full"]:
+        ddl_project_key = "haven"
+    rs_large_ddl = utils.get_squark_metadata_for_project(
+        to_conn, ddl_project_key, large_ddl_table_name
+    )
+    print(
+        '--- SQUARK_METADATA=TRUE, contents of {squark_metadata_table_name} for PROJECT_ID "{project_id}":'.format(
+            squark_metadata_table_name=large_ddl_table_name, project_id=ddl_project_key
+        )
+    )
     if rs_large_ddl:
         column_names = rs_large_ddl[0]._fieldnames
-        print('\t'.join(column_names))
-        print('\t'.join('-' * len(name) for name in column_names))
+        print("\t".join(column_names))
+        print("\t".join("-" * len(name) for name in column_names))
         for row in rs_large_ddl:
-            print('\t'.join(str(val) for val in (list(row))))
+            print("\t".join(str(val) for val in (list(row))))
     else:
-        print('< NO ROWS RETURNED >')
+        print("< NO ROWS RETURNED >")
 
 
-def update_load_timings_with_ddl_create_duration(vertica_conn, base_table_name, time_taken):
-    jenkins_name = JENKINS_URL.split('.')[0].split('/')[-1]
+def update_load_timings_with_ddl_create_duration(
+    vertica_conn,
+    base_table_name,
+    time_taken,
+    jenkins_url,
+    job_name,
+    build_number,
+    project_id,
+):
+    jenkins_name = jenkins_url.split(".")[0].split("/")[-1]
     attempt_count = 1
-    source = 'n.a.'
+    source = "n.a."
     # there isn't straightforward way to get total number of tables/views that will get DDL'd before iteration
     total_table_count = 0
-    final_table_name = '{}_SQUARK_DDL'.format(base_table_name)
-    utils.send_load_timing_to_vertica(vertica_conn, jenkins_name, JOB_NAME, BUILD_NUMBER, PROJECT_ID, final_table_name,
-                                      time_taken, attempt_count, source, total_table_count)
+    final_table_name = "{}_SQUARK_DDL".format(base_table_name)
+    utils.send_load_timing_to_vertica(
+        vertica_conn,
+        jenkins_name,
+        job_name,
+        build_number,
+        project_id,
+        final_table_name,
+        time_taken,
+        attempt_count,
+        source,
+        total_table_count,
+    )
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
 
-    PROJECT_ID = os.environ['PROJECT_ID']
-    CONNECTION_ID = os.environ['CONNECTION_ID']
-    USE_AWS = os.environ.get('USE_AWS')
-    LOAD_FROM_AWS = os.environ.get('LOAD_FROM_AWS')
-    LOAD_FROM_HDFS = os.environ.get('LOAD_FROM_HDFS')
+    env_vars = new_utils.load_env_vars(
+        vars_as_is=ENV_VARS_TO_LOAD_AS_IS,
+        vars_as_bool=ENV_VARS_TO_LOAD_AS_BOOL,
+        vars_with_defaults=ENV_VARS_TO_LOAD_WITH_DEFAULTS,
+        vars_to_cast_as_int=ENV_VARS_TO_CAST_TO_INT,
+    )
 
     squarkenv = squark.config.environment.Environment()
-    CONNECTION_TYPE = squarkenv.sources[CONNECTION_ID].type
-    JDBC_USER = squarkenv.sources[CONNECTION_ID].user
-    JDBC_PASSWORD = squarkenv.sources[CONNECTION_ID].password
-    JDBC_URL = squarkenv.sources[CONNECTION_ID].url
-    try:
-        JDBC_SCHEMA = squarkenv.sources[CONNECTION_ID].default_schema
-    except:
-        JDBC_SCHEMA = 'public'
+    source_jdbc = squarkenv.sources[env_vars["CONNECTION_ID"]]
+    destination_vertica = squarkenv.sources[env_vars["VERTICA_CONNECTION_ID"]]
+
+    from_conn = source_jdbc.conn
+    to_conn = destination_vertica.conn
+
+    to_schema = "_{project_id}".format(project_id=env_vars["PROJECT_ID"])
 
     try:
-        VERTICA_CONNECTION_ID = os.environ['VERTICA_CONNECTION_ID']
-    except:
-        VERTICA_CONNECTION_ID = "vertica_dev"
+        jdbc_schema = source_jdbc.default_schema
+    except:  # TODO: Make this except statement more targeted
+        jdbc_schema = ""
 
-    WAREHOUSE_DIR = os.environ['WAREHOUSE_DIR']
-    DATA_DIR = os.path.join(WAREHOUSE_DIR, PROJECT_ID)
-    INCLUDE_VIEWS = os.environ.get('INCLUDE_VIEWS')
+    exclude_schema = new_utils.split_strip_str(env_vars["EXCLUDE_SCHEMA"])
+    include_tables = new_utils.split_strip_str(env_vars["INCLUDE_TABLES"])
 
-    INCLUDE_TABLES = os.environ.get('INCLUDE_TABLES')
-    if INCLUDE_TABLES is not None:
-        INCLUDE_TABLES = [s.strip() for s in INCLUDE_TABLES.split(',') if s]
+    tables_with_partition_info = {}
+    if env_vars["JSON_INFO"]:
+        parsed_json = json.loads(
+            env_vars["JSON_INFO"].replace("'", '"').replace('"""', "'")
+        )
 
-    JSON_INFO = os.environ.get('JSON_INFO')
-    TABLES_WITH_PARTITION_INFO = {}
-    if JSON_INFO:
-        parsed_json = json.loads(JSON_INFO.replace("'", '"').replace('"""', "'"))
-        if 'PARTITION_INFO' in parsed_json.keys():
-            TABLES_WITH_PARTITION_INFO = parsed_json['PARTITION_INFO']['tables']
-            print('TABLES_WITH_PARTITION_INFO: %r' % TABLES_WITH_PARTITION_INFO)
+        if "PARTITION_INFO" in parsed_json.keys():
+            tables_with_partition_info = parsed_json["PARTITION_INFO"]["tables"]
+            print(
+                "TABLES_WITH_PARTITION_INFO: {info!r}".format(
+                    info=tables_with_partition_info
+                )
+            )
 
-    JENKINS_URL = os.environ.get('JENKINS_URL', '')
-    JOB_NAME = os.environ.get('JOB_NAME', '')
-    BUILD_NUMBER = os.environ.get('BUILD_NUMBER', '-1')
+    if env_vars["SQUARK_METADATA"]:
+        log_squark_metadata_contents(to_conn, env_vars["PROJECT_ID"])
 
-    SQUARK_METADATA = os.environ.get('SQUARK_METADATA', '').lower() in ['1', 'true', 'yes']
-    SKIP_ERRORS = os.environ.get('SKIP_ERRORS')
-    SQUARK_DELETED_TABLE_SUFFIX = os.environ.get('SQUARK_DELETED_TABLE_SUFFIX', '_ADVANA_DELETED')
-    RUN_LIVE_MAX_LEN_QUERIES = os.environ.get('RUN_LIVE_MAX_LEN_QUERIES', '').lower() in ['1', 'true', 'yes']
-    CONVERT_ARRAYS_TO_STRING = os.environ.get('CONVERT_ARRAYS_TO_STRING')
-
-    EXCLUDE_SCHEMA = os.environ.get('EXCLUDE_SCHEMA', [])
-    if EXCLUDE_SCHEMA:
-        EXCLUDE_SCHEMA = [s.strip() for s in EXCLUDE_SCHEMA.split(',') if s]
-
-    from_conn = squarkenv.sources[CONNECTION_ID].conn
-    to_conn = squarkenv.sources[VERTICA_CONNECTION_ID].conn
-    #if LOAD_FROM_AWS:
-    #    aws_conn = squarkenv.sources['vertica_aws'].conn
-
-    from_schema = JDBC_SCHEMA
-    to_schema = '_%s' % PROJECT_ID
-
-    if SQUARK_METADATA:
-        log_squark_metadata_contents(to_conn)
     squark_metadata = {}
     conn_metadata = utils.populate_connection_metadata(from_conn._metadata)
-    db_product_name = conn_metadata['db_product_name']
-    squark_metadata['conn_metadata'] = conn_metadata
+    db_product_name = conn_metadata["db_product_name"]
+    squark_metadata["conn_metadata"] = conn_metadata
 
-    table_name_key = 'table_name'
-    if db_product_name.lower().startswith('db2'):
-        table_name_key = 'name'
+    table_name_key = "table_name"
+    if db_product_name.lower().startswith("db2"):
+        table_name_key = "name"
         # get_tables().fetchall() or .fetchmany(#) where # > number of tables in schema are both failing via db2
-        table_count = utils.get_number_of_tables_in_db2_schema(from_conn, JDBC_SCHEMA)
-        print('*************** DB2 SCHEMA TABLE COUNT: {}'.format(table_count))
-        tables = from_conn.get_tables(schema=JDBC_SCHEMA).fetchmany(table_count)
+        table_count = utils.get_number_of_tables_in_db2_schema(from_conn, jdbc_schema)
+        print(
+            "*************** DB2 SCHEMA TABLE COUNT: {count}".format(count=table_count)
+        )
+        tables = from_conn.get_tables(schema=jdbc_schema).fetchmany(table_count)
     else:
-        tables = from_conn.get_tables(schema=from_schema)
+        tables = from_conn.get_tables(schema=jdbc_schema)
 
     for table in tables:
         table = dict(zip([k.lower() for k in table._fieldnames], table))
-        print("Checking table: {tbl} {tbltype}".format(tbl=table[table_name_key], tbltype=table['table_type']))
-        if table['table_type'] is None:
-            print('>>>>> skipping weird None table: %r' % table)
+        print(
+            "Checking table: {table} {table_type}".format(
+                table=table[table_name_key], table_type=table["table_type"]
+            )
+        )
+        if table["table_type"] is None:
+            print(">>>>> skipping weird None table: {table!r}".format(table=table))
             continue
-        if table['table_schem'] in EXCLUDE_SCHEMA:
-            print('>>>>> skipping table from excluded schema: %r' % table)
+        if exclude_schema is not None and table["table_schem"] in exclude_schema:
+            print(
+                ">>>>> skipping table from excluded schema: {table!r}".format(
+                    table=table
+                )
+            )
             continue
-        if not INCLUDE_VIEWS and table['table_type'].upper() != 'TABLE':
-            print('>>>> skipping non table: %s' % table[table_name_key])
+        if not env_vars["INCLUDE_VIEWS"] and table["table_type"].upper() != "TABLE":
+            print(">>>> skipping non table: %s" % table[table_name_key])
             continue
         # 2018.07.05, similar to pull side, without resources for proper testing below is safest approach
         #   likely would want for any postgresql data sources, for now aiming only for good enough
-        if PROJECT_ID.lower().startswith('haven'):
-            if INCLUDE_VIEWS and table['table_type'].upper() not in ['TABLE','VIEW']:
-                print('>>>> INCLUDE_VIEWS is enabled, skipping non table/view: %s' % table[table_name_key])
+        if env_vars["PROJECT_ID"].lower().startswith("haven"):
+            if env_vars["INCLUDE_VIEWS"] and table["table_type"].upper() not in [
+                "TABLE",
+                "VIEW",
+            ]:
+                print(
+                    ">>>> INCLUDE_VIEWS is enabled, skipping non table/view: {name}".format(
+                        name=table[table_name_key]
+                    )
+                )
                 continue
         table_name = sanitize(table[table_name_key])
-        if INCLUDE_TABLES and table_name not in INCLUDE_TABLES:
-            continue
-        squark_metadata['is_incremental'] = False
-        if TABLES_WITH_PARTITION_INFO and table_name.lower() in [table.lower() for table in
-                                                                 TABLES_WITH_PARTITION_INFO.keys()]:
-            table_with_partitions_lower = {k.lower(): v for k, v in TABLES_WITH_PARTITION_INFO.items()}
-            partition_info = table_with_partitions_lower[table_name.lower()]
-            print('>>>>>  Partition info: %r' % partition_info, flush=True)
-            is_incremental = partition_info.get('is_incremental', '').lower() in ['1', 'true', 'yes']
-            if is_incremental:
-                squark_metadata['is_incremental'] = True
-                print('>>>>>  is_incremental is True', flush=True)
-                squark_metadata['pkid_column_name'] = partition_info['pkid_column_name']
 
-        #if LOAD_FROM_HDFS:
+        if include_tables and table_name not in include_tables:
+            continue
+
+        squark_metadata["is_incremental"] = False
+
+        if tables_with_partition_info and table_name.lower() in [
+            table.lower() for table in tables_with_partition_info.keys()
+        ]:
+            table_with_partitions_lower = {
+                k.lower(): v for k, v in tables_with_partition_info.items()
+            }
+            partition_info = table_with_partitions_lower[table_name.lower()]
+            print(
+                ">>>>>  Partition info: {partition_info!r}".format(
+                    partition_info=partition_info
+                ),
+                flush=True,
+            )
+            is_incremental = new_utils._str_is_truthy(
+                partition_info.get("is_incremental", "").lower()
+            )
+            if is_incremental:
+                squark_metadata["is_incremental"] = True
+                print(">>>>>  is_incremental is True", flush=True)
+                squark_metadata["pkid_column_name"] = partition_info["pkid_column_name"]
+
         try:
             copy_table_ddl(
-                from_conn, from_schema, table[table_name_key],
-                to_conn, to_schema, table_name, squark_metadata)
+                from_conn,
+                jdbc_schema,
+                table[table_name_key],
+                to_conn,
+                to_schema,
+                table_name,
+                squark_metadata,
+                squark_metadata_flag=env_vars["SQUARK_METADATA"],
+                project_id=env_vars["PROJECT_ID"],
+                job_name=env_vars["JOB_NAME"],
+                build_number=env_vars["BUILD_NUMBER"],
+                squark_deleted_table_suffix=env_vars["SQUARK_DELETED_TABLE_SUFFIX"],
+                run_live_max_len_queries=env_vars["RUN_LIVE_MAX_LEN_QUERIES"],
+                convert_arrays_to_string=env_vars["CONVERT_ARRAYS_TO_STRING"],
+                jdbc_url=source_jdbc.url,
+                copy_ddl_from_target=env_vars["MAKE_DDL_FROM_TARGET"],
+                jenkins_url=env_vars["JENKINS_URL"],
+            )
+
         except Exception as exc:
-            if SKIP_ERRORS:
-                print('>>>> ERROR COPYING TABLE:')
+            if env_vars["SKIP_ERRORS"]:
+                print(">>>> ERROR COPYING TABLE:")
                 print(exc)
                 continue
             else:
                 raise exc
-#        if LOAD_FROM_AWS:
-#            print('-------- LAUNCHING AWS VERTICA DDL PUSH -----------')
-#            try:
-#                copy_table_ddl(
-#                    from_conn, from_schema, table[table_name_key],
-#                    to_conn, to_schema, table_name)
-#            except Exception as exc:
-#                if SKIP_ERRORS:
-#                    print('>>>> ERROR COPYING TABLE:')
-#                    print(exc)
-#                    continue
-#                else:
-#                    raise exc
-

@@ -4,6 +4,7 @@ All the utility functions needed by squark
 """
 
 import config
+import os
 
 def check_and_commit(vertica_conn):
     if not vertica_conn.autocommit:

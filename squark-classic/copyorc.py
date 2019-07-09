@@ -1,3 +1,4 @@
+# XXX: This file has no identified uses
 import os
 
 from jinja2 import Template

@@ -1,6 +1,6 @@
-Squark
-#############
+# squark
 
+# This document out of date and unverified
 
 Setting up for local development
 -------------------------------------

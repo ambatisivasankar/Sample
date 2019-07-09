@@ -39,7 +39,11 @@ __pycache__/*
 
 .python_history
 
-.python_history
 htmlcov/*
 
-.idea/*
+.idea*
+venv*
+.vscode*
+.ipynb_checkpoint*
+.DS_Store*
+
