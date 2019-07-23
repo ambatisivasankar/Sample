@@ -134,7 +134,7 @@ export JSON_INFO='
               "lowerBound": 1,
               "upperBound": 31,
               "numPartitions": 31
-            },
+            }
         }
    }
 }
