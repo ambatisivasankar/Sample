@@ -1,13 +1,13 @@
+# Required
 export PROJECT_ID=reflex
 export WAREHOUSE_DIR='/_wh/'
 export SQL_TEMPLATE='%s'
-export INCLUDE_VIEWS=1
-export SKIP_SOURCE_ROW_COUNT=1
 export CONNECTION_ID=reflex
 
-# NOTE: It's critical that these array variables have a different
-# name than the actual variables that will be used later by Squark.
-# See: https://stackoverflow.com/q/51272394/877069
+# Optional
+export INCLUDE_VIEWS=1
+export SKIP_SOURCE_ROW_COUNT=1
+
 EXCLUDE_TABLES_ARRAY=(
   "CMB_PARTC_TOT_MILESTONE_WORK"
   "DB_RPT_REQUEST_TRACKING_WORK"
