@@ -64,61 +64,78 @@ export JSON_INFO='
     "PARTITION_INFO":{
         "tables": {
             "DATA_EXCHANGE_DEMO": {
-              "partitionColumn": "DATA_EXCH_ID",
-              "lowerBound": 2138100,
-              "upperBound": 9630000,
-              "numPartitions": 50
-            },
-            "PAYROLL_HISTORY": {
-              "partitionColumn": "SUBSCRIBER_ID",
-              "lowerBound": 500,
-              "upperBound": 215000,
-              "numPartitions": 100
-            },
-            "PARTN1_PARTC_PERIODIC_BAL": {
-              "partitionColumn": "SUBSCRIBER_ID",
+              "partitionColumn": "DATA_EXCH_ID % 50",
               "lowerBound": 0,
-              "upperBound": 210000,
+              "upperBound": 49,
               "numPartitions": 50
             },
             "CENSUS_EE": {
-              "partitionColumn": "SUBSCRIBER_ID",
-              "lowerBound": 100,
-              "upperBound": 216000,
-              "numPartitions": 50
+              "partitionColumn": "SUBSCRIBER_ID % 20",
+              "lowerBound": 0,
+              "upperBound": 19,
+              "numPartitions": 20
+            },
+            "EXTERNAL_ADDRESS": {
+              "partitionColumn": "DATEPART(MINUTE, UPDATE_DATETIME)",
+              "lowerBound": 0,
+              "upperBound": 59,
+              "numPartitions": 60
             },
             "FUND_ACTIVITY": {
               "partitionColumn": "DATEPART(DAY, VALUATION_DT)",
               "lowerBound": 1,
               "upperBound": 31,
-              "numPartitions": 40
-            }
+              "numPartitions": 31
+            },
+            "MEMBER_STATUS_HISTORY": {
+              "partitionColumn": "DATEPART(DAY, UPDATE_DATETIME)",
+              "lowerBound": 1,
+              "upperBound": 31,
+              "numPartitions": 31
+            },
+            "PARTC_SOURCE": {
+              "partitionColumn": "DATEPART(DAY, UPDATE_DATETIME)",
+              "lowerBound": 1,
+              "upperBound": 31,
+              "numPartitions": 31
+            },
+            "PARTICIPANT": {
+              "partitionColumn": "DATEPART(DAY, UPDATE_DATETIME)",
+              "lowerBound": 1,
+              "upperBound": 31,
+              "numPartitions": 31
+            },
+            "PARTICIPANT_LOG": {
+              "partitionColumn": "DATEPART(DAY, UPDATE_DATETIME)",
+              "lowerBound": 1,
+              "upperBound": 31,
+              "numPartitions": 31
+            },
+            "PARTN1_PARTC_PERIODIC_BAL": {
+              "partitionColumn": "SUBSCRIBER_ID % 50",
+              "lowerBound": 0,
+              "upperBound": 49,
+              "numPartitions": 50
+            },
+            "PAYROLL_HISTORY": {
+              "partitionColumn": "SUBSCRIBER_ID % 100",
+              "lowerBound": 0,
+              "upperBound": 99,
+              "numPartitions": 100
+            },
+            "PERSON": {
+              "partitionColumn": "DATEPART(DAY, UPDATE_DATETIME)",
+              "lowerBound": 1,
+              "upperBound": 31,
+              "numPartitions": 31
+            },
+            "PERSON_LOG": {
+              "partitionColumn": "DATEPART(DAY, UPDATE_DATETIME)",
+              "lowerBound": 1,
+              "upperBound": 31,
+              "numPartitions": 31
+            },
         }
    }
 }
 '
-
-## 2018.06.04: this one not working out too well
-#            "PERSON_LOG": {
-#              "partitionColumn": "DATEPART(SECOND, UPDATE_DATETIME)",
-#              "lowerBound": 0,
-#              "upperBound": 59,
-#              "numPartitions": 60
-#            }
-
-
-#export STATS_CONFIG="
-#{
-#    'profiles': {
-#        'numeric': ['max','min','mean','countDistinct','count_null'],
-#        'string': ['max', 'min','countDistinct','count_null'],
-#        'datetype': ['max', 'min','countDistinct','count_null']
-#    },
-#    'field_types': {
-#        'NumericType': 'numeric',
-#        'StringType': 'string',
-#        'DateType': 'datetype',
-#        'TimestampType': 'datetype'
-#    }
-#}
-#"
