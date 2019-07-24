@@ -119,7 +119,7 @@ export JSON_INFO='
               "numPartitions": 50
             },
             "PAYROLL_HISTORY": {
-              "partitionColumn": COALESCE(DATEPART(SECOND, UPDATE_DATETIME), 0)",
+              "partitionColumn": "COALESCE(DATEPART(SECOND, UPDATE_DATETIME), 0)",
               "lowerBound": 0,
               "upperBound": 59,
               "numPartitions": 60
