@@ -7,6 +7,7 @@ export CONNECTION_ID=reflex
 # Optional
 export INCLUDE_VIEWS=1
 export SKIP_SOURCE_ROW_COUNT=1
+export SPARK_EXECUTOR_MEMORY="2G"
 
 EXCLUDE_TABLES_ARRAY=(
   "CMB_PARTC_TOT_MILESTONE_WORK"
@@ -64,73 +65,73 @@ export JSON_INFO='
     "PARTITION_INFO":{
         "tables": {
             "DATA_EXCHANGE_DEMO": {
-              "partitionColumn": "DATA_EXCH_ID % 50",
+              "partitionColumn": "SSN % 50",
               "lowerBound": 0,
-              "upperBound": 49,
+              "upperBound": 50,
               "numPartitions": 50
             },
             "CENSUS_EE": {
-              "partitionColumn": "SUBSCRIBER_ID % 20",
+              "partitionColumn": "COALESCE(DATEPART(MINUTE, EFF_FROM_DT), 0) % 20",
               "lowerBound": 0,
-              "upperBound": 19,
+              "upperBound": 20,
               "numPartitions": 20
             },
             "EXTERNAL_ADDRESS": {
-              "partitionColumn": "DATEPART(MINUTE, UPDATE_DATETIME)",
+              "partitionColumn": "COALESCE(DATEPART(MINUTE, UPDATE_DATETIME), 1)",
               "lowerBound": 0,
               "upperBound": 59,
               "numPartitions": 60
             },
             "FUND_ACTIVITY": {
-              "partitionColumn": "DATEPART(DAY, VALUATION_DT)",
+              "partitionColumn": "COALESCE(DATEPART(DAY, VALUATION_DT), 1)",
               "lowerBound": 1,
               "upperBound": 31,
               "numPartitions": 31
             },
             "MEMBER_STATUS_HISTORY": {
-              "partitionColumn": "DATEPART(DAY, UPDATE_DATETIME)",
+              "partitionColumn": "COALESCE(DATEPART(DAY, UPDATE_DATETIME), 1)",
               "lowerBound": 1,
               "upperBound": 31,
               "numPartitions": 31
             },
             "PARTC_SOURCE": {
-              "partitionColumn": "DATEPART(DAY, UPDATE_DATETIME)",
+              "partitionColumn": "COALESCE(DATEPART(DAY, UPDATE_DATETIME), 1)",
               "lowerBound": 1,
               "upperBound": 31,
               "numPartitions": 31
             },
             "PARTICIPANT": {
-              "partitionColumn": "DATEPART(DAY, UPDATE_DATETIME)",
+              "partitionColumn": "COALESCE(DATEPART(DAY, UPDATE_DATETIME), 1)",
               "lowerBound": 1,
               "upperBound": 31,
               "numPartitions": 31
             },
             "PARTICIPANT_LOG": {
-              "partitionColumn": "DATEPART(DAY, UPDATE_DATETIME)",
+              "partitionColumn": "COALESCE(DATEPART(DAY, UPDATE_DATETIME), 1)",
               "lowerBound": 1,
               "upperBound": 31,
               "numPartitions": 31
             },
             "PARTN1_PARTC_PERIODIC_BAL": {
-              "partitionColumn": "SUBSCRIBER_ID % 50",
+              "partitionColumn": "SHARES % 50",
               "lowerBound": 0,
-              "upperBound": 49,
+              "upperBound": 50,
               "numPartitions": 50
             },
             "PAYROLL_HISTORY": {
-              "partitionColumn": "SUBSCRIBER_ID % 100",
+              "partitionColumn": COALESCE(DATEPART(SECOND, UPDATE_DATETIME), 0)",
               "lowerBound": 0,
-              "upperBound": 99,
-              "numPartitions": 100
+              "upperBound": 59,
+              "numPartitions": 60
             },
             "PERSON": {
-              "partitionColumn": "DATEPART(DAY, UPDATE_DATETIME)",
+              "partitionColumn": "COALESCE(DATEPART(DAY, UPDATE_DATETIME), 1)",
               "lowerBound": 1,
               "upperBound": 31,
               "numPartitions": 31
             },
             "PERSON_LOG": {
-              "partitionColumn": "DATEPART(DAY, UPDATE_DATETIME)",
+              "partitionColumn": "COALESCE(DATEPART(DAY, UPDATE_DATETIME), 1)",
               "lowerBound": 1,
               "upperBound": 31,
               "numPartitions": 31
