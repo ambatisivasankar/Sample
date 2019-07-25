@@ -54,7 +54,7 @@ export JSON_INFO='
               "lowerBound": 0,
               "upperBound": 20,
               "numPartitions": 20
-            }
+            },
             "DIM_PLAN": {
               "partitionColumn": "ACTV_RCRD_IND = """Y""" AND MOD(PLAN_KEY, 20)",
               "lowerBound": 0,
