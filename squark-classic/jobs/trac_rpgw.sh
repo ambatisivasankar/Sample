@@ -31,6 +31,12 @@ export JSON_INFO='
 {
     "PARTITION_INFO":{
         "tables": {
+            "DIM_BENEFICIARY": {
+              "partitionColumn": "MOD(BNFCRY_KEY, 20)",
+              "lowerBound": 0,
+              "upperBound": 20,
+              "numPartitions": 20
+            },
             "DIM_CONSENT_CUST": {
               "partitionColumn": "MOD(CONSENT_CUST_KEY, 20)",
               "lowerBound": 0,
