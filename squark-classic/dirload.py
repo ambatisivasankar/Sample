@@ -146,64 +146,56 @@ def get_urls(dirname, hdfs_host, hdfs_port, hdfs_user):
 
 def do_s3_copyfrom(
     schema_name,
+    destination_schema,
     table_name,
     table_prefix,
-    urls,
     vertica_conn,
-    max_num_connections,
     squark_bucket,
+    squark_type,
     table_num_retry,
 ):
-    urls = urls[:]
     curr_retry = 0
-    while urls:
-        _urls = []
-        for i in range(max_num_connections):
-            try:
-                _urls.append(urls.pop(0))
-            except IndexError:
-                break
-        tmpl = "copy %s.%s from %s on any node orc direct;"
-        table_name = table_prefix + table_name
-        sql = tmpl % (
-            schema_name,
-            table_name,
-            ",\n".join(
-                ["'%s'" % (os.path.join("s3://", squark_bucket, x)) for x in _urls]
-            ),
-        )
-        # sql = tmpl % (schema_name, table_name, ',\n'.join([os.path.join(S3_FUSE_LOCATION, x) for x in _urls]))
+    table_url = "'s3://{squark_bucket}/{squark_type}/{destination_schema}/{table_name}/{table_name}.orc/*.orc'".format(
+        squark_bucket=squark_bucket,
+        squark_type=squark_type,
+        destination_schema=destination_schema,
+        table_name=table_name,
+    )
+    tmpl = "copy %s.%s from %s on any node orc direct;"
+    table_name = table_prefix + table_name
+    sql = tmpl % (schema_name, table_name, table_url)
+    # sql = tmpl % (schema_name, table_name, ',\n'.join([os.path.join(S3_FUSE_LOCATION, x) for x in _urls]))
 
-        logging.info("sql: %r", sql)
-        # vertica_conn = squarkenv.sources[VERTICA_CONNECTION_ID].conn
-        logging.info("---- Launching s3 copy command...")
-        # Add retries for loading data from s3
-        # curr_retry = 0
-        retry_bool = True
-        print("----------------------------")
-        while retry_bool and curr_retry < table_num_retry:
-            print(
-                "Attempting to load table {table}: [Attempt {curr}/{tot}]".format(
-                    table=table_name, curr=curr_retry + 1, tot=table_num_retry
-                )
+    logging.info("sql: %r", sql)
+    # vertica_conn = squarkenv.sources[VERTICA_CONNECTION_ID].conn
+    logging.info("---- Launching s3 copy command...")
+    # Add retries for loading data from s3
+    # curr_retry = 0
+    retry_bool = True
+    print("----------------------------")
+    while retry_bool and curr_retry < table_num_retry:
+        print(
+            "Attempting to load table {table}: [Attempt {curr}/{tot}]".format(
+                table=table_name, curr=curr_retry + 1, tot=table_num_retry
             )
-            try:
-                cursor = vertica_conn.cursor()
-                cursor.execute(sql)
-                cursor.close()
-                retry_bool = False
-            except Exception as e:
-                print(
-                    "!! -- An Error occurred while trying to load -- waiting 5 seconds to retry!"
-                )
-                print(str(e))
-                curr_retry += 1
-                time.sleep(5)
-        if retry_bool:
-            print("ERROR!! Number of allowed retries exceeded!! Exiting")
-            raise
-        print("Load Successful...")
-        print("----------------------------")
+        )
+        try:
+            cursor = vertica_conn.cursor()
+            cursor.execute(sql)
+            cursor.close()
+            retry_bool = False
+        except Exception as e:
+            print(
+                "!! -- An Error occurred while trying to load -- waiting 5 seconds to retry!"
+            )
+            print(str(e))
+            curr_retry += 1
+            time.sleep(5)
+    if retry_bool:
+        print("ERROR!! Number of allowed retries exceeded!! Exiting")
+        raise
+    print("Load Successful...")
+    print("----------------------------")
 
     return curr_retry + 1
 
@@ -325,12 +317,12 @@ def main():
             s1 = time.time()
             num_attempts = do_s3_copyfrom(
                 schema_name=schema_name,
+                destination_schema=env_vars["PROJECT_ID"],
                 table_name=table_name,
                 table_prefix=table_prefix,
-                urls=aws_urls,
                 vertica_conn=vertica_conn,
-                max_num_connections=env_vars["VERTICA_PARALLELISM"],
                 squark_bucket=env_vars["SQUARK_BUCKET"],
+                squark_type=env_vars["SQUARK_TYPE"],
                 table_num_retry=env_vars["TABLE_NUM_RETRY"],
             )
             table_time = time.time() - s1
