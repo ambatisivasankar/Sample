@@ -67,34 +67,34 @@ export JSON_INFO='
     "PARTITION_INFO":{
         "tables": {
             "DATA_EXCHANGE_DEMO": {
-              "partitionColumn": "SSN % 50",
-              "lowerBound": 0,
-              "upperBound": 50,
-              "numPartitions": 50
+              "partitionColumn": "DATA_EXCH_ID",
+              "lowerBound": 2000000,
+              "upperBound": 10000000,
+              "numPartitions": 100
             },
             "CENSUS_EE": {
-              "partitionColumn": "COALESCE(DATEPART(MINUTE, EFF_FROM_DT), 0) % 20",
+              "partitionColumn": "SUBSCRIBER_ID",
               "lowerBound": 0,
-              "upperBound": 20,
-              "numPartitions": 20
+              "upperBound": 200000,
+              "numPartitions": 50
             },
             "EXTERNAL_ADDRESS": {
-              "partitionColumn": "COALESCE(DATEPART(MINUTE, UPDATE_DATETIME), 1)",
+              "partitionColumn": "ADDRESS_ID",
               "lowerBound": 0,
-              "upperBound": 59,
-              "numPartitions": 60
+              "upperBound": 15000000,
+              "numPartitions": 50
             },
             "FUND_ACTIVITY": {
-              "partitionColumn": "COALESCE(DATEPART(DAY, VALUATION_DT), 1)",
-              "lowerBound": 1,
-              "upperBound": 31,
-              "numPartitions": 31
+              "partitionColumn": "COALESCE(DATEPART(YEAR, VALUATION_DT), 2000)",
+              "lowerBound": 2000,
+              "upperBound": 2020,
+              "numPartitions": 20
             },
             "MEMBER_STATUS_HISTORY": {
-              "partitionColumn": "COALESCE(DATEPART(DAY, UPDATE_DATETIME), 1)",
-              "lowerBound": 1,
-              "upperBound": 31,
-              "numPartitions": 31
+              "partitionColumn": "COALESCE(DATEPART(YEAR, EFF_FROM_DT), 2000)",
+              "lowerBound": 2000,
+              "upperBound": 2020,
+              "numPartitions": 20
             },
             "PARTC_SOURCE": {
               "partitionColumn": "COALESCE(DATEPART(DAY, UPDATE_DATETIME), 1)",
@@ -115,10 +115,10 @@ export JSON_INFO='
               "numPartitions": 31
             },
             "PARTN1_PARTC_PERIODIC_BAL": {
-              "partitionColumn": "SHARES % 50",
-              "lowerBound": 0,
-              "upperBound": 50,
-              "numPartitions": 50
+              "partitionColumn": "PARTICIPANT_ID",
+              "lowerBound": -10000000,
+              "upperBound": 10000000,
+              "numPartitions": 100
             },
             "PAYROLL_HISTORY": {
               "partitionColumn": "COALESCE(DATEPART(SECOND, UPDATE_DATETIME), 0)",
