@@ -25,3 +25,4 @@ This repo contains:
  * Description of the job files used to process jobs: [./docs/job_files_description.md](docs/job_files_description.md)
  * Description of the environmental variables used throughout Squark: [./docs/ENV_VARIABLES.md](docs/ENV_VARIABLES.md)
  * Guide to running squark locally: [./docs/running_squark_locally.md](docs/running_squark_locally.md)
+ * Description of each py4jdbc-assembly jar versions: [./docs/py4jdbc-assembly_jar_version.md](docs/py4jdbc-assembly_jar_version.md)
