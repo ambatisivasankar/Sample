@@ -116,9 +116,9 @@ export JSON_INFO='
               "numPartitions": 31
             },
             "PARTN1_PARTC_PERIODIC_BAL": {
-              "partitionColumn": "PARTICIPANT_ID",
-              "lowerBound": -10000000,
-              "upperBound": 10000000,
+              "partitionColumn": "SUBSCRIBER_ID",
+              "lowerBound": 0,
+              "upperBound": 230000,
               "numPartitions": 100
             },
             "PAYROLL_HISTORY": {
