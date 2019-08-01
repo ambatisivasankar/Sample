@@ -62,15 +62,16 @@ export EXCLUDE_TABLES="$(IFS=, ; echo "${EXCLUDE_TABLES_ARRAY[*]}")"
 export INCLUDE_TABLES="$(IFS=, ; echo "${INCLUDE_TABLES_ARRAY[*]}")"
 
 export SPARK_MAX_EXECUTORS=10
+# Do not use modulous (MOD, %) on this job.
 export JSON_INFO='
 {
     "PARTITION_INFO":{
         "tables": {
             "DATA_EXCHANGE_DEMO": {
-              "partitionColumn": "DATA_EXCH_ID % 100",
-              "lowerBound": 0,
-              "upperBound": 100,
-              "numPartitions": 100
+              "partitionColumn": "DATA_EXCH_ID",
+              "lowerBound": 2100000,
+              "upperBound": 11000000,
+              "numPartitions": 200
             },
             "CENSUS_EE": {
               "partitionColumn": "SUBSCRIBER_ID",
