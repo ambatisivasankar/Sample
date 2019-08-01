@@ -67,9 +67,9 @@ export JSON_INFO='
     "PARTITION_INFO":{
         "tables": {
             "DATA_EXCHANGE_DEMO": {
-              "partitionColumn": "DATA_EXCH_ID",
-              "lowerBound": 2000000,
-              "upperBound": 10000000,
+              "partitionColumn": "DATA_EXCH_ID % 100",
+              "lowerBound": 0,
+              "upperBound": 100,
               "numPartitions": 100
             },
             "CENSUS_EE": {
