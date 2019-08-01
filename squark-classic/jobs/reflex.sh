@@ -7,7 +7,7 @@ export CONNECTION_ID=reflex
 # Optional
 export INCLUDE_VIEWS=1
 export SKIP_SOURCE_ROW_COUNT=1
-export SPARK_EXECUTOR_MEMORY="6G"
+export SPARK_EXECUTOR_MEMORY="8G"
 
 EXCLUDE_TABLES_ARRAY=(
   "CMB_PARTC_TOT_MILESTONE_WORK"
@@ -119,7 +119,7 @@ export JSON_INFO='
               "partitionColumn": "SUBSCRIBER_ID",
               "lowerBound": 0,
               "upperBound": 230000,
-              "numPartitions": 100
+              "numPartitions": 50
             },
             "PAYROLL_HISTORY": {
               "partitionColumn": "COALESCE(DATEPART(SECOND, UPDATE_DATETIME), 0)",
