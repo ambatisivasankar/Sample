@@ -122,10 +122,10 @@ export JSON_INFO='
               "numPartitions": 50
             },
             "PAYROLL_HISTORY": {
-              "partitionColumn": "COALESCE(DATEPART(SECOND, UPDATE_DATETIME), 0)",
+              "partitionColumn": "SUBSCRIBER_ID",
               "lowerBound": 0,
-              "upperBound": 59,
-              "numPartitions": 60
+              "upperBound": 250000,
+              "numPartitions": 100
             },
             "PERSON": {
               "partitionColumn": "COALESCE(DATEPART(DAY, UPDATE_DATETIME), 1)",
