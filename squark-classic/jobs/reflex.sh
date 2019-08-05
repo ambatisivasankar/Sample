@@ -86,31 +86,31 @@ export JSON_INFO='
               "numPartitions": 50
             },
             "FUND_ACTIVITY": {
-              "partitionColumn": "COALESCE(DATEPART(YEAR, VALUATION_DT), 2000)",
+              "partitionColumn": "DATEPART(YEAR, VALUATION_DT)",
               "lowerBound": 2000,
               "upperBound": 2020,
               "numPartitions": 20
             },
             "MEMBER_STATUS_HISTORY": {
-              "partitionColumn": "COALESCE(DATEPART(YEAR, EFF_FROM_DT), 2000)",
+              "partitionColumn": "DATEPART(YEAR, EFF_FROM_DT)",
               "lowerBound": 2000,
               "upperBound": 2020,
               "numPartitions": 20
             },
             "PARTC_SOURCE": {
-              "partitionColumn": "COALESCE(DATEPART(DAY, UPDATE_DATETIME), 1)",
+              "partitionColumn": "DATEPART(DAY, UPDATE_DATETIME)",
               "lowerBound": 1,
               "upperBound": 31,
               "numPartitions": 31
             },
             "PARTICIPANT": {
-              "partitionColumn": "COALESCE(DATEPART(DAY, UPDATE_DATETIME), 1)",
+              "partitionColumn": "DATEPART(DAY, UPDATE_DATETIME)",
               "lowerBound": 1,
               "upperBound": 31,
               "numPartitions": 31
             },
             "PARTICIPANT_LOG": {
-              "partitionColumn": "COALESCE(DATEPART(DAY, UPDATE_DATETIME), 1)",
+              "partitionColumn": "DATEPART(DAY, UPDATE_DATETIME)",
               "lowerBound": 1,
               "upperBound": 31,
               "numPartitions": 31
@@ -128,13 +128,13 @@ export JSON_INFO='
               "numPartitions": 100
             },
             "PERSON": {
-              "partitionColumn": "COALESCE(DATEPART(DAY, UPDATE_DATETIME), 1)",
+              "partitionColumn": "DATEPART(DAY, UPDATE_DATETIME)",
               "lowerBound": 1,
               "upperBound": 31,
               "numPartitions": 31
             },
             "PERSON_LOG": {
-              "partitionColumn": "COALESCE(DATEPART(DAY, UPDATE_DATETIME), 1)",
+              "partitionColumn": "DATEPART(DAY, UPDATE_DATETIME)",
               "lowerBound": 1,
               "upperBound": 31,
               "numPartitions": 31
