@@ -50,7 +50,7 @@ export JSON_INFO='
               "numPartitions": 20
             },
             "DIM_PARTICIPANT": {
-              "partitionColumn": "RCRD_TRM_DT >= """01-JAN-2016""" AND PRTCPNT_KEY, 100",
+              "partitionColumn": "RCRD_TRM_DT >= """01-JAN-2016""" AND PRTCPNT_KEY",
               "lowerBound": 160000000,
               "upperBound": 240000000,
               "numPartitions": 100
