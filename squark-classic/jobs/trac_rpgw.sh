@@ -74,9 +74,9 @@ export JSON_INFO='
               "numPartitions": 20
             },
             "FACT_PRTCPNT_ASST_DTL": {
-              "partitionColumn": "ASST_AS_OF_DT >= """01-JAN-2016""" AND MOD(PLAN_FUND_SUB_ACCNT_KEY, 20)",
-              "lowerBound": 0,
-              "upperBound": 20,
+              "partitionColumn": "ASST_AS_OF_DT >= """01-JAN-2016""" AND PLAN_FUND_SUB_ACCNT_KEY",
+              "lowerBound": 2500000,
+              "upperBound": 6000000,
               "numPartitions": 20
             }
         }
