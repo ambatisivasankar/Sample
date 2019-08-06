@@ -77,7 +77,7 @@ export JSON_INFO='
               "partitionColumn": "ASST_AS_OF_DT >= """01-JAN-2016""" AND PLAN_FUND_SUB_ACCNT_KEY",
               "lowerBound": 2500000,
               "upperBound": 6000000,
-              "numPartitions": 20
+              "numPartitions": 100
             }
         }
    }
