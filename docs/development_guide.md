@@ -11,11 +11,29 @@ Two `squark` directories exist in `squark-advana`, each with a different purpose
 
 ## New Branches
 New feature branches should be branched off of the up to date version of `develop`.
-If a branch relates to a Jira ticket it should be named the same as the ticket number:
-```
+
+
+### Branch naming guidelines
+If a branch relates to a Jira ticket it should be named the same as the ticket number.
+Additionally, branch names should follow one of the following formats:
+
+|Name|Use case|
+|----|--------|
+|`feature/<ticket-number>`|New features|
+|`bugfix/<ticket-number>`|Bugfixes|
+|`source/<ticket-number>`|Changes to the `sources.cfg` file|
+|`job/<ticket-number>`|Changes to the existing jobs, or addition of new jobs|
+|`doc/<ticket-number>`|Changes to the documentation|
+|`backup/<branch-name_YYYY_MM_DD>`|Backup branches|
+
+The above is a guide, not all code changes are so self contained, please use your best judgement.
+
+For example, a customer submitted a ticket `INGEST-12345` for new tables to be added to an existing job.
+The branch for this work should be created like so:
+```bash
 $ git checkout develop
 $ git pull
-$ git checkout -b INGEST-12345
+$ git checkout -b job/INGEST-12345
 ```
 
 ## Commits
@@ -44,27 +62,27 @@ Using environment variables for secret storage is a mistake in a multi-user Linu
 There are other options too, such as using an encrypted secret storage system like Hashicorp's Vault server, which stores secrets as encrypted binary objects in any of a number of different backends. Other job scheduling tools like Airflow include a database-backed encrypted storage facility. These options may very well be better than checking encrypted files into a git repo.  
 
 ### Reading and editing the encrypted files
+__PLEASE DO NOT EDIT THE `sources.cfg` FILE__. Reach out to @Andrew-Sheridan.
+
 To add (or edit) sources to Squark you'll need the Squark password file. This file is currently in the possession of the Data Management and Delivery [Ticket Squad](https://massmutual.atlassian.net/wiki/spaces/DMD/pages/854888007/Ticket+Squad). Save that file as `~/.squark-password`.
 Currently only the `config/sources.cfg` file is encrypted. To edit it, use `ansible-vault`:
 ```
     $ ansible-vault edit --vault-password-file=.squark-password  config/sources.cfg
 ```
 
-*Please* create a new branch if you need to make a change to `sources.cfg` file. If associated with a ticket, append "sources' to the name. 
-
 ```
 $ git checkout develop
 $ git pull
-$ git checkout -b INGEST-12345-sources
+$ git checkout -b source/INGEST-12345
 $ ansible-vault edit --vault-password-file=.squark-password  config/sources.cfg
 $ git add config/sources.cfg
 $ git commit -m 'Added source for INGEST-12345`
-$ git push -u origin INGEST-12345-sources
+$ git push -u origin source/INGEST-12345
 ```
 
 After pushing, submit a Pull Request to merge into develop.
 
-Again, *Please* make changes to the `sources.cfg` file in its own branch, NOT the branch for that ticket / feature.
+Again, *Please* make changes to the `sources.cfg` file in its own branch (`source/<ticket-number`), NOT the branch for a job.
 
 
 ## Environment variables
