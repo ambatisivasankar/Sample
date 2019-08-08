@@ -6,6 +6,15 @@ export SQUARK_METADATA=1
 
 export JSON_INFO='
 {
+    "SUPER_PROJECTION_SETTINGS":{
+        "tables": {
+            "NOTIF": {
+                "projection_name": "squark_super_projection_01",
+                "order_by_columns": "NOTIF_TYPE_CDE, STUS_CODE, POL_NR, NOTIF_ID",
+                "segment_by_columns": "NOTIF_ID",
+            }
+        }
+    },
     "PARTITION_INFO":{
         "tables": {
             "NOTIF": {

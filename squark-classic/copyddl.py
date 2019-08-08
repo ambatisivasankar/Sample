@@ -293,6 +293,46 @@ class ColSpec:
 #     extensions=['jinja2.ext.with_']))
 
 
+def create_super_projection_query(
+    schema, table, projection_name, order_by_columns, segment_by_columns
+):
+    if segment_by_columns:
+        segmented_template = textwrap.dedent(
+            """
+        SEGMENTED BY
+            hash({{ segment_by_columns }}) ALL NODES
+        ;
+        """
+        )
+    else:
+        segmented_template = textwrap.dedent(
+            """
+            UNSEGMENTED ALL NODES
+        ;
+        """
+        )
+    template_sql = textwrap.dedent(
+            """
+        CREATE PROJECTION {{ schema }}.{{ projection_name }} AS 
+            SELECT *
+        FROM
+            {{ schema }}.{{ table }}
+        ORDER BY
+            {{ order_by_columns }}
+    """
+    )
+    template_sql += segmented_template
+    tmpl = Template(template_sql, trim_blocks=True)
+    rendered_template = tmpl.render(
+        schema=schema,
+        table=table,
+        projection_name=projection_name,
+        order_by_columns=order_by_columns,
+        segment_by_columns=segment_by_columns,
+    )
+    return rendered_template
+
+
 def make_ddl(
     schema,
     table,
@@ -332,7 +372,8 @@ def make_ddl(
         [(spec, squark_metadata, source_conn) for spec in colspec],
     )
 
-    return tmpl.render(schema=schema, table=table, colspec=colspec)
+    rendered_template = tmpl.render(schema=schema, table=table, colspec=colspec)
+    return rendered_template
 
 
 def make_ddl_from_target(schema, table, project_id):
@@ -390,6 +431,7 @@ def copy_table_ddl(
     jdbc_url,
     copy_ddl_from_target,
     jenkins_url,
+    table_super_projection_settings,
 ):
 
     start_time = time.time()
@@ -447,6 +489,29 @@ def copy_table_ddl(
     print(ddl)
     cur = to_conn.cursor()
     rs = cur.execute(ddl)
+    if table_super_projection_settings:
+        order_cols = table_super_projection_settings["order_by_columns"].split(",")
+        segment_cols = table_super_projection_settings["segment_by_columns"].split(",")
+
+        order_by_columns = ", ".join([sanitize(col) for col in order_cols])
+        segment_by_columns = ", ".join([sanitize(col) for col in segment_cols])
+        super_projection_query = create_super_projection_query(
+            to_schema,
+            to_table,
+            table_super_projection_settings["projection_name"],
+            order_by_columns,
+            segment_by_columns,
+        )
+        print(
+            "---- Super projection: {super_projection_query}".format(
+                super_projection_query=super_projection_query
+            )
+        )
+        try:
+            rs = cur.execute(super_projection_query)
+        except Exception as e:
+            print("could not make super projection.")
+            raise e
 
     if squark_metadata.get("is_incremental"):
         pkid_column_name = squark_metadata["pkid_column_name"]
@@ -556,6 +621,7 @@ if __name__ == "__main__":
     include_tables = new_utils.split_strip_str(env_vars["INCLUDE_TABLES"])
 
     tables_with_partition_info = {}
+    tables_with_super_projection_settings = {}
     if env_vars["JSON_INFO"]:
         parsed_json = json.loads(
             env_vars["JSON_INFO"].replace("'", '"').replace('"""', "'")
@@ -566,6 +632,15 @@ if __name__ == "__main__":
             print(
                 "TABLES_WITH_PARTITION_INFO: {info!r}".format(
                     info=tables_with_partition_info
+                )
+            )
+        if "SUPER_PROJECTION_SETTINGS" in parsed_json.keys():
+            tables_with_super_projection_settings = parsed_json[
+                "SUPER_PROJECTION_SETTINGS"
+            ]["tables"]
+            print(
+                "SUPER_PROJECTION_SETTINGS: {info!r}".format(
+                    info=tables_with_super_projection_settings
                 )
             )
 
@@ -650,6 +725,25 @@ if __name__ == "__main__":
                 print(">>>>>  is_incremental is True", flush=True)
                 squark_metadata["pkid_column_name"] = partition_info["pkid_column_name"]
 
+        super_projection_settings = {}
+        if tables_with_super_projection_settings:
+            try:
+                super_projection_settings = tables_with_super_projection_settings[
+                    table_name.lower()
+                ]
+                print(
+                    ">>>>>  Super Projection settings: {super_projection_settings!r}".format(
+                        super_projection_settings=super_projection_settings
+                    ),
+                    flush=True,
+                )
+            except KeyError:
+                print(
+                    ">>>>>  No Super Projection Settings for {table_name}".format(
+                        table_name=table_name
+                    )
+                )
+
         try:
             copy_table_ddl(
                 from_conn,
@@ -669,6 +763,7 @@ if __name__ == "__main__":
                 jdbc_url=source_jdbc.url,
                 copy_ddl_from_target=env_vars["MAKE_DDL_FROM_TARGET"],
                 jenkins_url=env_vars["JENKINS_URL"],
+                table_super_projection_settings=super_projection_settings,
             )
 
         except Exception as exc:
