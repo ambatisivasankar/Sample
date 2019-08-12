@@ -7,6 +7,7 @@ import time
 from collections import defaultdict
 
 import boto3
+from jinja2 import Template
 from pywebhdfs.webhdfs import PyWebHdfsClient
 
 import squark.config.environment
@@ -23,10 +24,12 @@ ENV_VARS_TO_LOAD_AS_IS = [
 ]
 
 # vars which are considered to be truthy
-ENV_VARS_TO_LOAD_AS_BOOL = ["SKIP_UNIQUE_ID_CHECK"]
+ENV_VARS_TO_LOAD_AS_BOOL = ["SKIP_UNIQUE_ID_CHECK", "ANALYZE_STATISTICS"]
 
 # vars loaded with os.environ.get() which defaults in case of KeyError
 ENV_VARS_TO_LOAD_WITH_DEFAULTS = [
+    ("ANALYZE_STATISTICS", True),
+    ("ANALYZE_STATISTICS_PERCENTAGE", 10),
     ("VERTICA_CONNECTION_ID", "vertica_dev"),
     ("VERTICA_PARALLELISM", 10),  # MAX_CONNS  # Cast to int
     ("PROJECT_ID", None),
@@ -53,7 +56,26 @@ ENV_VARS_TO_CAST_TO_INT = [
     "VERTICA_PARALLELISM",  # MAX_CONNS
     "TABLE_NUM_RETRY",
     "BUILD_NUMBER",
+    "ANALYZE_STATISTICS_PERCENTAGE",
 ]
+
+
+def get_analyze_statistics_query(destination_schema, destination_table, percentage):
+    """Get ANALYZE_STATISTICS SQL query.
+
+    :param destination_schema: Schema to pass into query.
+    :param destination_table: Table to pass into query.
+    :param percentage: Percentage to analyze.
+    :return:
+    """
+    raw_template = (
+        """SELECT ANALYZE_STATISTICS ('{{ schema }}.{{ table }}', {{ percentage }});"""
+    )
+    template = Template(raw_template, trim_blocks=True)
+    query = template.render(
+        schema=destination_schema, table=destination_table, percentage=percentage
+    )
+    return query
 
 
 def get_s3_urls(
@@ -153,6 +175,8 @@ def do_s3_copyfrom(
     squark_bucket,
     squark_type,
     table_num_retry,
+    analylze_statistics,
+    analylze_percentage,
 ):
     curr_retry = 0
     table_url = "'s3://{squark_bucket}/{squark_type}/{destination_schema}/{table_name}/{table_name}.orc/*.orc'".format(
@@ -173,6 +197,9 @@ def do_s3_copyfrom(
     # curr_retry = 0
     retry_bool = True
     print("----------------------------")
+    analyze_statistics_query = get_analyze_statistics_query(
+        schema_name, table_name, analylze_percentage
+    )
     while retry_bool and curr_retry < table_num_retry:
         print(
             "Attempting to load table {table}: [Attempt {curr}/{tot}]".format(
@@ -182,6 +209,15 @@ def do_s3_copyfrom(
         try:
             cursor = vertica_conn.cursor()
             cursor.execute(sql)
+            if analylze_statistics:
+                start_analylze_statistics = time.time()
+                cursor.execute(analyze_statistics_query)
+                duration_analylze_statistics = time.time() - start_analylze_statistics
+                print(
+                    "----- Statstics analyzed for {table_name} in {duration:.02f} seconds".format(
+                        table_name=table_name, duration=duration_analylze_statistics
+                    )
+                )
             cursor.close()
             retry_bool = False
         except Exception as e:
@@ -324,6 +360,8 @@ def main():
                 squark_bucket=env_vars["SQUARK_BUCKET"],
                 squark_type=env_vars["SQUARK_TYPE"],
                 table_num_retry=env_vars["TABLE_NUM_RETRY"],
+                analylze_statistics=env_vars["ANALYZE_STATISTICS"],
+                analylze_percentage=env_vars["ANALYZE_STATISTICS_PERCENTAGE"],
             )
             table_time = time.time() - s1
             # admin table will be updated after each table is loaded to vertica, i.e. even if full job later fails
