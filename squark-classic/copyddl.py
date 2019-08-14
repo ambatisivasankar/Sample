@@ -729,7 +729,7 @@ if __name__ == "__main__":
         if tables_with_super_projection_settings:
             try:
                 super_projection_settings = tables_with_super_projection_settings[
-                    table_name.lower()
+                    table_name
                 ]
                 print(
                     ">>>>>  Super Projection settings: {super_projection_settings!r}".format(

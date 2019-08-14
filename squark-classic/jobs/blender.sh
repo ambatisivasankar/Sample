@@ -9,9 +9,9 @@ export JSON_INFO='
     "SUPER_PROJECTION_SETTINGS":{
         "tables": {
             "NOTIF": {
-                "projection_name": "squark_super_projection_01",
-                "order_by_columns": "NOTIF_TYPE_CDE, STUS_CODE, POL_NR, NOTIF_ID",
-                "segment_by_columns": "NOTIF_ID",
+                "projection_name": "NOTIF_SQUARK",
+                "order_by_columns": "NOTIF_TYP_CDE,STUS_CDE,POL_NR,NOTIF_ID",
+                "segment_by_columns": "NOTIF_ID"
             }
         }
     },
