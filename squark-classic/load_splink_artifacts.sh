@@ -5,7 +5,7 @@ tmpschema=_"$slug"
 schema="$slug"
 # Drop the existing temp schema, if any.
 if [ $LOAD_FROM_HDFS ]; then
-    vsql="/opt/vertica/bin/vsql -C -h $VERTICA_HOST -U $VERTICA_USER -w $VERTICA_PASSWORD -c"
+    vsql="/opt/vertica/bin/vsql -C -h $VERTICA_HOST -U $VERTICA_USER -m require -w $VERTICA_PASSWORD -c "
     $vsql "drop schema $tmpschema cascade;"
     # Recreate the temp schema.
     $vsql "create schema $tmpschema;"
@@ -40,7 +40,7 @@ if [ $LOAD_FROM_HDFS ]; then
 fi
 
 if [ $LOAD_FROM_AWS ]; then
-    vsql="$VERTICA_VSQL -C -h $AWS_VERTICA_HOST -p $AWS_VERTICA_PORT -U $VERTICA_USER -w $AWS_VERTICA_PASSWORD -d advana -c "
+    vsql="$VERTICA_VSQL -C -h $AWS_VERTICA_HOST -p $AWS_VERTICA_PORT -U $VERTICA_USER -m require -w $AWS_VERTICA_PASSWORD -d advana -c "
     $vsql "drop schema $tmpschema cascade;"
     # Recreate the temp schema.
     $vsql "create schema $tmpschema;"

@@ -1,0 +1,1 @@
+select '|'||max(strt_dt) ||'|'|| max(end_dt)||'|'|| 'LAST' from :schema_name.wrk_ld_btch_agmt_hist_vw where actv_ind='Y';

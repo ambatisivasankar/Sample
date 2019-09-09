@@ -1,95 +1,81 @@
 #!/usr/bin/env bash
+###############################################################
+## Launhch squark job
 # This script is used to launch a squark job.
 # it accepts and arg to determine whether this is prod or dev.
 # Setting a dev or prod will determine which WAREHOUSE_DIR and VERTICA_CONNECTION_ID are to be used.
+
+# Stop at any error, treat unset vars as errors and make pipelines exit
+# with a non-zero exit code if any command in the pipeline exits with a
+# non-zero exit code.
+set -o errexit
+set -o nounset
+set -o pipefail
+set +x
 set -e
 
-VERTICA_CONNECTION_ID="vertica_dev"
-VERTICA_HOST="vertica-dev"
-WH_DIR="/_wh_dev/"
-HELP=NO
-#SKIP_HDFS_LOAD=NO
-#SKIP_VERTICA_LOAD=NO
-SQUARK_TYPE=squark-dev
+
+# Load up some utility functions
+# shellcheck source=./scripts/shell_utils.sh
+source "${WORKSPACE}/scripts/shell_utils.sh"
+
+printLineMsg before "Launching Squark Job"
+HELP="NO"
+
+
+
 for i in "$@"; do
     case $i in
         --dev|--develop)
-            VERTICA_CONNECTION_ID="vertica_dev"
-            VERTICA_HOST="vertica-dev"
-            WH_DIR="/_wh_dev/"
-            SQUARK_TYPE=squark-dev
-            TMP_SQUARK_WAREHOUSE="/wh_dev/"
-            TMP_SQUARK_ARCHIVE="/wh_dev_archive/"
+            # shellcheck source=./scripts/environemnt_settings/env_dev.sh
+            source "${ENV_SETTINGS_DIR}/env_dev.sh"
         ;;
         --qa)
-            VERTICA_CONNECTION_ID="vertica_dev"
-            VERTICA_HOST="vertica-dev"
-            WH_DIR="/_wh_dev/"
-            SQUARK_TYPE=squark-qa
-            TMP_SQUARK_WAREHOUSE="/wh_dev/"
-            TMP_SQUARK_ARCHIVE="/wh_dev_archive/"
+            # shellcheck source=./scripts/environemnt_settings/env_qa.sh
+            source "${ENV_SETTINGS_DIR}/env_qa.sh"
         ;;
         --prod|--production)
-            VERTICA_CONNECTION_ID="vertica_prod"
-            VERTICA_HOST="vertica"
-            WH_DIR="/_wh/"
-            SQUARK_TYPE=squark-prod
-            TMP_SQUARK_WAREHOUSE="/wh/"
-            TMP_SQUARK_ARCHIVE="/wh_archive/"
-        ;;
-        --test)
-            VERTICA_CONNECTION_ID="test_vertica"
-            VERTICA_HOST="vertica"
-            WH_DIR="/_wh_dev/"
-            SQUARK_TYPE=squark-test
-            TMP_SQUARK_WAREHOUSE="/wh_dev/"
-            TMP_SQUARK_ARCHIVE="/wh_dev_archive/"
+            # shellcheck source=./scripts/environemnt_settings/env_prod.sh
+            source "${ENV_SETTINGS_DIR}/env_prod.sh"
         ;;
         -h|--help|help)
             HELP=YES
         ;;
-        -w=*|--warehouse-dir=*)
-            WH_DIR="${i#*=}"
-        ;;
         -v=*|--vertica-id=*)
-            VERTICA_CONNECTION_ID="${i#*=}"
-            CUSTOM_VERT_CONN_ID=1
+            #VERTICA_CONNECTION_ID="${i#*=}"
+            # Now set in (dev|qa|prod))
         ;;
         -s=*|--s3-id=*)
-            S3_CONNECTION_ID="${i#*=}"
+            #S3_CONNECTION_ID="${i#*=}"
+            # Now set in  (dev|qa|prod)
         ;;
-        -s=*|--facing-schema=*)
-           FACING_SCHEMA="${i#*=}"
+        --use-aws|--use-hdfs)
+            # Do nothing
         ;;
-        --skip-hdfs-load)
-            SKIP_HDFS_LOAD=YES
+        --load-from-aws|--load-from-hdfs)
+            # Do nothing
         ;;
-        --skip-vertica-load)
-            SKIP_VERTICA_LOAD=YES
+        --facing-schema=*)
+            FACING_SCHEMA="${i#*=}"
         ;;
-       --use-aws)
-           USE_AWS=1
+        --skip-export|--skip-hdfs-load)
+            SKIP_EXPORT=1
         ;;
-       --use-hdfs)
-           USE_HDFS=1
+        --skip-load|--skip-vertica-load)
+            SKIP_LOAD=1
         ;;
-       --load-from-aws)
-           LOAD_FROM_AWS=1
+        --create-projections)
+            CREATE_PROJECTIONS=1
         ;;
-       --load-from-hdfs)
-           LOAD_FROM_HDFS=1
+        --make_ddl_from_target)
+            MAKE_DDL_FROM_TARGET=1
         ;;
-       --force-cutover)
-           FORCE_CUTOVER=1
+       --skip-schema)
+           SKIP_SCHEMA=1
         ;;
-       --skip-cutover)
-           SKIP_CUTOVER=1
-        ;;
-       --create-projections)
-           CREATE_PROJECTIONS=1
-        ;;
-       --make_ddl_from_target)
-           MAKE_DDL_FROM_TARGET=1
+       --incr-load)
+           SKIP_SCHEMA=1
+           INCR_LOAD=1
         ;;
         *)
             # Unknown option -- assume to be job_name
@@ -98,186 +84,74 @@ for i in "$@"; do
     esac
 done
 
-if [ $HELP == YES ]; then
-    echo "launch_squark_job.sh USAGE:"
-    echo "  ./launch_squark_job.sh [[-v=*] [-w=*]] [-h] [[--dev|--prod]] <job_name>"
-    echo "This script will launch a squark job. The default behaviour is to launch a dev job."
-    echo "MAKE SURE to include the job name so the script knows which file to source."
-    echo "Default values are:"
-    echo " VERTICA_CONNECTION_ID='vertica_dev'"
-    echo " WAREHOUSE_DIR='/_wh_dev/'"
-    echo "If you want to run a prod job, just include --prod or --production as an argument."
-    echo "The script also accepts --dev or --develop to run a dev job."
-    echo "The below options can be used to override the default dev and prod variables if needed."
-    echo "However, you cannot override and select an environment (dev|prod). The last value will always trump the first ones."
-    echo "OPTIONS:"
-    echo " -v | --vertica-id     : Override the default vertica_connection_id with value passed."
-    echo " -w | --warehouse-dir  : Override the default warehouse_dir with the value passed."
-    echo " --dev | --develop     : Set default values for a dev job."
-    echo " --prod | --production : Set default values for a prod job." 
-    echo " --skip-hdfs-load      : Skip the loading of the data into hdfs."
-    echo " --skip-vertica-load   : Skip the loading of the data into vertica."
-    echo " --use-aws             : Save data to aws s3."
-    echo " --use-hdfs            : Save data to HDFS (if neither use-aws or use-hdfs is supplied, this is default)."
-    echo " --load-from-aws       : Load data from aws s3 into aws vertica."
-    echo " --load-from-hdfs      : Load data from HDFS into onprem vertica."
-    echo " --force-cutover       : The wh_cutover will only happen if a full run occurs, or this flag is specified."
-    echo " --make_ddl_from_target: Create the temp table from the Target Table DDL (saves projections)"
-    exit 0
+if [ $HELP == "YES" ]; then
+# shellcheck source=./scripts/launch_squark_job/launch_squark_job_help.sh
+source "${LAUNCH_SQUARK_DIR}/launch_squark_job_help.sh"
 fi
 
-if [ -z ${JOB_FILE_NAME+x} ]; then
-    echo "ERROR! : NO JOB NAME WAS FOUND! PLEASE SUPPLY A JOB NAME WITH THE COMMAND."
-    echo " -- The job name will be the name of the bash file in the jobs directory in squark-classic."
-    echo "Quitting..."
-    exit 1
-fi
-
-cd squark-classic
-source jobs/${JOB_FILE_NAME}.sh
-
-if [[ ( -z $LOAD_FROM_HDFS && -z $LOAD_FROM_AWS ) ]]; then
-    LOAD_FROM_HDFS=1
-fi
-
-
-# Set the vertica options based on run type:
-if [[ ( -z $CUSTOM_VERT_CONN_ID && $USE_AWS ) ]]; then
-    # If we are using aws and no custom vertica id has been set
-    if [ $SQUARK_TYPE == "squark-dev" ]; then
-        # Set aws vertica dev properties.
-        VERTICA_CONNECTION_ID="vertica_aws_nprd"
-    elif [ $SQUARK_TYPE == "squark-qa" ]; then
-        VERTICA_CONNECTION_ID="vertica_aws_nprd_qa"
-    elif [ $SQUARK_TYPE == "squark-prod" ]; then
-        VERTICA_CONNECTION_ID="vertica_aws"
-    fi
-fi
-# Set the vertica options based on run type:
-#if [ $USE_AWS ]; then
-#    # If we are using aws and no custom vertica id has been set
-#    if [ $SQUARK_TYPE == "squark-dev" ]; then
-#        # Set aws vertica dev properties.
-#        S3_CONNECTION_ID="s3_nprd"
-#    elif [ $SQUARK_TYPE == "squark-prod" ]; then
-#        S3_CONNECTION_ID="s3_prd"
-#    fi
-#fi
-
-export VERTICA_CONNECTION_ID=$VERTICA_CONNECTION_ID
-export WAREHOUSE_DIR=$WH_DIR
-export SQUARK_TYPE=$SQUARK_TYPE
-export VERTICA_HOST=$VERTICA_HOST
-export USE_AWS=$USE_AWS
-export USE_HDFS=$USE_HDFS
-export LOAD_FROM_AWS=$LOAD_FROM_AWS
-export CREATE_PROJECTIONS=$CREATE_PROJECTIONS
-export MAKE_DDL_FROM_TARGET=$MAKE_DDL_FROM_TARGET
-export LOAD_FROM_HDFS=$LOAD_FROM_HDFS
-export SQUARK_TEMP=$WAREHOUSE_DIR
-export S3_CONNECTION_ID=$S3_CONNECTION_ID
-export FACING_SCHEMA=$FACING_SCHEMA
-export IS_INCREMENTAL_SCHEMA=$IS_INCREMENTAL_SCHEMA
-if [ -z $SQUARK_WAREHOUSE ]; then
-    export SQUARK_WAREHOUSE=$TMP_SQUARK_WAREHOUSE
-fi
-if [ -z $SQUARK_ARCHIVE ]; then
-    export SQUARK_ARCHIVE=$TMP_SQUARK_ARCHIVE;
-fi
-if [ -z $JENKINS_URL ]; then
-    export JENKINS_URL=https://advana-jenkins.private.massmutual.com
-fi
-
-echo "====================================================="
-echo "RUNNING SQUARK WITH THE FOLLOWING VALUES:"
-echo " -- VERTICA_CONNECTION_ID: $VERTICA_CONNECTION_ID"
-echo " -- VERTICA_HOST: $VERTICA_HOST"
-echo " -- WAREHOUSE_DIR: $WAREHOUSE_DIR"
-echo " -- JOB_FILE_NAME: $JOB_FILE_NAME"
-echo " -- SQUARK_TYPE: $SQUARK_TYPE"
-echo "-------- CUTOVER DIRS INFO ----------"
-echo " -- SQUARK_WAREHOUSE: $SQUARK_WAREHOUSE"
-echo " -- SQUARK_TEMP: $SQUARK_TEMP"
-echo " -- SQUARK_ARCHIVE: $SQUARK_ARCHIVE"
-echo "====================================================="
-
-if [ -z $SKIP_HDFS_LOAD ]; then
-    echo " --- Running Loading data"
-    ./run.sh
+if [ -z ${schema_name+x} ]; then
+    echo "Variable schema_name is not set and so assigning schema_name='$JOB_FILE_NAME'"
+    export schema_name=${JOB_FILE_NAME}
 else
-    echo " --- SKIPPING LOADING DATA INTO HDFS!"
+    echo "schema_name= '${schema_name}'"
+    echo "Jobname = '${JOB_FILE_NAME}'"
 fi
 
-if [ -z $SKIP_VERTICA_LOAD ]; then
-    echo " --- Running Load wh..."
-    ./load_wh.sh ${JOB_FILE_NAME}
 
-    if [[ ($LOAD_FROM_AWS && $CREATE_PROJECTIONS) ]]; then
-        echo " --- Checking for projections to create..."
-        vsql_base="$VERTICA_VSQL -C -h $AWS_VERTICA_HOST -p $AWS_VERTICA_PORT -U $VERTICA_USER -w $AWS_VERTICA_PASSWORD -d $VERTICA_DATABASE -f "
-        projections_out_file="create_projections.out"
-        $vsql_base ./resources/get_projections_to_create.sql -v VERTICA_SCHEMA="'$JOB_FILE_NAME'" -o $projections_out_file -t
-        echo "RETRIEVED FROM admin.squark_vertica_projections, contents of $projections_out_file:"
-        cat $projections_out_file
-        echo "EXECUTE contents of $projections_out_file"
-        $vsql_base ./$projections_out_file
-    fi
+export SKIP_EXPORT=${SKIP_EXPORT:-0}
+export SKIP_LOAD=${SKIP_LOAD:-0}
+export SKIP_SCHEMA=${SKIP_SCHEMA:-0}
+export CREATE_PROJECTIONS=${CREATE_PROJECTIONS:-0}
+export MAKE_DDL_FROM_TARGET=${MAKE_DDL_FROM_TARGET:-0}
+export FACING_SCHEMA=${FACING_SCHEMA:+x}
+export IS_INCREMENTAL_SCHEMA=${IS_INCREMENTAL_SCHEMA:-0}
+export SKIP_SOURCE_ROW_COUNT=${SKIP_SOURCE_ROW_COUNT:-0}
 
+# Check if squark job name is available
+# shellcheck source=./scripts/launch_squark_job/check_job_name_available.sh
+source "${LAUNCH_SQUARK_DIR}/check_job_name_available.sh"
+
+# Check if squark job name is available
+# shellcheck source=./scripts/launch_squark_job/check_job_name_exists.sh
+source "${LAUNCH_SQUARK_DIR}/check_job_name_exists.sh"
+
+# Load variables from job file
+# shellcheck source=.//squark-classic/jobs/${JOB_FILE_NAME}.sh
+source "${WORKSPACE}/squark-classic/jobs/${JOB_FILE_NAME}.sh"
+
+printLineMsg before "Running squark with the following values:"
+echo "--- VERTICA_CONNECTION_ID: ${VERTICA_CONNECTION_ID}"
+echo "--- VERTICA_HOST: ${AWS_VERTICA_HOST}"
+echo "--- JOB_FILE_NAME: ${JOB_FILE_NAME}"
+echo "--- SQUARK_TYPE: ${SQUARK_TYPE}"
+printLine
+
+printLine
+if [ ${SKIP_EXPORT} -eq 0 ]; then
+    echo "--- Exporting data to S3"
+    "${WORKSPACE}"/squark-classic/run.sh
 else
-    echo " --- SKIPPING LOADING DATA INTO VERTICA!"
+    echo "--- Skipping export to S3"
+fi
+printLine
+
+
+printLine
+if [ ${SKIP_LOAD} -eq 0 ]; then
+    echo "--- Loading data to vertica"
+    "${WORKSPACE}"/squark-classic/load_wh.sh ${JOB_FILE_NAME}
+else
+    echo "--- Skipping load to Vertica"
+fi
+printLine
+
+printLine
+if [[ ( ${SKIP_EXPORT} -eq 0 && ${SKIP_SOURCE_ROW_COUNT} -eq 1 ) ]]; then
+    echo "--- Row count Reconcilliation"
+    # shellcheck source=./scripts/launch_squark_job/row_count_reconciliation.sh
+    source "${LAUNCH_SQUARK_DIR}"/row_count_reconciliation.sh ${JOB_FILE_NAME}
+else
+    echo "--- No row count reconciliation"
 fi
 
-# Do the cutover
-# NOTE: Only run if neither skip hdfs or vertica options are given, or the --force-cutover option is given
-echo "Checking values for cutover:"
-echo "SKIP HDFS: $SKIP_HDFS_LOAD"
-echo "SKIP VERTICA: $SKIP_VERTICA_LOAD"
-echo "FORCE CUTOVER: $FORCE_CUTOVER"
-echo "SKIP CUTOVER: $SKIP_CUTOVER"
-if [[ ( -z $SKIP_HDFS_LOAD && -z $SKIP_VERTICA_LOAD && -z $USE_AWS ) || $FORCE_CUTOVER ]]; then
-    if [ -z $SKIP_CUTOVER ]; then
-        echo "Running the CUTOVER script..."
-        $PYTHON_VENV/bin/python wh_dir_cutover.py $JOB_FILE_NAME
-    fi
-fi
-
-# Run only if SKIP_SOURCE_ROW_COUNT. Practically, probably won't be helpful for skip-vertica jobs but can adjust in future.
-echo "Row count reconciliation:"
-echo "SKIP_SOURCE_ROW_COUNT: $SKIP_SOURCE_ROW_COUNT"
-echo "SKIP VERTICA: $SKIP_VERTICA_LOAD"
-if [[ ( -z $SKIP_VERTICA_LOAD && -z $SKIP_SOURCE_ROW_COUNT ) ]]; then
-    if [ $LOAD_FROM_AWS ]; then
-        vsql="$VERTICA_VSQL -C -h $AWS_VERTICA_HOST -p $AWS_VERTICA_PORT -U $VERTICA_USER -w $AWS_VERTICA_PASSWORD -d $VERTICA_DATABASE -f "
-    else
-        vsql="$VERTICA_VSQL -C -h $VERTICA_HOST -U $VERTICA_USER -w $VERTICA_PASSWORD -d $VERTICA_DATABASE -f "
-    fi
-        results_file="row_count_results.out"
-        $vsql ./resources/row_count_reconciliation.sql -v VERTICA_SCHEMA="'$JOB_FILE_NAME'" -o $results_file
-        cat $results_file
-
-        marker_text="<<<<"
-        if grep -q $marker_text $results_file; then
-            attachment=$(cat $results_file | grep $marker_text | tr -d ' ' | awk  'BEGIN { FS="|"; OFS="";} { print "- ",$1,".",$2; }')
-            json=$(cat<<-EOM
-            payload={
-                "channel": "#ingest_alerts",
-                "username": "webhookbot",
-                "text": "JOB COMPLETED: $JOB_NAME, see <$BUILD_URL/consoleFull|jenkins log>",
-                "icon_emoji": ":ingestee:",
-                "attachments": [
-                    {
-                        "fallback": "row count reconciliation issues in this job",
-                        "color": "danger",
-                        "pretext": "*** source vs. Vertica row count reconciliation reported issues in below tables ***",
-                        "title": "click for build $BUILD_NUMBER log",
-                        "title_link": "$BUILD_URL/consoleFull#footer",
-                        "text": "$attachment",
-                        "footer": "LOAD_FROM_AWS: $LOAD_FROM_AWS"
-                    }
-                ]
-            }
-EOM
-)
-            curl -X POST --data-urlencode "$json" https://hooks.slack.com/services/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
-        fi
-fi
+printLineMsg after "Squark Job Done"

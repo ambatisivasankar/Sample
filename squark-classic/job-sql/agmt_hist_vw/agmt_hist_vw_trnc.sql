@@ -1,0 +1,2 @@
+
+TRUNCATE TABLE :schema_name.AGMT_HIST_VW;

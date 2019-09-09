@@ -4,6 +4,8 @@ export VERTICA_HOST="vertica-dev"
 export VERTICA_USER="dbadmin"
 export VERTICA_DATABASE="advana"
 export VERTICA_VSQL="/usr/local/bin/vsql"
+export VERTICA_ROOTCRTPATH=${WORKSPACE}/.vsql/root.crt
+export VERTICA_TRUSTSTOREPATH=${WORKSPACE}/.pki/tls-ca-bundle.jks
 
 # HDFS SETTINGS
 export HDFS_HOST="devlx187"
@@ -12,7 +14,8 @@ export HDFS_USER="jenkins"
 export HADOOP_CONF_DIR=/etc/hadoop/conf
 
 # JARS
-export PY4JDBC_JAR="/hdfs/deploy/jdbc/py4jdbc-assembly-latest.jar"
+export JAR_VERSION='0.1.7.0_211'
+export PY4JDBC_JAR="${WORKSPACE}/squark-classic/py4jdbc-assembly-"${JAR_VERSION}".jar"
 export JARS="${PY4JDBC_JAR}" # comma separated
 
 # SQUARK SETTINGS

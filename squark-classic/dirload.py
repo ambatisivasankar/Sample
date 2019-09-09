@@ -21,6 +21,7 @@ logging.basicConfig(level=logging.DEBUG)
 # vars loaded with os.environ() which raises KeyError
 ENV_VARS_TO_LOAD_AS_IS = [
     # Empty list currently
+    "VERTICA_TRUSTSTOREPATH",
 ]
 
 # vars which are considered to be truthy
@@ -34,8 +35,8 @@ ENV_VARS_TO_LOAD_WITH_DEFAULTS = [
     ("VERTICA_PARALLELISM", 10),  # MAX_CONNS  # Cast to int
     ("PROJECT_ID", None),
     ("SQUARK_TYPE", None),
-    ("LOAD_FROM_AWS", None),
-    ("LOAD_FROM_HDFS", None),  # Logic
+    ("LOAD_FROM_AWS", True),
+    ("LOAD_FROM_HDFS", False),  # Logic
     ("S3_FUSE_LOCATION", "/mnt/s3/"),
     ("TABLE_NUM_RETRY", "1"),  # Cast to int
     ("S3_CONNECTION_ID", None),
@@ -186,7 +187,7 @@ def do_s3_copyfrom(
         table_name=table_name,
     )
     tmpl = "copy %s.%s from %s on any node orc direct;"
-    table_name = table_prefix + table_name
+    table_name = table_prefix + utils.sanitize(table_name)
     sql = tmpl % (schema_name, table_name, table_url)
     # sql = tmpl % (schema_name, table_name, ',\n'.join([os.path.join(S3_FUSE_LOCATION, x) for x in _urls]))
 
@@ -301,7 +302,11 @@ def main():
     )
 
     squarkenv = squark.config.environment.Environment()
-    vertica_conn = squarkenv.sources[env_vars["VERTICA_CONNECTION_ID"]].conn
+    destination_vertica = squarkenv.sources[env_vars["VERTICA_CONNECTION_ID"]]
+    destination_vertica.url = utils.format_vertica_url(
+        destination_vertica.url, env_vars["VERTICA_TRUSTSTOREPATH"]
+    )
+    vertica_conn = destination_vertica.conn
 
     if env_vars["LOAD_FROM_AWS"] and new_utils.squark_bucket_is_valid(
         env_vars["SQUARK_BUCKET"]

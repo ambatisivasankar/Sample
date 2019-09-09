@@ -17,6 +17,12 @@ export JSON_INFO='
     },
     "PARTITION_INFO":{
         "tables": {
+            "FNL_POL_RULE_REQ": {
+              "partitionColumn": "RULE_REQ_ID % 100",
+              "lowerBound": 0,
+              "upperBound": 100,
+              "numPartitions": 100
+            },
             "NOTIF": {
               "partitionColumn": "NOTIF_ID % 100",
               "lowerBound": 0,

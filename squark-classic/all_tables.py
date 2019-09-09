@@ -1,21 +1,41 @@
 import datetime
-import json
 import os
 import re
 import sys
 import time
 from decimal import Decimal
+from typing import Any, Dict, List, Optional, Tuple, Union
 
+from jinja2 import Template
 from pyspark import SparkContext
 from pyspark.conf import SparkConf
-from pyspark.sql import HiveContext, functions as sql_functions
-from pyspark.sql.types import ArrayType, TimestampType
+from pyspark.sql import Column, DataFrame, HiveContext, SQLContext
+from pyspark.sql import functions as sql_functions
+from pyspark.sql.types import (
+    ArrayType,
+    StructType,
+    TimestampType,
+    StructField,
+    DecimalType,
+    DataType,
+)
 
 import new_utils
 import squark.config.environment
 import squark.exceptions
 import squark.stats
 import utils
+
+VERTICA_MAX_DECIMAL_PRECISION = 37
+
+HANDLED_DB_PREFIXES = (
+    "ase",  # 'ase' = Sybase
+    "db2",
+    "microsoft sql",
+    "oracle",
+    "postgres",
+    "teradata",
+)
 
 
 # Environmental Variables
@@ -25,6 +45,7 @@ ENV_VARS_TO_LOAD_AS_IS = [
     "SQUARK_TYPE",
     "WAREHOUSE_DIR",
     "SQL_TEMPLATE",
+    "VERTICA_TRUSTSTOREPATH",
 ]
 
 ENV_VARS_TO_LOAD_AS_BOOL = [
@@ -55,8 +76,8 @@ ENV_VARS_TO_LOAD_WITH_DEFAULTS = [
     ("SQUARK_NUM_RETRY", "1"),  # special case, should cast to int after load
     ("DATACATALOG_TOKEN", None),
     ("DATACATALOG_DOMAIN", None),
-    ("USE_HDFS", None),  # TODO: Could this be a load_as_bool?
-    ("USE_AWS", None),  # TODO: Could this be a load_as_bool?
+    ("USE_HDFS", False),
+    ("USE_AWS", True),
     ("S3_CONNECTION_ID", None),
     ("SQUARK_BUCKET", None),
     ("CONVERT_ARRAYS_TO_STRING", None),
@@ -82,7 +103,7 @@ VALID_TABLE_TYPES = [TABLE_TYPE_TABLE, TABLE_TYPE_VIEW]
 def print_env_vars(env_vars, source_jdbc, destination_vertica, jdbc_schema):
     print("CONNECTION_ID:", env_vars["CONNECTION_ID"])
     print("JDBC_USER:", source_jdbc.user)
-    print("JDBC_URL:", source_jdbc.url)
+    print("JDBC_URL:", source_jdbc.url.split(";")[0])
     print("JDBC_SCHEMA:", jdbc_schema)
     print("CONNECTION_TYPE:", source_jdbc.type)
 
@@ -97,263 +118,688 @@ def print_env_vars(env_vars, source_jdbc, destination_vertica, jdbc_schema):
     return None
 
 
-def add_md5_column(df, wide_columns_md5):
-    # 20171213, AR-268 large number of columns leading to StackOverflow error in AWS/EMR environment
-    #   before using on a given table want to confirm limiting to first 400 columns will still result in unique MD5
+def add_md5_column(df: DataFrame, wide_columns_md5: bool = False) -> DataFrame:
+    """Add a MD5 checksum column to DataFrame.
+
+    2017.12.13 AR-268
+    Very wide set of columns leading to StackOverflow error in AWS/EMR environment.
+    Limiting MD5 to first 400 columns removes the error.
+
+    Before using wide_columns_md5=True on a given table confirm that limiting
+     to first 400 columns will still result in a unique MD5.
+
+    :param df: DataFrame to add Checksum column to
+    :param wide_columns_md5: If true, only concat the first 400 columns.
+    :return: DataFrame
+    """
     if wide_columns_md5:
-        return df.withColumn(
-            "_advana_md5",
-            sql_functions.md5(sql_functions.concat_ws("!@#$", *df.columns[:400])),
-        )
+        cutoff = 400
+        df = df.withColumn("_advana_md5", _get_checksum_column_for_df(df, cutoff))
     else:
-        return df.withColumn(
-            "_advana_md5",
-            sql_functions.md5(sql_functions.concat_ws("!@#$", *df.columns)),
-        )
-
-
-def add_auto_incr_column(df):
-    # return df.withColumn('_advana_id', F.monotonicallyIncreasingId())
-    return df.withColumn("_advana_id", sql_functions.monotonically_increasing_id())
-
-
-def add_load_datetime(df):
-    return df.withColumn(
-        "_advana_load_date", sql_functions.lit(datetime.datetime.now())
-    )
-
-
-def sanitize_columns(df):
-    def sanitize(name):
-        return re.sub(r"\W+", "_", name)
-
-    for col in df.schema.names:
-        df = df.withColumnRenamed(col, sanitize(col))
+        df = df.withColumn("_advana_md5", _get_checksum_column_for_df(df))
     return df
 
 
-def convert_array_to_string(df):
-    sch = df.schema
-    cols = [a.name for a in sch.fields if isinstance(a.dataType, ArrayType)]
-    for col in cols:
-        df = df.withColumn(col, df[col].cast("string"))
+def _concatenate_dataframe_columns(
+    df: DataFrame, cutoff: Optional[int] = None, separator: str = "!@#$"
+) -> Column:
+    """Concatenate Dataframe columns using separator.
+
+    :param df: DataFrame to use
+    :param cutoff: If not None, will only concat columns up to this index
+    :param separator: Separator to use when concating
+    :return: Column of concatted columns
+    """
+    column = sql_functions.concat_ws(separator, *df.columns[:cutoff])
+    return column
+
+
+def _hash_column_with_md5(col: Column) -> Column:
+    """Get MD5 hash for a column.
+
+    :param col: Column to hash
+    :return: Hashed column
+    """
+    column = sql_functions.md5(col)
+    return column
+
+
+def _get_checksum_column_for_df(df: DataFrame, cutoff: Optional[int] = None) -> Column:
+    """Get a checksum column for DataFrame.
+
+    :param: df DataFrame to get checksum for
+    :return: Column
+    """
+    concatenated_column = _concatenate_dataframe_columns(df, cutoff)
+    hashed_column = _hash_column_with_md5(concatenated_column)
+    return hashed_column
+
+
+def add_auto_incr_column(df: DataFrame) -> DataFrame:
+    """Add a monotonically increasing ID column to DataFrame.
+
+    :param df: DataFrame to add ID column to
+    :return: DataFrame
+    """
+    return df.withColumn("_advana_id", _monotonically_increasing_id_column())
+
+
+def _monotonically_increasing_id_column() -> Column:
+    """Get monotonically increasing ID column.
+
+    :return: ID Column
+    """
+    return sql_functions.monotonically_increasing_id()
+
+
+def add_load_datetime(df: DataFrame) -> DataFrame:
+    """Add a datetime column to DataFrame.
+
+    :param df: DataFrame to add datetime column to
+    :return: DataFrame with datetime column
+    """
+    return df.withColumn("_advana_load_date", _column_of_current_datetime())
+
+
+def _column_of_current_datetime() -> Column:
+    """Get column containing current datetime.
+
+    :return: Column
+    """
+    return sql_functions.lit(datetime.datetime.now())
+
+
+def sanitize_columns(df: DataFrame) -> DataFrame:
+    """Sanitize column names.
+
+    :param df: DataFrame with columns to sanitize
+    :return: DataFrame
+    """
+    for column_name in df.schema.names:
+        df = df.withColumnRenamed(column_name, _sanitize(column_name))
     return df
 
 
-def convert_timestamp_values_to_america_new_york(df):
-    sch = df.schema
-    cols = [a.name for a in sch.fields if isinstance(a.dataType, TimestampType)]
-    for col in cols:
+def _sanitize(word: str) -> str:
+    """Replace non-alphanumerics in word with underscore.
+
+    :param word: string to sanitize
+    """
+    return re.sub(r"\W+", "_", word)
+
+
+def convert_array_to_string(df: DataFrame) -> DataFrame:
+    """Convert array-type columns in DataFrame to string type.
+
+    Casts all values to string and concats together.
+
+    :param df: DataFrame with columns to convert
+    :return: DataFrame
+    """
+    cols = _get_array_type_column_names(df)
+    df = _cast_columns_to_string(df, cols)
+    return df
+
+
+def _get_array_type_column_names(df: DataFrame) -> List[str]:
+    """Get column names for columns that are type array.
+
+    :param df: DataFrame to check
+    :return: List of column names
+    """
+    return _get_columns_from_dataframe_schema_of_datatype(df.schema, ArrayType)
+
+
+def _cast_columns_to_string(df: DataFrame, columns: List[str]) -> DataFrame:
+    """Cast columns to string-type in DataFrame.
+
+    :param df: DataFrame with columns to cast.
+    :param columns: Names of columns to cast.
+    :return: DataFrame with cast columns
+    """
+    for col in columns:
+        df = df.withColumn(col, _cast_dataframe_column_to_type(df[col], "string"))
+    return df
+
+
+def _cast_dataframe_column_to_type(col: Column, column_type: str) -> Column:
+    """Cast DataFrame column to column_type (string, decimal, etc).
+
+    :param col: Column to cast
+    :param column_type: String representation of type to cast to.
+    :return: Cast Column
+    """
+    return col.cast(column_type)
+
+
+def convert_timestamp_values_to_america_new_york(df: DataFrame) -> DataFrame:
+    """Get DataFrame with timestamp columns converted  to UTC NY timestamp.
+
+    :param df: DataFrame with columns to convert
+    :return: DataFrame with converted columns
+    """
+    cols = _get_columns_from_dataframe_schema_of_datatype(df.schema, TimestampType)
+    df = _convert_columns_to_utc_new_york(df, cols)
+    return df
+
+
+def _convert_dataframe_timestamp_column_to_utc_tz(col: Column, tz: str) -> Column:
+    """Convert DataFrame timestamp column to UTC timestamp.
+
+    See spark to_utc_timestamp() docs!
+
+    :param col: Column to convert
+    :param tz: String representation of timezome to shift to.
+    :return: Converted Column
+    """
+    return sql_functions.to_utc_timestamp(col, tz)
+
+
+def _convert_dataframe_timestamp_column_to_utc_new_york(col: Column) -> Column:
+    """Convert DataFrame timestamp column to UTC New York timestamp.
+
+    See spark to_utc_timestamp() docs!
+
+    :param col: Column to convert
+    :return: Converted Column
+    """
+    return _convert_dataframe_timestamp_column_to_utc_tz(col, "America/New_York")
+
+
+def _convert_columns_to_utc_new_york(df: DataFrame, columns: List[str]) -> DataFrame:
+    """Convert columns to UTC New York in DataFrame.
+
+    :param df: DataFrame with columns to convert.
+    :param columns: Names of columns to convert.
+    :return: DataFrame with converted columns.
+    """
+    for col in columns:
         df = df.withColumn(
-            col, sql_functions.to_utc_timestamp(df[col], "America/New_York")
+            col, _convert_dataframe_timestamp_column_to_utc_new_york(df[col])
         )
     return df
+
+
+def _get_timestamp_type_column_names(df: DataFrame) -> List[str]:
+    """Get column names for columns that are type TimestampType.
+
+    :param df: DataFrame to check
+    :return: List of column names
+    """
+    return _get_columns_from_dataframe_schema_of_datatype(df.schema, TimestampType)
+
+
+def _get_columns_from_dataframe_schema_of_datatype(
+    schema: StructType, data_type: Any
+) -> List[str]:
+    """Get column names for columns that are type data_type.
+
+    :param schema: Schema to check
+    :param data_type: A valid Spark column-dataType
+    :return: List of column names
+    """
+    return [a.name for a in schema.fields if isinstance(a.dataType, data_type)]
 
 
 def log_source_row_count(
-    sqlctx,
-    table_name,
-    properties,
-    db_product_name,
-    skip_source_row_count,
-    jdbc_schema,
-    jdbc_url,
-):
+    sqlctx: SQLContext,
+    table_name: str,
+    properties: Dict,
+    db_product_name: str,
+    skip_source_row_count: bool,
+    jdbc_schema: str,
+    jdbc_url: str,
+) -> Optional[int]:
+    """Log the row count of table and return it.
+
+    :param sqlctx: The active SQLContext
+    :param table_name: The table to get the count for
+    :param properties:  a dictionary of JDBC database connection arguments.
+    :param db_product_name: The database type name (teradata, oracle, etc)
+    :param skip_source_row_count: Skip count if true.
+    :param jdbc_schema: The schema where the table exists.
+    :param jdbc_url: JDBC URL
+    :return: The row count or None
+    """
     count = None
-    # 'ase' = Sybase
-    handled_db_prefixes = [
-        "teradata",
-        "postgres",
-        "microsoft sql",
-        "ase",
-        "oracle",
-        "db2",
-    ]
-    db_product_name_lower = db_product_name.lower()
-    if (
-        any(db_product_name_lower.startswith(db) for db in handled_db_prefixes)
-        and not skip_source_row_count
+    if all(
+        [_database_is_supported_by_squark(db_product_name), not skip_source_row_count]
     ):
-        if db_product_name_lower.startswith("oracle"):
-            sql_query = '(SELECT COUNT(*) as cnt FROM "{table_name}")'.format(
-                table_name=table_name
-            )
-        elif db_product_name_lower.startswith("db2"):
-            sql_query = "(SELECT COUNT(*) as cnt FROM {jdbc_schema}.{table_name}) as query".format(
-                jdbc_schema=jdbc_schema, table_name=table_name
-            )
-        else:
-            # double-quotes were helping with at least one postgres source, db2 doesn't like them
-            sql_query = '(SELECT COUNT(*) as cnt FROM "{table_name}") as query'.format(
-                table_name=table_name
-            )
-        print(
-            "--- Executing source row count query: {sql_query}".format(
-                sql_query=sql_query, flush=True
-            )
+        count = _get_row_count_for_jdbc_table(
+            sqlctx, table_name, properties, db_product_name, jdbc_schema, jdbc_url
         )
-        df = sqlctx.read.jdbc(jdbc_url, sql_query, properties=properties)
-        count = df.first()[0]
-        print("--- SOURCE ROW COUNT: {count}".format(count=count, flush=True))
+        print("--- SOURCE ROW COUNT: " + str(count))
     else:
         print(
-            "--- Skip source row count query, not implemented for: {db_product_name}".format(
-                db_product_name=db_product_name, flush=True
-            )
+            "--- Skip source row count query. "
+            "Not implemented for: " + db_product_name
         )
-
     return count
 
 
-# NOTE: .orc does Julian/Gregorian calendar conversion, Vertica doesn't, 0001-01-01 values become a BC date in Vertica
-#   we are going to concentrate on fixing the main offenders - default min date/timestamps are common in the db
-#   other dates wouldn't necessarily be 2 days off, complicated conversion involved, 0001-01-03 works here
-def post_date_teradata_dates_and_timestamps(df, use_aws):
-    post_date_date = sql_functions.to_date(sql_functions.lit("0001-01-03"), format=None)
-    post_date_timestamp = sql_functions.to_utc_timestamp(
-        sql_functions.lit("0001-01-03 00:00:00"), "GMT+5"
-    )
+def _database_is_supported_by_squark(db_name: str) -> bool:
+    """Determine if database is one of the squark supported types.
 
-    # NOTE: USE_AWS is loaded as an env with a None default
-    #   This may cause unexpected behavior
+    See HANDLED_DB_PREFIXES
+    :param db_name: Database name to check
+    :return: True if supported
+    """
+    return any(db_name.lower().startswith(db) for db in HANDLED_DB_PREFIXES)
+
+
+def _database_name_startswith_prefix(db_name: str, prefix: str) -> bool:
+    """Check if database name starts with prefix.
+
+    :param db_name: Database name to check
+    :return: True if starts with prefix
+    """
+    return db_name.lower().startswith(prefix)
+
+
+def _database_is_oracle(db_name: str) -> bool:
+    """Database is Oracle if db_name starts with oracle.
+
+    :param db_name: Database name to check
+    :return: True if Oracle
+    """
+    return _database_name_startswith_prefix(db_name, "oracle")
+
+
+def _database_is_db2(db_name: str) -> bool:
+    """Database is DB2 if db_name starts with db2.
+
+    :param db_name: Database name to check
+    :return: True if DB2
+    """
+    return _database_name_startswith_prefix(db_name, "db2")
+
+
+def _get_oracle_row_count_sql_query(table_name: str) -> str:
+    """Get row count sql query for Oracle db.
+
+    :param table_name: Name of table to get query for
+    :return: SQL query
+    """
+    raw_template = '(SELECT COUNT(*) as cnt FROM "{{ table_name }}")'
+    template = Template(raw_template)
+    sql_query = template.render(table_name=table_name)
+    return sql_query
+
+
+def _get_db2_row_count_sql_query(jdbc_schema: str, table_name: str) -> str:
+    """Get row count sql query for DB2 db.
+
+    :param jdbc_schema: Name of schema where table exists
+    :param table_name: Name of table to get query for
+    :return: SQL query
+    """
+    raw_template = (
+        "(SELECT COUNT(*) as cnt FROM" " {{ jdbc_schema }}.{{ table_name }}) as query"
+    )
+    template = Template(raw_template)
+    sql_query = template.render(jdbc_schema, table_name=table_name)
+    return sql_query
+
+
+def _get_generic_row_count_sql_query(table_name: str) -> str:
+    """Get row count sql query for generic db.
+
+    Unknown if this works for all DB types.
+
+    :param table_name: Name of table to get query for
+    :return: SQL query
+    """
+    raw_template = '(SELECT COUNT(*) as cnt FROM "{{ table_name }}") as query'
+    template = Template(raw_template)
+    sql_query = template.render(table_name=table_name)
+    return sql_query
+
+
+def _get_row_count_query(
+    db_product_name: str, jdbc_schema: str, table_name: str
+) -> str:
+    if _database_is_oracle(db_product_name):
+        sql_query = _get_oracle_row_count_sql_query(table_name)
+    elif _database_is_db2(db_product_name):
+        sql_query = _get_db2_row_count_sql_query(jdbc_schema, table_name)
+    else:
+        sql_query = _get_generic_row_count_sql_query(table_name)
+    return sql_query
+
+
+def _get_query_results_from_jdbc(
+    sqlctx: SQLContext, jdbc_url: str, sql_query: str, properties: Dict
+) -> DataFrame:
+    """Get results of SQL Query from JDBC.
+
+    :param sqlctx: The active SQLContext
+    :param jdbc_url: JDBC URL
+    :param sql_query: Query to execute in JDBC
+    :param properties: a dictionary of JDBC database connection arguments.
+    :return: DataFrame of query results
+    """
+    df = sqlctx.read.jdbc(jdbc_url, sql_query, properties=properties)
+    return df
+
+
+def _get_row_count_for_jdbc_table(
+    sqlctx: SQLContext,
+    table_name: str,
+    properties: Dict,
+    db_product_name: str,
+    jdbc_schema: str,
+    jdbc_url: str,
+) -> int:
+    """Get the row count of the JDBC table.
+
+    :param sqlctx: The active SQLContext
+    :param table_name: The table to get the count for
+    :param properties:  a dictionary of JDBC database connection arguments.
+    :param db_product_name: The database type name (teradata, oracle, etc)
+    :param jdbc_schema: The schema where the table exists.
+    :param jdbc_url: JDBC URL
+    :return: The row count
+    """
+    sql_query = _get_row_count_query(db_product_name, jdbc_schema, table_name)
+    print("--- Executing source row count query: " + sql_query)
+    df = _get_query_results_from_jdbc(sqlctx, jdbc_url, sql_query, properties)
+    count = df.first()[0]
+    return count
+
+
+def post_date_teradata_dates_and_timestamps(df: DataFrame, use_aws: bool) -> DataFrame:
+    """Post date Teradata date and timestamp fields.
+
+    .orc does Julian/Gregorian calendar conversion, Vertica doesn't.
+    0001-01-01 values become a BC date in Vertica.
+    We are going to concentrate on fixing the main offenders...
+    Default min date/timestamps are common in the db,
+     other dates wouldn't necessarily be 2 days off.
+    Complicated conversion involved, 0001-01-03 works here
+
+    :param df: DataFrame to post date fields
+    :param use_aws: Set to true if running in AWS
+    :return: DataFrame with post dated fields
+    """
     if use_aws:
-        post_date_timestamp = sql_functions.to_utc_timestamp(
-            sql_functions.lit("0001-01-03 05:00:00"), "GMT+5"
+        # Note: We only use AWS so why bother checking?
+        #  also, investigate why there is a 5 hour offset.
+        time_stamp_col = _get_literal_column("0001-01-03 05:00:00")
+    else:
+        time_stamp_col = _get_literal_column("0001-01-03 00:00:00")
+
+    post_date_timestamp = _convert_dataframe_timestamp_column_to_utc_tz(
+        time_stamp_col, "GMT+5"
+    )
+    date_col = _get_literal_column("0001-01-03")
+    post_date_date = _convert_string_column_to_timestamp(date_col)
+
+    for field in df.schema.fields:
+        if _dataframe_field_is_date_field(field):
+            print("--- POST DATE CHECK on : " + field.name)
+            df = _replace_dataframe_column_value_with_other_value(
+                df, field.name, "0001-01-01", post_date_date
+            )
+
+        elif _dataframe_field_is_timestamp_field(field):
+            print("--- POST TIMESTAMP CHECK on : " + field.name)
+            df = _replace_dataframe_column_value_with_other_value(
+                df, field.name, "0001-01-01 00:00:00", post_date_timestamp
+            )
+    return df
+
+
+def _get_literal_column(value: Any) -> Column:
+    """Get column of literal value.
+
+    :param value: Value to populate column with
+    :return: Column of value
+    """
+    return sql_functions.lit(value)
+
+
+def _convert_string_column_to_timestamp(
+    col: Column, fmt: Optional[str] = None
+) -> Column:
+    """Convert column of StringType to column of TimeStampType
+
+    :param col: Column to convert
+    :param fmt: date format (see spark to_date() docs)
+    :return: Converted column
+    """
+    return sql_functions.to_date(col, format=fmt)
+
+
+def _dataframe_field_is_data_type(field: StructField, data_type: str) -> bool:
+    """Determine if field is a data_type.
+
+    :param field: Field to check
+    :return True if data_type
+    """
+    return field.dataType.typeName() == data_type
+
+
+def _dataframe_field_is_date_field(field: StructField) -> bool:
+    """Determine if field is a DateType.
+
+    :param field: Field to check
+    :return True if DateType
+    """
+    return _dataframe_field_is_data_type(field, "date")
+
+
+def _dataframe_field_is_timestamp_field(field: StructField) -> bool:
+    """Determine if field is a TimeStampe.
+
+    :param field: Field to check
+    :return True if DateType
+    """
+    return _dataframe_field_is_data_type(field, "timestamp")
+
+
+def _replace_dataframe_column_value_with_other_value(
+    df: DataFrame, col_name: str, value: Any, other_value: Column
+):
+    """Replace value in column col_name in DataFarme with values in other_value.
+
+    :param df: DataFrame with column
+    :param col_name: Name of column to parse
+    :param value: Value to replace
+    :param other_value: Column of a literal value
+    :return: Column with values replaced
+    """
+    df = df.withColumn(
+        col_name,
+        sql_functions.when(df[col_name] == value, other_value).otherwise(df[col_name]),
+    )
+    return df
+
+
+def conform_any_extreme_decimals(
+    df: DataFrame, skip_min_max_on_cast: bool
+) -> DataFrame:
+    """Conform extreme decimals for Vetica requirements.
+
+    :param df: DataFrame with values to conform
+    :param skip_min_max_on_cast: Skip min/max during cast, or not
+    :return: conformed DataFrame
+    """
+    for field in df.schema.fields:
+        data_type = field.dataType
+        if not isinstance(data_type, DecimalType):
+            continue
+        else:
+            df = _conform_extreme_decimal_in_dataframe_column(
+                df, field.name, data_type, skip_min_max_on_cast
+            )
+    return df
+
+
+def _conform_extreme_decimal_in_dataframe_column(
+    df: DataFrame, col_name: str, data_type: DecimalType, skip_min_max_on_cast: bool
+):
+    """Conform exteme decimals in col_name
+
+    :param df:  DataFrame with values to conform
+    :param col_name: Name of column to conform
+    :param data_type: DecimalType of column
+    :param skip_min_max_on_cast: Skip min/max during cast, or not
+    :return: DataFrame with conformed column
+    """
+    if data_type.precision <= VERTICA_MAX_DECIMAL_PRECISION:
+        return df
+    else:
+        print(
+            (
+                "--- PROBLEM DECIMAL for {name}, precision > {_max}, "
+                "check values before cast"
+            ).format(name=col_name, _max=VERTICA_MAX_DECIMAL_PRECISION)
         )
 
-    for field in df.schema.fields:
-        if field.dataType.typeName().lower() == "date":
-            print(
-                "------- POST DATE CHECK on : {field_name}".format(
-                    field_name=field.name
-                ),
-                flush=True,
-            )
+        scale_def = _get_decimal_scale_def(data_type.scale)
 
-            df = df.withColumn(
-                field.name,
-                sql_functions.when(
-                    df[field.name] == "0001-01-01", post_date_date
-                ).otherwise(df[field.name]),
-            )
-        elif field.dataType.typeName().lower() == "timestamp":
-            print(
-                "------- POST TIMESTAMP CHECK on : {field_name}".format(
-                    field_name=field.name
-                ),
-                flush=True,
-            )
+        if skip_min_max_on_cast:
+            print("--- SKIP_MIN_MAX_ON_CAST is set. No min/max query will be done.")
+        else:
+            scale_def = _get_new_scale_def_for_field(df, col_name, data_type, scale_def)
 
-            df = df.withColumn(
-                field.name,
-                sql_functions.when(
-                    df[field.name] == "0001-01-01 00:00:00", post_date_timestamp
-                ).otherwise(df[field.name]),
-            )
+        decimal_def = "Decimal({vertica_max_precision},{scale_def})".format(
+            vertica_max_precision=VERTICA_MAX_DECIMAL_PRECISION, scale_def=scale_def
+        )
+
+        print(
+            "--- Column will be cast to: {decimal_def}".format(decimal_def=decimal_def)
+        )
+        new_column = _cast_dataframe_column_to_type(df[col_name], decimal_def)
+        df = df.withColumn(col_name, new_column)
     return df
 
 
-def conform_any_extreme_decimals(df, skip_min_max_on_cast):
-    for field in df.schema.fields:
+def _get_decimal_scale_def(scale: int) -> int:
+    """Get the scale def.
 
-        # NOTE: This should probaly be set as a default argument or set as a global constant
-        vertica_max_precision = 37
-        if (
-            field.dataType.typeName().lower() == "decimal"
-            and field.dataType.precision > vertica_max_precision
-        ):
-            # value will mangle in Vertica if precision > 37, even if target ddl has correct precision
+    From the Spark Docs:
+    The DecimalType must have fixed precision (the maximum total number of digits)
+    and scale (the number of digits on the right of dot). For example, (5, 2) can
+    support the value from [-999.99 to 999.99].
+
+    The precision can be up to 38, the scale must be less or equal to precision.
+
+    :param scale: Decimal scale value.
+    :return: Source scale or max_precision
+    """
+    scale_def = (
+        scale
+        if scale <= VERTICA_MAX_DECIMAL_PRECISION
+        else VERTICA_MAX_DECIMAL_PRECISION
+    )
+    return scale_def
+
+
+def _get_min_max_for_column_in_df(df: DataFrame, col_name: str) -> Tuple[Any, Any]:
+    """Get the min and max value for column in DataFrmae.
+
+    :param df: DataFrame with column to check
+    :param col_name: Column to check
+    :return: Tuple of min, max
+    """
+    df = df.select(
+        [
+            sql_functions.max(col_name).alias("max_val"),
+            sql_functions.min(col_name).alias("min_val"),
+        ]
+    )
+    row = df.first()
+    min_val = row["min_val"]
+    max_val = row["max_val"]
+
+    return min_val, max_val
+
+
+def _raise_if_value_out_of_range(col_name: str, min_val: float, max_val: float) -> None:
+    """Raise OverflowError is value out of range for Vertica.
+
+    :param col_name: Column name, for message.
+    :param min_val: Min value in column
+    :param max_val: Max value in column
+    :return: None
+    :raise ValueError: if value of of range
+    """
+
+    # 99999999999999999999999999999999999999
+    too_big_num = int("9" * VERTICA_MAX_DECIMAL_PRECISION)
+    if abs(min_val) > too_big_num or abs(max_val) > too_big_num:
+        msg = (
+            "Precision of actual numeric data in {name} "
+            "larger than Vertica will handle ({_max}).\n"
+            "Reported minimum value: {min_val}. "
+            "Reported maximum value: {max_val}."
+        ).format(
+            name=col_name,
+            _max=VERTICA_MAX_DECIMAL_PRECISION,
+            min_val=min_val,
+            max_val=max_val,
+        )
+        raise OverflowError(msg)
+    return None
+
+
+def _get_max_value_at_new_precision(scale: int) -> Union[Decimal, int]:
+    """Get max column value at the new colume precision, determined via scale.
+
+    If incoming ddl like (38,8), need to make sure there are no numbers
+     with 30 digits in integral part, else will be forcing value into (37,8),
+     leaving only room for 9 integral digits, Spark sets value=None.
+
+    :param scale: Current scale
+    :return: Decimal or int version of the max value for the new preciesion
+    """
+
+    spread = VERTICA_MAX_DECIMAL_PRECISION - scale
+    if spread <= 0:
+        return Decimal("0." + ("9" * VERTICA_MAX_DECIMAL_PRECISION))
+    else:
+        return int("9" * spread)
+
+
+def _get_new_scale_def_for_field(
+    df: DataFrame, col_name: str, data_type: DecimalType, scale_def
+) -> int:
+    """
+
+    :param df: DataFrame with column to get new scale def
+    :param col_name: Name of columnto get new scale def for
+    :param data_type: DataType for column
+    :param scale_def: Current scale def
+    :return:
+    """
+    min_val, max_val = _get_min_max_for_column_in_df(df, col_name)  # type: float, float
+
+    print("--- Reported minimum value: {min_val}".format(min_val=min_val))
+    print("--- Reported maximum value: {max_val}".format(max_val=max_val))
+
+    # only going to get min_val = Null if all rows are null
+    if min_val is None:
+        return scale_def
+
+    else:
+        _raise_if_value_out_of_range(col_name, min_val, max_val)
+        max_at_new_precision = _get_max_value_at_new_precision(data_type.scale)
+
+        if abs(min_val) > max_at_new_precision or abs(max_val) > max_at_new_precision:
             print(
-                "------- PROBLEM DECIMAL for {field_name}, precision > {vertica_max_precision}, check values before cast".format(
-                    field_name=field.name, vertica_max_precision=vertica_max_precision
-                ),
-                flush=True,
+                (
+                    "--- Max number ({max_at_new_precision}) at new "
+                    "precision < data min/max value"
+                ).format(max_at_new_precision=max_at_new_precision)
             )
-            # set cast scale to that of source unless it was 38, in which case set to 37
-            scale_def = (
-                field.dataType.scale
-                if field.dataType.scale <= vertica_max_precision
-                else vertica_max_precision
-            )
-
-            # NOTE: SKIP_MIN_MAX_ON_CAST is loaded as an env with a None default
-            #   This may cause unexpected behavior
-            if skip_min_max_on_cast:
-                print(
-                    "------- SKIP_MIN_MAX_ON_CAST is set, no the min/max query will be done",
-                    flush=True,
-                )
-            else:
-                df_min_max = df.select(
-                    [
-                        sql_functions.max(field.name).alias("max_val"),
-                        sql_functions.min(field.name).alias("min_val"),
-                    ]
-                )
-                row = df_min_max.first()
-                min_val = row["min_val"]
-                max_val = row["max_val"]
-                print(
-                    "------- Reported minimum value: {min_val}\n------- Reported maximum value: {max_val}".format(
-                        min_val=min_val, max_val=max_val
-                    ),
-                    flush=True,
-                )
-
-                # only going to get min_val = Null if all rows are null
-                if min_val is not None:
-                    too_big_num = int("9" * vertica_max_precision)
-                    if abs(min_val) > too_big_num or abs(max_val) > too_big_num:
-                        msg = "Precision of actual numeric data in {} larger than Vertica will handle ({})\n".format(
-                            field.name, vertica_max_precision
-                        )
-                        msg += "Reported minimum value: {min_val}\nReported maximum value: {max_val}".format(
-                            min_val=min_val, max_val=max_val
-                        )
-                        raise OverflowError(msg)
-
-                    # if incoming ddl like (38,8), need to make sure there are no numbers with 30 digits in integral
-                    # part else will be forcing value into (37,8),
-                    # leaving only room for 9 integral digits, Spark sets value=None
-                    spread = vertica_max_precision - field.dataType.scale
-                    if spread <= 0:
-                        max_at_new_precision = Decimal(
-                            "0.{}".format("9" * vertica_max_precision)
-                        )
-                    else:
-                        max_at_new_precision = int("9" * spread)
-
-                    if (
-                        abs(min_val) > max_at_new_precision
-                        or abs(max_val) > max_at_new_precision
-                    ):
-                        print(
-                            "------- max number ({max_at_new_precision}) at new precision < data min/max value".format(
-                                max_at_new_precision=max_at_new_precision
-                            ),
-                            flush=True,
-                        )
-                        print(
-                            "------- decrease scale from {scale_def} to {scale_def_minus_one}".format(
-                                scale_def=scale_def, scale_def_minus_one=scale_def - 1
-                            ),
-                            flush=True,
-                        )
-                        scale_def -= 1
-
-            decimal_def = "Decimal({vertica_max_precision},{scale_def})".format(
-                vertica_max_precision=vertica_max_precision, scale_def=scale_def
-            )
-
             print(
-                "------- column will be cast to: {decimal_def}".format(
-                    decimal_def=decimal_def
-                ),
-                flush=True,
+                (
+                    "--- Decreasing scale from {scale_def} " "to {scale_def_minus_one}"
+                ).format(scale_def=scale_def, scale_def_minus_one=scale_def - 1)
             )
-            df = df.withColumn(field.name, df[field.name].cast(decimal_def))
-
-    return df
+            scale_def -= 1
+        return scale_def
 
 
 def save_table(
@@ -365,6 +811,9 @@ def save_table(
     jdbc_schema,
     destination_vertica,
     squarkenv,
+    sql_query: Optional[str] = None,
+    partition_info: Optional[Dict] = None,
+    incremental_info: Optional[Dict] = None,
 ):
 
     dbtable = env_vars["SQL_TEMPLATE"] % table_name
@@ -419,61 +868,45 @@ def save_table(
         }
         squark_metadata[SMD_SOURCE_ROW_COUNTS][table_name] = row_count_info
 
-    tables_with_subqueries, tables_with_partition_info = {}, {}
-    json_info = env_vars["JSON_INFO"]
-    if json_info:
-        parsed_json = json.loads(json_info.replace("'", '"').replace('"""', "'"))
-        if "SAVE_TABLE_SQL_SUBQUERY" in parsed_json.keys():
-            tables_with_subqueries = parsed_json["SAVE_TABLE_SQL_SUBQUERY"][
-                "table_queries"
-            ]
-            print(
-                "TABLES_WITH_SUBQUERIES: {tables_with_subqueries!r}".format(
-                    tables_with_subqueries=tables_with_subqueries
-                )
-            )
-        if "PARTITION_INFO" in parsed_json.keys():
-            tables_with_partition_info = parsed_json["PARTITION_INFO"]["tables"]
-            print(
-                "TABLES_WITH_PARTITION_INFO: {tables_with_partition_info!r}".format(
-                    tables_with_partition_info=tables_with_partition_info
-                )
-            )
-
-    table_name_lower = table_name.lower()
-    if tables_with_subqueries and table_name_lower in [
-        table.lower() for table in tables_with_subqueries.keys()
-    ]:
-        table_queries_lower = {k.lower(): v for k, v in tables_with_subqueries.items()}
-        sql_query = table_queries_lower[table_name_lower]
-
-        # NOTE: syntax on JDBC subquery differs among source db systems, e.g. Oracle doesn't take an alias on subquery
-        print(
-            "--- Executing subquery: {sql_query!r}".format(sql_query=sql_query),
-            flush=True,
-        )
+    if sql_query is not None:
         df = sqlctx.read.jdbc(source_jdbc.url, sql_query, properties=properties)
+    
+    elif incremental_info is not None:
+        
+        print("Preparing spark data frame for Table with sql and properties ", incremental_info)
+        if source_jdbc.url.startswith("jdbc:teradata"):
+            mod_url = source_jdbc.url + ",MAYBENULL=ON"
+        else :
+            mod_url = source_jdbc.url
+        print("Modified URL",mod_url)
+        
+        sql_query =incremental_info['sql_query']
 
-    elif tables_with_partition_info and table_name_lower in [
-        table.lower() for table in tables_with_partition_info.keys()
-    ]:
-        table_with_partitions_lower = {
-            k.lower(): v for k, v in tables_with_partition_info.items()
-        }
-
-        partition_info = table_with_partitions_lower[table_name_lower]
-        print(
-            "--- Partition info: {partition_info!r}".format(
-                partition_info=partition_info
-            ),
-            flush=True,
-        )
+        if set(['numPartitions', 'partitionColumn','upperBound','lowerBound']).issubset(incremental_info.keys()):
+            print(" All required Partition keys are defined and proceeding to exeucte ")
+            df = sqlctx.read.format("jdbc").options(
+                url=mod_url,
+                dbtable=sql_query,
+                user=source_jdbc.user,
+                password=source_jdbc.password,
+                partitionColumn = incremental_info['partitionColumn'],
+                lowerBound = incremental_info['lowerBound'],
+                upperBound = incremental_info['upperBound'],
+                numPartitions = incremental_info['numPartitions'],
+                ).load()
+        else :                
+            print("Proceeding to execute the sql query without setting 'numpartitions', 'partitionColumn','upperBound','lowerBound' ")
+            df = sqlctx.read.jdbc(mod_url, sql_query, properties=properties)       
+        
+        print('--- Executing subquery: %r' % (sql_query), flush=True)
+               
+    elif partition_info is not None:
         partition_column = partition_info["partitionColumn"]
         lower_bound = partition_info["lowerBound"]
         upper_bound = partition_info["upperBound"]
         num_partitions = partition_info["numPartitions"]
 
-        is_incremental = new_utils._str_is_truthy(
+        is_incremental = new_utils.str_is_truthy(
             partition_info.get("is_incremental", "").lower()
         )
         if is_incremental:
@@ -543,6 +976,8 @@ def save_table(
                 user=destination_vertica.user, password=destination_vertica.password
             )
             vert_properties["driver"] = "com.vertica.jdbc.Driver"
+
+            # spark sets these in its conf
             df_vertica = sqlctx.read.jdbc(
                 destination_vertica.url, vert_pk_sql_query, properties=vert_properties
             )
@@ -581,6 +1016,12 @@ def save_table(
         else:
             df = sqlctx.read.jdbc(source_jdbc.url, table=dbtable, properties=properties)
 
+    print(
+        "--- DF Schema Definitions for {dbtable!r}".format(
+            dbtable=dbtable
+        )
+    )
+    df_schema_def = df.printSchema()        
     print(
         "--- Sanitizing columns for {dbtable!r}: {df_schema_names!r}".format(
             dbtable=dbtable, df_schema_names=df.schema.names
@@ -635,7 +1076,9 @@ def save_table(
     print("--- Adding date load column for {dbtable!r}".format(dbtable=dbtable))
     df = add_load_datetime(df)
 
-    if env_vars["USE_AWS"] and new_utils.squark_bucket_is_valid(env_vars["SQUARK_BUCKET"]):
+    if env_vars["USE_AWS"] and new_utils.squark_bucket_is_valid(
+        env_vars["SQUARK_BUCKET"]
+    ):
         aws_access_key_id, aws_secret_access_key = new_utils.get_aws_credentials_from_squark(
             squarkenv, env_vars["S3_CONNECTION_ID"]
         )
@@ -742,25 +1185,25 @@ def save_table(
                 )
             )
 
-    if env_vars["USE_HDFS"] or (not env_vars["USE_AWS"] and not env_vars["USE_HDFS"]):
-        s3 = time.time()
-
-        data_dir = os.path.join(env_vars["WAREHOUSE_DIR"], env_vars["PROJECT_ID"])
-        save_path = "{data_dir}/{table_name}".format(
-            data_dir=data_dir, table_name=table_name
-        )
-
-        print("******* SAVING TABLE TO HDFS: {save_path!r}".format(save_path=save_path))
-        opts = dict(codec=env_vars["WRITE_CODEC"])
-        df.write.format(env_vars["WRITE_FORMAT"]).options(**opts).save(
-            save_path, mode=env_vars["WRITE_MODE"]
-        )
-        e3 = time.time()
-        print(
-            " ----- Writing to HDFS took: {time_delta:0.3f} seconds".format(
-                time_delta=e3 - s3
-            )
-        )
+    # if env_vars["USE_HDFS"] or (not env_vars["USE_AWS"] and not env_vars["USE_HDFS"]):
+    #     s3 = time.time()
+    #
+    #     data_dir = os.path.join(env_vars["WAREHOUSE_DIR"], env_vars["PROJECT_ID"])
+    #     save_path = "{data_dir}/{table_name}".format(
+    #         data_dir=data_dir, table_name=table_name
+    #     )
+    #
+    #     print("******* SAVING TABLE TO HDFS: {save_path!r}".format(save_path=save_path))
+    #     opts = dict(codec=env_vars["WRITE_CODEC"])
+    #     df.write.format(env_vars["WRITE_FORMAT"]).options(**opts).save(
+    #         save_path, mode=env_vars["WRITE_MODE"]
+    #     )
+    #     e3 = time.time()
+    #     print(
+    #         " ----- Writing to HDFS took: {time_delta:0.3f} seconds".format(
+    #             time_delta=e3 - s3
+    #         )
+    #     )
 
     # NOTE: 2017.11.14, increase duration limit, re doing an AFTER count, from 60 to 90 seconds
     if source_row_count and row_count_query_duration < 90:
@@ -805,6 +1248,9 @@ def main():
     squarkenv = squark.config.environment.Environment()
     source_jdbc = squarkenv.sources[env_vars["CONNECTION_ID"]]
     destination_vertica = squarkenv.sources[env_vars["VERTICA_CONNECTION_ID"]]
+    destination_vertica.url = utils.format_vertica_url(
+        destination_vertica.url, trust_store_path=env_vars["VERTICA_TRUSTSTOREPATH"]
+    )
     # Jdbc ource tables
     try:
         jdbc_schema = source_jdbc.default_schema
@@ -884,6 +1330,19 @@ def main():
         print("*************** TABLES: {tables!r}".format(tables=list(tables)))
         processed_tables = []
         table_timing = []
+
+        json_info = new_utils.parse_json(env_vars["JSON_INFO"])
+
+        tables_with_subqueries = new_utils.get_tables_with_subqueries_from_json(
+            json_info
+        )
+        tables_with_partition_info = new_utils.get_tables_with_partition_info_from_json(
+            json_info
+        )
+
+
+
+
         for table in tables:
 
             s1 = time.time()
@@ -915,6 +1374,13 @@ def main():
                 )
                 continue
 
+            sql_query = new_utils.get_sql_subquery_for_table(
+                tables_with_subqueries, table[table_name_key]
+            )
+            partition_info = new_utils.get_partition_info_for_table(
+                tables_with_partition_info, table[table_name_key]
+            )
+            incremental_info = new_utils.get_incremental_info_for_table(json_info, table[table_name_key])
             # NOTE: 2018.06.12 apparently INCLUDE_VIEWS never implemented on the pull side, i.e. in this file
             #   w/o any resources to test wider impact need to add yet another special-case for haven
 
@@ -942,6 +1408,9 @@ def main():
                         jdbc_schema,
                         destination_vertica,
                         squarkenv,
+                        sql_query,
+                        partition_info,
+                        incremental_info,
                     )
                 except Exception as exc:
                     print(exc)
@@ -976,6 +1445,9 @@ def main():
                             jdbc_schema,
                             destination_vertica,
                             squarkenv,
+                            sql_query,
+                            partition_info,
+                            incremental_info,
                         )
                         retry_bool = False
                     except squark.exceptions.SaveToS3Error as e:

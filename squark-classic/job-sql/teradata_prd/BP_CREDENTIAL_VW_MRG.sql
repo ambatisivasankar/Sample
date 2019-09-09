@@ -1,0 +1,10 @@
+
+
+
+
+
+DELETE FROM DMD_TEST.BP_CREDENTIAL_VW WHERE (BP_id, prty_id, cred_desc, cred_st_dt) in ( select BP_id, prty_id, cred_desc, cred_st_dt from SQUARK_STAGING.BP_CREDENTIAL_VW );
+
+INSERT INTO DMD_TEST.BP_CREDENTIAL_VW
+SELECT * FROM SQUARK_STAGING.BP_CREDENTIAL_VW ;
+COMMIT;

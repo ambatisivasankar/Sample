@@ -20,7 +20,7 @@ RUN curl -L -o spark.tgz http://d3kbcqa49mib13.cloudfront.net/spark-2.0.0-bin-ha
 RUN curl -o /usr/local/lib/vertica-jdbc-7.2.3-0.jar https://my.vertica.com/client_drivers/7.2.x/7.2.3-0/vertica-jdbc-7.2.3-0.jar
 
 # Install python deps.
-ADD squark/requirements.txt /app/requirements.txt
+ADD ../squark/requirements.txt /app/requirements.txt
 RUN pip3.5 install --upgrade pip \
     && pip3.5 install -r /app/requirements.txt \
     && rm -rf ~/.cache/pip
@@ -56,7 +56,7 @@ ENV VERTICA_PASSWORD=""
 #ENV SQUARK_PYTHON="/usr/local/src/squark-advana/virt/bin/python3"
 WORKDIR /usr/local/src/squark-advana
 ADD ./squark-classic/hadoop_confs/etc/hadoop /etc/hadoop
-ADD . /usr/local/src/squark-advana
+ADD .. /usr/local/src/squark-advana
 
 RUN rm /usr/bin/python
 RUN ln -s /usr/bin/python2.7 /usr/bin/python

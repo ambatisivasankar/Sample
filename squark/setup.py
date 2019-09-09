@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 from setuptools import setup, find_packages
 
-requirements = ["dirigible==0.2.7", "py4jdbc==0.1.6.8"]
+requirements = ["dirigible==0.2.7", "py4jdbc==0.1.7.0"]
 
 long_description = ''
 

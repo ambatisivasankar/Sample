@@ -1,0 +1,3 @@
+ 
+
+ TRUNCATE TABLE squark_staging.AGMT_PAC_DATA_VW;

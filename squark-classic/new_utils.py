@@ -1,7 +1,11 @@
 import os
+import json
+
+from typing import Dict
+from typing import Optional
 
 
-def _str_is_truthy(string, truthy_vals=("1", "true", "yes")) -> bool:
+def str_is_truthy(string, truthy_vals=("1", "true", "yes")) -> bool:
     """
     Checks if a string equates to true
     :param string:
@@ -36,7 +40,7 @@ def _load_env_vars_as_bool(vars_to_load, truthy_vals=("1", "true", "yes")):
     """
 
     env_vars = {
-        key: _str_is_truthy(os.environ.get(key), truthy_vals) for key in vars_to_load
+        key: str_is_truthy(os.environ.get(key), truthy_vals) for key in vars_to_load
     }
 
     return env_vars
@@ -145,3 +149,167 @@ def get_aws_credentials_from_squark(squark_env, s3_connection_id):
     aws_secret_access_key = destination_aws.cfg["secret_access_key"]
 
     return aws_access_key_id, aws_secret_access_key
+
+
+def parse_json(json_string: str) -> Optional[Dict]:
+    """Fix the quotes in json string and return as dict.
+
+    :param json_string: JSON_INFO from a job file
+    :return Dict of JSON_INFO
+    """
+    if json_string is None:
+        return None
+    else:
+        return json.loads(json_string.replace("'", '"').replace('"""', "'"))
+
+
+def get_tables_with_subqueries_from_json(info: Optional[Dict]) -> Optional[Dict]:
+    """Get the 'tables_with_subqueries' dict from the json_info dict.
+
+    :param info: JSON_INFO dict
+    :return: Dict[table_names, subqueries], or None
+    """
+    if info is None:
+        return None
+    try:
+        subqueries = info["SAVE_TABLE_SQL_SUBQUERY"]["table_queries"]
+    except KeyError:
+        print("--- No SAVE_TABLE_SQL_SUBQUERY::table_queries")
+        return None
+    else:
+        print("--- Tables with subqueries: {tables}".format(tables=subqueries))
+        return subqueries
+
+
+def get_incremental_info_for_table(info: Optional[Dict], table_name: str) -> Optional[Dict]:
+    """Get the 'incremetnal_info' dict from the json_info dict.
+
+    :param info: JSON_INFO dict
+    :param table_name: table name to get.
+    :return: Dict[table_names, subqueries], or None
+    """
+    if info is None:
+        return None
+    try:
+        incremental_info = info["SAVE_TABLE_SQL_SUBQUERY"][table_name]
+    except KeyError:
+        print("--- No SAVE_TABLE_SQL_SUBQUERY::{table_name}".format(table_name=table_name))
+        return None
+    else:
+        print("--- Incremental info: {incremental_info}".format(incremental_info=incremental_info))
+        return incremental_info
+
+
+def get_tables_with_partition_info_from_json(info: Optional[Dict]) -> Optional[Dict]:
+    """Get the 'tables_with_partition_info' dict from the json_info dict.
+
+    :param info: JSON_INFO dict
+    :return: Dict[table_names, partitioninfo], or None
+    """
+    if info is None:
+        return None
+    try:
+        partitions = info["PARTITION_INFO"]["tables"]
+    except KeyError:
+        print("--- No PARTITION_INFO::tables")
+        return None
+    else:
+        print("--- Tables with partition info: {tables}".format(tables=partitions))
+        return partitions
+
+
+def get_tables_with_super_projection_settings_from_json(
+    info: Optional[Dict]
+) -> Optional[Dict]:
+    """Get the 'tables_with_super_projection_settings' dict from the json_info dict.
+
+    :param info: JSON_INFO dict
+    :return: Dict[table_names, supersinfo], or None
+    """
+    if info is None:
+        return None
+    try:
+        supers = info["SUPER_PROJECTION_SETTINGS"]["tables"]
+    except KeyError:
+        print("--- No SUPER_PROJECTION_SETTINGS::tables")
+        return None
+    else:
+        print(
+            "--- Tables with super projection settings: {tables}".format(tables=supers)
+        )
+        return supers
+
+
+def get_sql_subquery_for_table(info: Optional[Dict], table_name: str) -> Optional[str]:
+    """Get the SQL subqueriy for a table.
+
+    :param info: `tables_with_subqueries` dict
+    :param table_name: name of table
+    :return: subquery
+    """
+    if info is None:
+        return None
+    try:
+        sql_query = info[table_name]
+    except KeyError:
+        print("--- No subquery for table '{name}'".format(name=table_name))
+        return None
+    else:
+        print(
+            "--- Subquery for table '{name}' = {sql}".format(
+                name=table_name, sql=sql_query
+            )
+        )
+        return sql_query
+
+
+def get_partition_info_for_table(
+    info: Optional[Dict], table_name: str
+) -> Optional[Dict]:
+    """Get partition info dict for table.
+
+    :param info: 'tables_with_partition_info' dict
+    :param table_name: name of table
+    :return: partition info dict
+    """
+    if info is None:
+        return None
+    try:
+        partition_info = info[table_name]
+    except KeyError:
+        print("--- No partition info for table '{name}'".format(name=table_name))
+        return None
+    else:
+        print(
+            "--- Partition info for table '{name}' = {info}".format(
+                name=table_name, info=partition_info
+            )
+        )
+        return partition_info
+
+
+def get_super_projection_settings_for_table(
+    info: Optional[Dict], table_name: str
+) -> Optional[Dict]:
+    """Get partition info dict for table.
+
+    :param info: 'tables_with_super_projection_settings' dict
+    :param table_name: name of table
+    :return: super_projection info dict
+    """
+    if info is None:
+        return None
+    try:
+        super_projection = info[table_name]
+    except KeyError:
+        print(
+            "--- No super projection settings fortable '{name}'".format(name=table_name)
+        )
+        return None
+    else:
+        print(
+            "--- Super projection settings for table '{name}' = {info}".format(
+                name=table_name, info=super_projection
+            )
+        )
+        return super_projection

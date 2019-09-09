@@ -36,6 +36,23 @@ $ git pull
 $ git checkout -b job/INGEST-12345
 ```
 
+#### Branch Naming Warning!
+Warning: Be careful with branch names! 
+Making a branch named `something/something_else` will create file named `something_else` in a directory named `something`, inside the `.git/refs/` directory. 
+This is fine. However, If _after_ that branch you then try to create a new branch named `something`, then there will be an error because git will try to create a file where a directotry with the same name already exists.
+
+Vice versa is also true! 
+Making a branch named `another_thing` will create file named `another_thing` inside the `.git/refs/` directory. 
+This is fine. However, If _after_ that branch you then try to create a new branch named `another_thing/a_related_thing`, then there will be an error because git will try to create a directory where a fine with the same name already exists.
+
+This may actually "work" in that you can create these branches, but cloning the repo could then cause an error.
+If this happens you can fix the error using `git remote prune origin` and `git push --delete origin <bad_branch>`.
+
+See here for more info [a-caution-about-git-branch-names-with-s](https://coderwall.com/p/qkofma/a-caution-about-git-branch-names-with-s) 
+
+The moral of the story is that you _can_ have nested directories _if_ you plan it out ahead of time. 
+
+
 ## Commits
 Use a good commit message.
  - Messages that begin with the ticket number will appear in Jira (optional)

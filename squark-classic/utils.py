@@ -4,7 +4,8 @@ All the utility functions needed by squark
 """
 
 import config
-import os
+import re
+
 
 def check_and_commit(vertica_conn):
     if not vertica_conn.autocommit:
@@ -320,3 +321,60 @@ def populate_connection_metadata(md):
         print(exc)
 
     return conn_md
+
+
+# fmt: off
+RESERVED = (
+    'ALL', 'ANALYSE', 'ANALYZE', 'AND', 'ANY', 'ARRAY', 'AS', 'ASC',
+    'BINARY', 'BOTH', 'CASE', 'CAST', 'CHECK', 'COLUMN', 'CONSTRAINT',
+    'CORRELATION', 'CREATE', 'CURRENT_DATABASE', 'CURRENT_DATE', 'CURRENT_SCHEMA',
+    'CURRENT_TIME', 'CURRENT_TIMESTAMP', 'CURRENT_USER', 'DEFAULT', 'DEFERRABLE',
+    'DESC', 'DISTINCT', 'DO', 'ELSE', 'ENCODED', 'END', 'EXCEPT', 'FALSE', 'FLEX',
+    'FLEXIBLE', 'FOR', 'FOREIGN', 'FROM', 'GRANT', 'GROUP', 'GROUPED', 'HAVING',
+    'IN', 'INITIALLY', 'INTERSECT', 'INTERVAL', 'INTERVALYM', 'INTO', 'JOIN',
+    'KSAFE', 'LEADING', 'LIMIT', 'LOCALTIME', 'LOCALTIMESTAMP', 'MATCH', 'NEW',
+    'NOT', 'NULL', 'NULLSEQUAL', 'OFF', 'OFFSET', 'OLD', 'ON', 'ONLY', 'OR',
+    'ORDER', 'PINNED', 'PLACING', 'PRIMARY', 'PROJECTION', 'REFERENCES', 'SCHEMA',
+    'SEGMENTED', 'SELECT', 'SESSION_USER', 'SOME', 'SYSDATE', 'TABLE', 'THEN',
+    'TIMESERIES', 'TO', 'TRAILING', 'TRUE', 'UNBOUNDED', 'UNION', 'UNIQUE',
+    'UNSEGMENTED', 'USER', 'USING', 'WHEN', 'WHERE', 'WINDOW', 'WITH', 'WITHIN'
+)
+# fmt: on
+
+
+def sanitize(name, reserved=RESERVED):
+    """
+    Sanitize strings.
+    If `name` is in reserved then add "x_" to the start.
+    If bad characters exist in `name` replace with "_".
+    Bad characters include... "^" for example
+
+    :param name: String to sanitize
+    :param reserved: list of reserved strings which cannot be duplicated - must prepend "x_"
+    :return:
+    """
+    if name.upper() in reserved:
+        name = "x_%s" % name
+
+    # replace bad characters with "_"
+    name = re.sub(r"\W+", "_", name)
+
+    return name
+
+
+def format_vertica_url(url: str, trust_store_path: str, password: str = "changeit") -> str:
+    """Add the trust store path
+
+    :param url:
+    :param trust_store_path:
+    :param password:
+    :return:
+    """
+    return url + "?SSL=true&TrustStorePath={trust_store_path}&TrustStorePassword={password}".format(
+        trust_store_path=trust_store_path, password=password)
+
+
+
+
+
+

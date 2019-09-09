@@ -12,23 +12,6 @@ import textwrap
 
 # Vertica reserved words
 
-# fmt: off
-RESERVED = (
-    'ALL', 'ANALYSE', 'ANALYZE', 'AND', 'ANY', 'ARRAY', 'AS', 'ASC',
-    'BINARY', 'BOTH', 'CASE', 'CAST', 'CHECK', 'COLUMN', 'CONSTRAINT',
-    'CORRELATION', 'CREATE', 'CURRENT_DATABASE', 'CURRENT_DATE', 'CURRENT_SCHEMA',
-    'CURRENT_TIME', 'CURRENT_TIMESTAMP', 'CURRENT_USER', 'DEFAULT', 'DEFERRABLE',
-    'DESC', 'DISTINCT', 'DO', 'ELSE', 'ENCODED', 'END', 'EXCEPT', 'FALSE', 'FLEX',
-    'FLEXIBLE', 'FOR', 'FOREIGN', 'FROM', 'GRANT', 'GROUP', 'GROUPED', 'HAVING',
-    'IN', 'INITIALLY', 'INTERSECT', 'INTERVAL', 'INTERVALYM', 'INTO', 'JOIN',
-    'KSAFE', 'LEADING', 'LIMIT', 'LOCALTIME', 'LOCALTIMESTAMP', 'MATCH', 'NEW',
-    'NOT', 'NULL', 'NULLSEQUAL', 'OFF', 'OFFSET', 'OLD', 'ON', 'ONLY', 'OR',
-    'ORDER', 'PINNED', 'PLACING', 'PRIMARY', 'PROJECTION', 'REFERENCES', 'SCHEMA',
-    'SEGMENTED', 'SELECT', 'SESSION_USER', 'SOME', 'SYSDATE', 'TABLE', 'THEN',
-    'TIMESERIES', 'TO', 'TRAILING', 'TRUE', 'UNBOUNDED', 'UNION', 'UNIQUE',
-    'UNSEGMENTED', 'USER', 'USING', 'WHEN', 'WHERE', 'WINDOW', 'WITH', 'WITHIN'
-)
-# fmt: on
 
 # Environmental Variables
 
@@ -36,10 +19,7 @@ RESERVED = (
 ENV_VARS_TO_LOAD_AS_IS = (
     "PROJECT_ID",
     "CONNECTION_ID",
-    "USE_AWS",
-    "LOAD_FROM_AWS",
-    "LOAD_FROM_HDFS",
-    "WAREHOUSE_DIR",
+    "VERTICA_TRUSTSTOREPATH",
 )
 
 # vars which are considered to be truthy
@@ -73,26 +53,6 @@ ENV_VARS_TO_CAST_TO_INT = (
 
 UNICODE_TYPES = ("NVARCHAR", "NCHAR", "NVARBINARY")
 MAX_VARCHAR_LEN = 65000
-
-
-def sanitize(name, reserved=RESERVED):
-    """
-    Sanitize strings.
-    If `name` is in reserved then add "x_" to the start.
-    If bad characters exist in `name` replace with "_".
-    Bad characters include... "^" for example
-
-    :param name: String to sanitize
-    :param reserved: list of reserved strings which cannot be duplicated - must prepend "x_"
-    :return:
-    """
-    if name.upper() in reserved:
-        name = "x_%s" % name
-
-    # replace bad characters with "_"
-    name = re.sub(r"\W+", "_", name)
-
-    return name
 
 
 class ColSpec:
@@ -279,9 +239,9 @@ class ColSpec:
     @property
     def name(self):
         if self.is_db2:
-            return sanitize(self._get_db2_column_name())
+            return utils.sanitize(self._get_db2_column_name())
         else:
-            return sanitize(self.spec.COLUMN_NAME)
+            return utils.sanitize(self.spec.COLUMN_NAME)
 
     @property
     def nullable(self):
@@ -312,7 +272,7 @@ def create_super_projection_query(
         """
         )
     template_sql = textwrap.dedent(
-            """
+        """
         CREATE PROJECTION {{ schema }}.{{ projection_name }} AS 
             SELECT *
         FROM
@@ -493,8 +453,8 @@ def copy_table_ddl(
         order_cols = table_super_projection_settings["order_by_columns"].split(",")
         segment_cols = table_super_projection_settings["segment_by_columns"].split(",")
 
-        order_by_columns = ", ".join([sanitize(col) for col in order_cols])
-        segment_by_columns = ", ".join([sanitize(col) for col in segment_cols])
+        order_by_columns = ", ".join([utils.sanitize(col) for col in order_cols])
+        segment_by_columns = ", ".join([utils.sanitize(col) for col in segment_cols])
         super_projection_query = create_super_projection_query(
             to_schema,
             to_table,
@@ -606,6 +566,9 @@ if __name__ == "__main__":
     squarkenv = squark.config.environment.Environment()
     source_jdbc = squarkenv.sources[env_vars["CONNECTION_ID"]]
     destination_vertica = squarkenv.sources[env_vars["VERTICA_CONNECTION_ID"]]
+    destination_vertica.url = utils.format_vertica_url(
+        destination_vertica.url, env_vars["VERTICA_TRUSTSTOREPATH"]
+    )
 
     from_conn = source_jdbc.conn
     to_conn = destination_vertica.conn
@@ -620,29 +583,13 @@ if __name__ == "__main__":
     exclude_schema = new_utils.split_strip_str(env_vars["EXCLUDE_SCHEMA"])
     include_tables = new_utils.split_strip_str(env_vars["INCLUDE_TABLES"])
 
-    tables_with_partition_info = {}
-    tables_with_super_projection_settings = {}
-    if env_vars["JSON_INFO"]:
-        parsed_json = json.loads(
-            env_vars["JSON_INFO"].replace("'", '"').replace('"""', "'")
-        )
+    json_info = new_utils.parse_json(env_vars["JSON_INFO"])
 
-        if "PARTITION_INFO" in parsed_json.keys():
-            tables_with_partition_info = parsed_json["PARTITION_INFO"]["tables"]
-            print(
-                "TABLES_WITH_PARTITION_INFO: {info!r}".format(
-                    info=tables_with_partition_info
-                )
-            )
-        if "SUPER_PROJECTION_SETTINGS" in parsed_json.keys():
-            tables_with_super_projection_settings = parsed_json[
-                "SUPER_PROJECTION_SETTINGS"
-            ]["tables"]
-            print(
-                "SUPER_PROJECTION_SETTINGS: {info!r}".format(
-                    info=tables_with_super_projection_settings
-                )
-            )
+    tables_with_partition_info = new_utils.get_tables_with_partition_info_from_json(
+        json_info
+    )
+    tsps = new_utils.get_tables_with_super_projection_settings_from_json(json_info)
+    tables_with_super_projection_settings = tsps
 
     if env_vars["SQUARK_METADATA"]:
         log_squark_metadata_contents(to_conn, env_vars["PROJECT_ID"])
@@ -697,52 +644,28 @@ if __name__ == "__main__":
                     )
                 )
                 continue
-        table_name = sanitize(table[table_name_key])
+        table_name = table[table_name_key]
 
         if include_tables and table_name not in include_tables:
             continue
 
-        squark_metadata["is_incremental"] = False
+        super_projection_settings = new_utils.get_super_projection_settings_for_table(
+            tables_with_super_projection_settings, table[table_name_key]
+        )
+        partition_info = new_utils.get_partition_info_for_table(
+            tables_with_partition_info, table[table_name_key]
+        )
 
-        if tables_with_partition_info and table_name.lower() in [
-            table.lower() for table in tables_with_partition_info.keys()
-        ]:
-            table_with_partitions_lower = {
-                k.lower(): v for k, v in tables_with_partition_info.items()
-            }
-            partition_info = table_with_partitions_lower[table_name.lower()]
-            print(
-                ">>>>>  Partition info: {partition_info!r}".format(
-                    partition_info=partition_info
-                ),
-                flush=True,
-            )
-            is_incremental = new_utils._str_is_truthy(
-                partition_info.get("is_incremental", "").lower()
+        if partition_info is not None:
+            is_incremental = new_utils.str_is_truthy(
+                partition_info.get("is_incremental")
             )
             if is_incremental:
+                print("--- Haven 'is_incremental' is True")
                 squark_metadata["is_incremental"] = True
-                print(">>>>>  is_incremental is True", flush=True)
                 squark_metadata["pkid_column_name"] = partition_info["pkid_column_name"]
-
-        super_projection_settings = {}
-        if tables_with_super_projection_settings:
-            try:
-                super_projection_settings = tables_with_super_projection_settings[
-                    table_name
-                ]
-                print(
-                    ">>>>>  Super Projection settings: {super_projection_settings!r}".format(
-                        super_projection_settings=super_projection_settings
-                    ),
-                    flush=True,
-                )
-            except KeyError:
-                print(
-                    ">>>>>  No Super Projection Settings for {table_name}".format(
-                        table_name=table_name
-                    )
-                )
+            else:
+                squark_metadata["is_incremental"] = False
 
         try:
             copy_table_ddl(
@@ -751,7 +674,7 @@ if __name__ == "__main__":
                 table[table_name_key],
                 to_conn,
                 to_schema,
-                table_name,
+                utils.sanitize(table_name),
                 squark_metadata,
                 squark_metadata_flag=env_vars["SQUARK_METADATA"],
                 project_id=env_vars["PROJECT_ID"],

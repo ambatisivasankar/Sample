@@ -29,12 +29,14 @@ INCLUDE_TABLES_ARRAY=(
   "MARITAL_STATUS_CDE"
   "MEMBER_STATUS_HISTORY"
   "MEMBERS"
+  "MEMBER_STATUS_CDE"
   "MM_EMPLOYEE"
   "PARTC_SOURCE"
   "PARTC_SRC_ADI_EVENT"
   "PARTC_SRC_ADI_EVENT_HIST"
-  "partc_status_cde"
+  "PARTC_STATUS_CDE"
   "PARTC_STATUS_HIST"
+  "PARTC_TYPE_CDE"
   "PARTICIPANT"
   "PARTICIPANT_LOG"
   "PARTN1_PARTC_PERIODIC_BAL"
@@ -65,6 +67,70 @@ export SPARK_MAX_EXECUTORS=10
 # Do not use modulous (MOD, %) on this job.
 export JSON_INFO='
 {
+    "SUPER_PROJECTION_SETTINGS":{
+        "tables": {
+            "COUNTRY_CDE": {
+                "projection_name": "COUNTRY_CDE_SQUARK",
+                "order_by_columns": "UPDATE_NR,COUNTRY_CDE,COUNTRY_DES",
+                "segment_by_columns": ""
+            },
+            "MARITAL_STATUS_CDE": {
+                "projection_name": "MARITAL_STATUS_CDE_SQUARK",
+                "order_by_columns": "UPDATE_NR,MARITAL_STATUS_CDE,MARITAL_STATUS_DES",
+                "segment_by_columns": ""
+            },
+            "MEMBER_STATUS_CDE": {
+                "projection_name": "MEMBER_STATUS_CDE_SQUARK",
+                "order_by_columns": "MEMBER_STATUS_CDE,MEMBER_STATUS_DES",
+                "segment_by_columns": ""
+            },
+            "PARTC_STATUS_CDE": {
+                "projection_name": "PARTC_STATUS_CDE_SQUARK",
+                "order_by_columns": "UPDATE_NR,PARTC_STATUS_CDE,PARTC_STATUS_DES,ACTIVITY_ID",
+                "segment_by_columns": ""
+            },
+            "PARTC_STATUS_HIST": {
+                "projection_name": "PARTC_STATUS_HIST_SQUARK",
+                "order_by_columns": "PARTC_STATUS_CDE,SPONSOR_ID,PLAN_SEQNR,SUBSCRIBER_ID,PARTICIPANT_ID",
+                "segment_by_columns": "PARTICIPANT_ID"
+            },
+            "PARTC_TYPE_CDE": {
+                "projection_name": "PARTC_TYPE_CDE_SQUARK",
+                "order_by_columns": "UPDATE_NR,PARTC_TYPE_CDE,PARTC_TYPE_DES",
+                "segment_by_columns": ""
+            },
+            "PARTICIPANT": {
+                "projection_name": "PARTICIPANT_SQUARK",
+                "order_by_columns": "SPONSOR_ID,PLAN_SEQNR,SUBSCRIBER_ID,PARTICIPANT_ID",
+                "segment_by_columns": "PARTICIPANT_ID"
+            },
+            "PERSON": {
+                "projection_name": "PERSON_SQUARK",
+                "order_by_columns": "PERSON_ID",
+                "segment_by_columns": "PERSON_ID"
+            },
+            "PLAN_DCO": {
+                "projection_name": "PLAN_DCO_SQUARK",
+                "order_by_columns": "SPONSOR_ID,PLAN_SEQNR",
+                "segment_by_columns": ""
+            },
+            "PLAN_STATUS_CDE": {
+                "projection_name": "PLAN_STATUS_CDE_SQUARK",
+                "order_by_columns": "UPDATE_NR,PLAN_STATUS_CDE,PLAN_STATUS_DES",
+                "segment_by_columns": ""
+            },
+            "PRODUCT_TYPE_CDE": {
+                "projection_name": "PRODUCT_TYPE_CDE_SQUARK",
+                "order_by_columns": "UPDATE_NR,PRODUCT_TYPE_CDE,PRODUCT_TYPE_DES",
+                "segment_by_columns": ""
+            },
+            "STATE_CDE": {
+                "projection_name": "STATE_CDE_SQUARK",
+                "order_by_columns": "UPDATE_NR,COUNTRY_CDE,STATE_CDE,STATE_DES,CAS_WITHHOLDING_GL_NR",
+                "segment_by_columns": ""
+            }
+        }
+    },
     "PARTITION_INFO":{
         "tables": {
             "DATA_EXCHANGE_DEMO": {

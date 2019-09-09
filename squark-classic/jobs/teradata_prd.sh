@@ -2,13 +2,13 @@
 export PROJECT_ID=teradata_prd
 export WAREHOUSE_DIR='/_wh/'
 export SQL_TEMPLATE='%s'
+export CONNECTION_ID=teradata
 
 # Optional
 export INCLUDE_VIEWS=1
-export CONNECTION_ID=teradata
 export SPARK_YARN_QUEUE='datalayer'
 export SPARK_MAX_EXECUTORS=10
-export CONVERT_TIMESTAMPS_TO_AMERICA_NEW_YORK=1
+export CONVERT_TIMESTAMPS_TO_AMERICA_NEW_YORK=0
 export MAKE_DDL_FROM_TARGET=1
 
 INCLUDE_TABLES_ARRAY=(

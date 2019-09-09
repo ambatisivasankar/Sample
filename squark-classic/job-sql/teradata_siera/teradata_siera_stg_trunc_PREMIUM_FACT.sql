@@ -1,0 +1,4 @@
+
+
+TRUNCATE TABLE teradata_siera.PREMIUM_FACT
+;
