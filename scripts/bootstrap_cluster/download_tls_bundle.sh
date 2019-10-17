@@ -16,9 +16,8 @@ if [ -e "${VERTICA_TRUSTSTOREPATH}" ]
 then
     echo "tls-ca-bundle.jks exists"
 else
-    mkdir -p "${WORKSPACE}/.pki"
     echo "Download tls-ca-bundle.jks from MM artifactory"
-    TLS_CA_BUNDLE_JKS=${WORKSPACE}/.pki/tls-ca-bundle.jks
+    TLS_CA_BUNDLE_JKS=${WORKSPACE}/squark-classic/tls-ca-bundle.jks
     TLS_CA_BUNDLE_JKS_URL=https://artifactory.awsmgmt.massmutual.com/artifactory/mm-certificates/mm-cert-bundle.jks
     curl --output "${TLS_CA_BUNDLE_JKS}" "${TLS_CA_BUNDLE_JKS_URL}"
 fi

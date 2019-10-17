@@ -1,0 +1,6 @@
+
+TRUNCATE TABLE MARKETING.national_donotcall;
+
+INSERT INTO MARKETING.national_donotcall
+SELECT PHONE_NUMBER,_advana_id,_advana_load_TIMESTAMP FROM SQUARK_STAGING.MEDICAL;
+commit;

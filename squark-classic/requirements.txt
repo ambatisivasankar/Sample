@@ -1,7 +1,6 @@
 --index-url=https://artifactory.awsmgmt.massmutual.com/artifactory/api/pypi/python-virtual/simple/
 py4j==0.10.1
 jinja2
-pywebhdfs
 jenkinsapi
 requests
 boto3

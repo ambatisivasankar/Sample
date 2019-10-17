@@ -5,7 +5,7 @@ export VERTICA_USER="dbadmin"
 export VERTICA_DATABASE="advana"
 export VERTICA_VSQL="/usr/local/bin/vsql"
 export VERTICA_ROOTCRTPATH=${WORKSPACE}/.vsql/root.crt
-export VERTICA_TRUSTSTOREPATH=${WORKSPACE}/.pki/tls-ca-bundle.jks
+export VERTICA_TRUSTSTOREPATH="${WORKSPACE}/squark-classic/tls-ca-bundle.jks"
 
 # HDFS SETTINGS
 export HDFS_HOST="devlx187"

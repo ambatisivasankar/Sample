@@ -18,7 +18,7 @@ then
 else
     mkdir -p "${WORKSPACE}/.vsql"
     echo "Download tls-ca-bundle.pem/root.crt from MM artifactory"
-    TLS_CA_BUNDLE_PEM="${WORKSPACE}/.pki/tls-ca-bundle.pem"
+    TLS_CA_BUNDLE_PEM="${WORKSPACE}/squark-classic/tls-ca-bundle.pem"
     TLS_CA_BUNDLE_PEM_URL="https://artifactory.awsmgmt.massmutual.com/artifactory/mm-certificates/mm-cert-bundle.pem.unix"
     curl --output "${TLS_CA_BUNDLE_PEM}" "${TLS_CA_BUNDLE_PEM_URL}"
     ln -fs "${TLS_CA_BUNDLE_PEM}" "${WORKSPACE}/.vsql/root.crt"

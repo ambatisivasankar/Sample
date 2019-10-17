@@ -17,7 +17,7 @@ from pyspark.sql.types import (
     TimestampType,
     StructField,
     DecimalType,
-    DataType,
+    DateType,
 )
 
 import new_utils
@@ -279,6 +279,7 @@ def convert_timestamp_values_to_america_new_york(df: DataFrame) -> DataFrame:
     :return: DataFrame with converted columns
     """
     cols = _get_columns_from_dataframe_schema_of_datatype(df.schema, TimestampType)
+    print("Converting columns to EST: {}".format(cols))
     df = _convert_columns_to_utc_new_york(df, cols)
     return df
 
@@ -507,6 +508,39 @@ def _get_row_count_for_jdbc_table(
     return count
 
 
+def _set_null_dates_to_anno_domini(df: DataFrame) -> DataFrame:
+    """Set 0001-01-01 time stamps to load correctly in Vertica.
+
+    :param df: DataFrame with TimeStamp columns to manipulate.
+    :return:
+    """
+    date_col = _get_literal_date_column("0001-01-03")
+    for field in df.schema.fields:
+        if _dataframe_field_is_date_field(field):
+            print("--- Setting 'null' dates for column : " + field.name)
+            df = _replace_dataframe_column_value_with_other_value(
+                df, field.name, "0001-01-01", date_col
+            )
+    return df
+
+
+def _set_null_timestamps_to_anno_domini(df: DataFrame) -> DataFrame:
+    """Set 0001-01-01 00:00:00 time stamps to load correctly in Vertica.
+
+    :param df: DataFrame with TimeStamp columns to manipulate.
+    :return:
+    """
+    time_stamp_col = _get_literal_timestamp_column("0001-01-03 00:00:00")
+    date_col_utc_ny = _convert_dataframe_timestamp_column_to_utc_new_york(time_stamp_col)
+    for field in df.schema.fields:
+        if _dataframe_field_is_timestamp_field(field):
+            print("--- Setting 'null' timestamps for column : " + field.name)
+            df = _replace_dataframe_column_value_with_other_value(
+                df, field.name, "0001-01-01 00:00:00", date_col_utc_ny
+            )
+    return df
+
+
 def post_date_teradata_dates_and_timestamps(df: DataFrame, use_aws: bool) -> DataFrame:
     """Post date Teradata date and timestamp fields.
 
@@ -547,6 +581,24 @@ def post_date_teradata_dates_and_timestamps(df: DataFrame, use_aws: bool) -> Dat
                 df, field.name, "0001-01-01 00:00:00", post_date_timestamp
             )
     return df
+
+
+def _get_literal_date_column(value: Any) -> Column:
+    """Get column of literal date value.
+
+    :param value: Value to populate column with
+    :return: Column of value
+    """
+    return _get_literal_column(value).cast(DateType())
+
+
+def _get_literal_timestamp_column(value: Any) -> Column:
+    """Get column of literal timestamp value.
+
+    :param value: Value to populate column with
+    :return: Column of value
+    """
+    return _get_literal_column(value).cast(TimestampType())
 
 
 def _get_literal_column(value: Any) -> Column:
@@ -811,6 +863,7 @@ def save_table(
     jdbc_schema,
     destination_vertica,
     squarkenv,
+    write_format,
     sql_query: Optional[str] = None,
     partition_info: Optional[Dict] = None,
     incremental_info: Optional[Dict] = None,
@@ -917,6 +970,9 @@ def save_table(
                 raise NotImplementedError(
                     "Incremental data pull only implemented for haven job"
                 )
+            destination_vertica.url = utils.format_vertica_url(
+                destination_vertica.url, trust_store_path="tls-ca-bundle.jks"
+            )
             vertica_conn = destination_vertica.conn
             base_schema_name = partition_info["base_schema_name"]
             last_updated_column_name = partition_info["last_updated_column_name"]
@@ -1002,6 +1058,7 @@ def save_table(
             lazy_read = lazy_read.option("driver", properties["driver"])
 
         df = lazy_read.load()
+
     else:
         if db_name_lower.startswith("db2"):
             # per documentation, and logic, this is how we should be doing all queries, but would need to test broadly,
@@ -1050,14 +1107,13 @@ def save_table(
         )
         df = convert_array_to_string(df)
 
-    if db_name_lower.startswith("teradata"):
+    if db_name_lower.startswith("teradata") and env_vars["WRITE_FORMAT"] == "orc":
         print(
             "--- Post-dating min teradata date/timestamp values for {dbtable!r}".format(
                 dbtable=dbtable
             )
         )
-        df = post_date_teradata_dates_and_timestamps(df, env_vars["USE_AWS"])
-
+        df = post_date_teradata_dates_and_timestamps(df, use_aws=True)
         # only going to test this with Teradata, restrict usage to Teradata
         if env_vars["CONVERT_TIMESTAMPS_TO_AMERICA_NEW_YORK"]:
             print(
@@ -1066,6 +1122,13 @@ def save_table(
                 )
             )
             df = convert_timestamp_values_to_america_new_york(df)
+
+    if env_vars["WRITE_FORMAT"] == "parquet":
+        print("--- Parquet Format -> Adjusting date / timestamp columns {dbtable!r} ".format(dbtable=dbtable))
+
+        df = _set_null_timestamps_to_anno_domini(df)
+        df = _set_null_dates_to_anno_domini(df)
+        df = convert_timestamp_values_to_america_new_york(df)
 
     print("--- Adding md5 column for {dbtable!r}".format(dbtable=dbtable))
     df = add_md5_column(df, env_vars["WIDE_COLUMNS_MD5"])
@@ -1089,7 +1152,7 @@ def save_table(
 
         save_path = (
             "{S3_FILESYSTEM}://{AWS_ACCESS_KEY_ID}:{AWS_SECRET_ACCESS_KEY}"
-            "@{SQUARK_BUCKET}/{SQUARK_TYPE}/{PROJECT_ID}/{TABLE_NAME}/{TABLE_NAME}.orc/".format(
+            "@{SQUARK_BUCKET}/{SQUARK_TYPE}/{PROJECT_ID}/{TABLE_NAME}/{TABLE_NAME}.{WRITE_FORMAT}/".format(
                 S3_FILESYSTEM=s3_file_system,
                 AWS_ACCESS_KEY_ID=aws_access_key_id,
                 AWS_SECRET_ACCESS_KEY=aws_secret_access_key,
@@ -1097,6 +1160,7 @@ def save_table(
                 SQUARK_TYPE=env_vars["SQUARK_TYPE"],
                 PROJECT_ID=env_vars["PROJECT_ID"],
                 TABLE_NAME=table_name,
+                WRITE_FORMAT=write_format,
             )
         )
         print(
@@ -1107,7 +1171,7 @@ def save_table(
 
         print("Attempting to save {table}".format(table=dbtable))
         try:
-            df.write.format("orc").options(**opts).save(
+            df.write.format(write_format).options(**opts).save(
                 save_path, mode=env_vars["WRITE_MODE"]
             )
         except Exception as e:
@@ -1163,7 +1227,7 @@ def save_table(
             )
             print("Attempting to save {table}".format(table=table_name_deleted))
             try:
-                df_deleted.write.format("orc").options(**opts).save(
+                df_deleted.write.format(write_format).options(**opts).save(
                     save_path, mode=env_vars["WRITE_MODE"]
                 )
             except Exception as e:
@@ -1339,10 +1403,7 @@ def main():
         tables_with_partition_info = new_utils.get_tables_with_partition_info_from_json(
             json_info
         )
-
-
-
-
+        write_format = env_vars["WRITE_FORMAT"]
         for table in tables:
 
             s1 = time.time()
@@ -1408,6 +1469,7 @@ def main():
                         jdbc_schema,
                         destination_vertica,
                         squarkenv,
+                        write_format,
                         sql_query,
                         partition_info,
                         incremental_info,
@@ -1445,6 +1507,7 @@ def main():
                             jdbc_schema,
                             destination_vertica,
                             squarkenv,
+                            write_format,
                             sql_query,
                             partition_info,
                             incremental_info,

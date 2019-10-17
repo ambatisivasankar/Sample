@@ -8,7 +8,6 @@ from collections import defaultdict
 
 import boto3
 from jinja2 import Template
-from pywebhdfs.webhdfs import PyWebHdfsClient
 
 import squark.config.environment
 import utils
@@ -50,6 +49,7 @@ ENV_VARS_TO_LOAD_WITH_DEFAULTS = [
     ("HDFS_PORT", None),
     ("HDFS_USER", None),
     ("SQUARK_DELETED_TABLE_SUFFIX", "_ADVANA_DELETED"),
+    ("WRITE_FORMAT", "orc"),
 ]
 
 # vars which
@@ -88,6 +88,7 @@ def get_s3_urls(
     include_tables,
     squark_deleted_table_suffix,
     exclude_tables,
+    write_format,
 ):
 
     session = boto3.Session(
@@ -113,10 +114,10 @@ def get_s3_urls(
             num_paths=(len(paths)), num_unique_paths=len(set(paths))
         )
     )
-    all_orcs = [x for x in paths if glob.re.search(r".*\.orc/.*\.orc", x)]
+    all_spark_files = [x for x in paths if glob.re.search(r".*\.{WRITE_FORMAT}/.*\.{WRITE_FORMAT}".format(WRITE_FORMAT=write_format), x)]
     urls = defaultdict(list)
-    for orc_file in all_orcs:
-        tablename = orc_file.replace(prefix, "").strip("/").split("/")[0]
+    for spark_file in all_spark_files:
+        tablename = spark_file.replace(prefix, "").strip("/").split("/")[0]
 
         if include_tables is not None:
 
@@ -142,29 +143,30 @@ def get_s3_urls(
                 )
                 continue
 
-        urls[tablename].append(orc_file)
+        urls[tablename].append(spark_file)
     return urls
 
 
 def get_urls(dirname, hdfs_host, hdfs_port, hdfs_user):
-    urls = defaultdict(list)
-
-    hdfs = PyWebHdfsClient(host=hdfs_host, port=hdfs_port, user_name=hdfs_user)
-    for child in hdfs.list_dir(dirname)["FileStatuses"]["FileStatus"]:
-        if child["pathSuffix"].startswith("_"):
-            continue
-        table_dir = os.path.join(dirname, child["pathSuffix"])
-        for orcfile in hdfs.list_dir(table_dir)["FileStatuses"]["FileStatus"]:
-            if orcfile["pathSuffix"].startswith("_"):
-                continue
-            url = "'webhdfs://%s:%s%s/%s'" % (
-                hdfs_host,
-                hdfs_port,
-                table_dir,
-                orcfile["pathSuffix"],
-            )
-            urls[child["pathSuffix"]].append(url)
-    return urls
+    raise NotImplementedError("HDFS no longer implemented.")
+    # urls = defaultdict(list)
+    # # PyWebHdfs had a dependecy error
+    # hdfs = PyWebHdfsClient(host=hdfs_host, port=hdfs_port, user_name=hdfs_user)
+    # for child in hdfs.list_dir(dirname)["FileStatuses"]["FileStatus"]:
+    #     if child["pathSuffix"].startswith("_"):
+    #         continue
+    #     table_dir = os.path.join(dirname, child["pathSuffix"])
+    #     for orcfile in hdfs.list_dir(table_dir)["FileStatuses"]["FileStatus"]:
+    #         if orcfile["pathSuffix"].startswith("_"):
+    #             continue
+    #         url = "'webhdfs://%s:%s%s/%s'" % (
+    #             hdfs_host,
+    #             hdfs_port,
+    #             table_dir,
+    #             orcfile["pathSuffix"],
+    #         )
+    #         urls[child["pathSuffix"]].append(url)
+    # return urls
 
 
 def do_s3_copyfrom(
@@ -176,19 +178,21 @@ def do_s3_copyfrom(
     squark_bucket,
     squark_type,
     table_num_retry,
-    analylze_statistics,
-    analylze_percentage,
+    analyze_statistics,
+    analyze_percentage,
+    write_format,
 ):
     curr_retry = 0
-    table_url = "'s3://{squark_bucket}/{squark_type}/{destination_schema}/{table_name}/{table_name}.orc/*.orc'".format(
+    table_url = "'s3://{squark_bucket}/{squark_type}/{destination_schema}/{table_name}/{table_name}.{write_format}/*.{write_format}'".format(
         squark_bucket=squark_bucket,
         squark_type=squark_type,
         destination_schema=destination_schema,
         table_name=table_name,
+        write_format=write_format,
     )
-    tmpl = "copy %s.%s from %s on any node orc direct;"
+    tmpl = "copy %s.%s from %s on any node %s direct;"
     table_name = table_prefix + utils.sanitize(table_name)
-    sql = tmpl % (schema_name, table_name, table_url)
+    sql = tmpl % (schema_name, table_name, table_url, write_format)
     # sql = tmpl % (schema_name, table_name, ',\n'.join([os.path.join(S3_FUSE_LOCATION, x) for x in _urls]))
 
     logging.info("sql: %r", sql)
@@ -199,7 +203,7 @@ def do_s3_copyfrom(
     retry_bool = True
     print("----------------------------")
     analyze_statistics_query = get_analyze_statistics_query(
-        schema_name, table_name, analylze_percentage
+        schema_name, table_name, analyze_percentage
     )
     while retry_bool and curr_retry < table_num_retry:
         print(
@@ -210,13 +214,13 @@ def do_s3_copyfrom(
         try:
             cursor = vertica_conn.cursor()
             cursor.execute(sql)
-            if analylze_statistics:
-                start_analylze_statistics = time.time()
+            if analyze_statistics:
+                start_analyze_statistics = time.time()
                 cursor.execute(analyze_statistics_query)
-                duration_analylze_statistics = time.time() - start_analylze_statistics
+                duration_analyze_statistics = time.time() - start_analyze_statistics
                 print(
-                    "----- Statstics analyzed for {table_name} in {duration:.02f} seconds".format(
-                        table_name=table_name, duration=duration_analylze_statistics
+                    "----- Statistics analyzed for {table_name} in {duration:.02f} seconds".format(
+                        table_name=table_name, duration=duration_analyze_statistics
                     )
                 )
             cursor.close()
@@ -326,10 +330,11 @@ def main():
             include_tables=include_tables,
             squark_deleted_table_suffix=env_vars["SQUARK_DELETED_TABLE_SUFFIX"],
             exclude_tables=exclude_tables,
+            write_format=env_vars["WRITE_FORMAT"],
         )
         total_table_count = len(aws_urls.keys())
         print(
-            "DEBUG: S3 .orc url listing, sorted: {urls}".format(
+            "DEBUG: S3 file url listing, sorted: {urls}".format(
                 urls=sorted(aws_urls.items())
             )
         )
@@ -365,8 +370,9 @@ def main():
                 squark_bucket=env_vars["SQUARK_BUCKET"],
                 squark_type=env_vars["SQUARK_TYPE"],
                 table_num_retry=env_vars["TABLE_NUM_RETRY"],
-                analylze_statistics=env_vars["ANALYZE_STATISTICS"],
-                analylze_percentage=env_vars["ANALYZE_STATISTICS_PERCENTAGE"],
+                analyze_statistics=env_vars["ANALYZE_STATISTICS"],
+                analyze_percentage=env_vars["ANALYZE_STATISTICS_PERCENTAGE"],
+                write_format=env_vars["WRITE_FORMAT"],
             )
             table_time = time.time() - s1
             # admin table will be updated after each table is loaded to vertica, i.e. even if full job later fails

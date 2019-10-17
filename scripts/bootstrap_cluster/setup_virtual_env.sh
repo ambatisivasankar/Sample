@@ -13,12 +13,13 @@ printLineMsg before "Setting up the virtual environment..."
 python35 -m venv virt
 
 echo "Updating pip..."
-"${PYTHON_VENV}"/bin/pip3 install --upgrade pip --quiet | grep -v 'Requirement already satisfied'
+"${PYTHON_VENV}"/bin/pip3 install --upgrade pip
 echo "Installing squark-classic requirements."
-"${PYTHON_VENV}"/bin/pip3 install -r squark-classic/requirements.txt --quiet | grep -v 'Requirement already satisfied'
+"${PYTHON_VENV}"/bin/pip3 install pytest-runner==2.9 --index-url=https://artifactory.awsmgmt.massmutual.com/artifactory/api/pypi/python-virtual/simple/
+"${PYTHON_VENV}"/bin/pip3 install -r squark-classic/requirements.txt
 echo "Installing squark requirements."
 cd "${WORKSPACE}/squark" || die "Failed to cd into squark"
-"${PYTHON_VENV}"/bin/pip3 install --no-cache-dir -r requirements.txt --quiet | grep -v 'Requirement already satisfied'
+"${PYTHON_VENV}"/bin/pip3 install --no-cache-dir -r requirements.txt
 echo "Installing squark"
 "${PYTHON_VENV}"/bin/python3 setup.py develop
 cd ..

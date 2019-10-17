@@ -43,6 +43,7 @@ ENV_VARS_TO_LOAD_WITH_DEFAULTS = (
     ("SKIP_ERRORS", None),
     ("SQUARK_DELETED_TABLE_SUFFIX", "_ADVANA_DELETED"),
     ("CONVERT_ARRAYS_TO_STRING", None),
+    ("WRITE_FORMAT", "orc"),
 )
 
 # vars which are to be cast to int after loading
@@ -93,6 +94,7 @@ class ColSpec:
         convert_arrays_to_string,
         run_live_max_len_queries,
         jdbc_url,
+        write_format,
     ):
         self.spec = jdbc_spec
         self.squark_metadata = squark_spec
@@ -103,6 +105,7 @@ class ColSpec:
         self.convert_arrays_to_string = convert_arrays_to_string
         self.run_live_max_len_queries = run_live_max_len_queries
         self.jdbc_url = jdbc_url
+        self.write_format = write_format
 
     def ddl(self):
 
@@ -113,6 +116,8 @@ class ColSpec:
         #     return 'INTEGER'
         from_type = self.spec.data_type
         to_type = self.typemap.get(from_type, from_type)
+        if to_type == "TIMESTAMP" and self.write_format == "parquet":
+            to_type = "TIMESTAMPTZ"
         data = dict(zip((k.upper() for k in self.spec._fieldnames), self.spec))
         data.update(to_type=to_type)
 
@@ -302,6 +307,7 @@ def make_ddl(
     convert_arrays_to_string,
     run_live_max_len_queries,
     jdbc_url,
+    write_format,
 ):
     template_sql = textwrap.dedent(
         """
@@ -313,7 +319,7 @@ def make_ddl(
     {% endfor %}
         _advana_md5 varchar(35),
         _advana_id int,
-        _advana_load_date timestamp
+        _advana_load_date timestamptz
     );
     """
     )
@@ -328,6 +334,7 @@ def make_ddl(
             convert_arrays_to_string,
             run_live_max_len_queries,
             jdbc_url,
+            write_format,
         ),
         [(spec, squark_metadata, source_conn) for spec in colspec],
     )
@@ -392,6 +399,7 @@ def copy_table_ddl(
     copy_ddl_from_target,
     jenkins_url,
     table_super_projection_settings,
+    write_format,
 ):
 
     start_time = time.time()
@@ -440,6 +448,7 @@ def copy_table_ddl(
             convert_arrays_to_string,
             run_live_max_len_queries,
             jdbc_url,
+            write_format,
         )
 
         if not is_db2:
@@ -687,6 +696,7 @@ if __name__ == "__main__":
                 copy_ddl_from_target=env_vars["MAKE_DDL_FROM_TARGET"],
                 jenkins_url=env_vars["JENKINS_URL"],
                 table_super_projection_settings=super_projection_settings,
+                write_format=env_vars["WRITE_FORMAT"],
             )
 
         except Exception as exc:

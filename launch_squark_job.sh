@@ -70,12 +70,18 @@ for i in "$@"; do
         --make_ddl_from_target)
             MAKE_DDL_FROM_TARGET=1
         ;;
-       --skip-schema)
+        --skip-schema)
            SKIP_SCHEMA=1
         ;;
-       --incr-load)
+        --incr-load)
            SKIP_SCHEMA=1
            INCR_LOAD=1
+        ;;
+        --parquet)
+            WRITE_FORMAT=parquet
+        ;;
+        --orc)
+            WRITE_FORMAT=orc
         ;;
         *)
             # Unknown option -- assume to be job_name
@@ -106,6 +112,7 @@ export MAKE_DDL_FROM_TARGET=${MAKE_DDL_FROM_TARGET:-0}
 export FACING_SCHEMA=${FACING_SCHEMA:+x}
 export IS_INCREMENTAL_SCHEMA=${IS_INCREMENTAL_SCHEMA:-0}
 export SKIP_SOURCE_ROW_COUNT=${SKIP_SOURCE_ROW_COUNT:-0}
+export WRITE_FORMAT=${WRITE_FORMAT:-orc}
 
 # Check if squark job name is available
 # shellcheck source=./scripts/launch_squark_job/check_job_name_available.sh

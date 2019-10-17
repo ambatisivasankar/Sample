@@ -9,9 +9,8 @@ export INCLUDE_VIEWS=1
 export SPARK_YARN_QUEUE='datalayer'
 export SPARK_MAX_EXECUTORS=10
 export CONVERT_TIMESTAMPS_TO_AMERICA_NEW_YORK=0
-export MAKE_DDL_FROM_TARGET=1
 
-INCLUDE_TABLES_ARRAY=(
+include_tables_array=(
   "AGMT_ADDL_DATA_VW"
   "AGMT_CMN_VW"
   "AGMT_CVG_CMN_VW"
@@ -31,11 +30,107 @@ INCLUDE_TABLES_ARRAY=(
   "PDCR_DEMOGRAPHICS_VW"
   "SLLNG_AGMT_CMN_VW"
 )
-export INCLUDE_TABLES="$(IFS=, ; echo "${INCLUDE_TABLES_ARRAY[*]}")"
+
+include_tables="$(IFS=, ; echo "${include_tables_array[*]}")"
+export INCLUDE_TABLES=$include_tables
 
 # 2018.02.07 FND_ID = 425115 in FUND_CMN_VW does NOT want to write to S3, skipping via subquery
 export JSON_INFO='
 {
+    "SUPER_PROJECTION_SETTINGS":{
+        "tables": {
+            "AGMT_ADDL_DATA_VW": {
+                "projection_name": "AGMT_ADDL_DATA_VW_SQUARK",
+                "order_by_columns": "AGREEMENT_ID",
+                "segment_by_columns": "AGREEMENT_ID"
+            },
+            "AGMT_CMN_VW": {
+                "projection_name": "AGMT_CMN_VW_SQUARK",
+                "order_by_columns": "AGREEMENT_ID",
+                "segment_by_columns": "AGREEMENT_ID"
+            },
+            "AGMT_CVG_CMN_VW": {
+                "projection_name": "AGMT_CVG_CMN_VW_SQUARK",
+                "order_by_columns": "AGREEMENT_ID",
+                "segment_by_columns": "AGREEMENT_ID"
+            },
+            "AGMT_FND_CMN_VW": {
+                "projection_name": "AGMT_FND_CMN_VW_SQUARK",
+                "order_by_columns": "AGREEMENT_ID",
+                "segment_by_columns": "AGREEMENT_ID"
+            },
+            "AGMT_FND_VAL_CMN_VW": {
+                "projection_name": "AGMT_FND_VAL_CMN_VW_SQUARK",
+                "order_by_columns": "AGREEMENT_ID",
+                "segment_by_columns": "AGREEMENT_ID"
+            },
+            "AGMT_GRP_CMN_VW": {
+                "projection_name": "AGMT_GRP_CMN_VW_SQUARK",
+                "order_by_columns": "GROUPING_KEY",
+                "segment_by_columns": "GROUPING_KEY"
+            },
+            "AGMT_LOAN_CMN_VW": {
+                "projection_name": "AGMT_LOAN_CMN_VW_SQUARK",
+                "order_by_columns": "AGREEMENT_ID",
+                "segment_by_columns": "AGREEMENT_ID"
+            },
+            "AGMT_UWRT_CMN_VW": {
+                "projection_name": "AGMT_UWRT_CMN_VW_SQUARK",
+                "order_by_columns": "AGREEMENT_ID",
+                "segment_by_columns": "AGREEMENT_ID"
+            },
+            "AGMT_VAL_CMN_VW": {
+                "projection_name": "AGMT_VAL_CMN_VW_SQUARK",
+                "order_by_columns": "AGREEMENT_ID",
+                "segment_by_columns": "AGREEMENT_ID"
+            },
+            "AGMT_WARNING_INFO_CMN_VW": {
+                "projection_name": "AGMT_WARNING_INFO_CMN_VW_SQUARK",
+                "order_by_columns": "AGREEMENT_ID",
+                "segment_by_columns": ""
+            },
+            "BENE_DATA_CMN_VW": {
+                "projection_name": "BENE_DATA_CMN_VW_SQUARK",
+                "order_by_columns": "AGREEMENT_ID",
+                "segment_by_columns": "AGREEMENT_ID"
+            },
+            "BP_CREDENTIAL_VW": {
+                "projection_name": "BP_CREDENTIAL_VW_SQUARK",
+                "order_by_columns": "BP_ID",
+                "segment_by_columns": "BP_ID"
+            },
+            "CUST_AGMT_CMN_VW": {
+                "projection_name": "CUST_AGMT_CMN_VW_SQUARK",
+                "order_by_columns": "PRTY_AGMT_RLE_CD,PRTY_ID",
+                "segment_by_columns": "AGREEMENT_ID"
+            },
+            "CUST_DEMOGRAPHICS_VW": {
+                "projection_name": "CUST_DEMOGRAPHICS_VW_SQUARK",
+                "order_by_columns": "PRTY_ID",
+                "segment_by_columns": "PRTY_ID"
+            },
+            "FUND_CMN_VW": {
+                "projection_name": "FUND_CMN_VW_SQUARK",
+                "order_by_columns": "FND_ID",
+                "segment_by_columns": ""
+            },
+            "PDCR_AGMT_CMN_VW": {
+                "projection_name": "PDCR_AGMT_CMN_VW_SQUARK",
+                "order_by_columns": "PRTY_AGMT_RLE_CD,AGREEMENT_ID",
+                "segment_by_columns": "PRTY_ID"
+            },
+            "PDCR_DEMOGRAPHICS_VW": {
+                "projection_name": "PDCR_DEMOGRAPHICS_VW_SQUARK",
+                "order_by_columns": "PRTY_ID",
+                "segment_by_columns": ""
+            },
+            "SLLNG_AGMT_CMN_VW": {
+                "projection_name": "SLLNG_AGMT_CMN_VW_SQUARK",
+                "order_by_columns": "SLLNG_AGMT_STUS_CD,PARENT_SLLNG_AGMT_RLE,PARENT_BPID",
+                "segment_by_columns": ""
+            }
+        }
+    },
     "PARTITION_INFO":{
         "tables": {
             "AGMT_ADDL_DATA_VW": {

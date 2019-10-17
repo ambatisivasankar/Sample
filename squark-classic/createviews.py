@@ -3,28 +3,48 @@ import sys
 import logging
 import json
 
+import utils
+import new_utils
 import squark.config.environment
 
-squarkenv = squark.config.environment.Environment()
+# Environmental Variables
+ENV_VARS_TO_LOAD_AS_IS = [
+    "PROJECT_ID",
+    "VERTICA_TRUSTSTOREPATH",
+]
+
+ENV_VARS_TO_LOAD_WITH_DEFAULTS = [
+    ("VERTICA_CONNECTION_ID", None),
+    ("SQUARK_DELETED_TABLE_SUFFIX", "_ADVANA_DELETED"),
+    ("INCLUDE_TABLES", None),
+    ("EXCLUDE_TABLES", None),
+    ("JSON_INFO", None),
+]
+
+# Load Environment Variables
+env_vars = new_utils.load_env_vars(
+    vars_as_is=ENV_VARS_TO_LOAD_AS_IS,
+    vars_with_defaults=ENV_VARS_TO_LOAD_WITH_DEFAULTS,
+)
 
 try:
-    VERTICA_CONNECTION_ID = os.environ['VERTICA_CONNECTION_ID']
+    VERTICA_CONNECTION_ID = env_vars["VERTICA_CONNECTION_ID"]
 except:
-    VERTICA_CONNECTION_ID = 'vertica_aws_nprd_dev'
+    VERTICA_CONNECTION_ID = "vertica_aws_nprd_dev"
 
-PROJECT_ID = os.environ.get('PROJECT_ID')
+PROJECT_ID = env_vars["PROJECT_ID"]
 SKIP_ERRORS = False
-SQUARK_DELETED_TABLE_SUFFIX = os.environ.get('SQUARK_DELETED_TABLE_SUFFIX', '_ADVANA_DELETED')
+SQUARK_DELETED_TABLE_SUFFIX = env_vars["SQUARK_DELETED_TABLE_SUFFIX"]
+INCLUDE_TABLES = env_vars["INCLUDE_TABLES"]
+EXCLUDE_TABLES = env_vars["EXCLUDE_TABLES"]
+JSON_INFO = env_vars["JSON_INFO"]
 
-INCLUDE_TABLES = os.environ.get('INCLUDE_TABLES')
 if INCLUDE_TABLES is not None:
     INCLUDE_TABLES = [s.strip() for s in INCLUDE_TABLES.split(',') if s]
 
-EXCLUDE_TABLES = os.environ.get('EXCLUDE_TABLES', [])
 if EXCLUDE_TABLES:
     EXCLUDE_TABLES = [s.strip() for s in EXCLUDE_TABLES.split(',') if s]
 
-JSON_INFO = os.environ.get('JSON_INFO')
 TABLES_WITH_PARTITION_INFO = {}
 if JSON_INFO:
     parsed_json = json.loads(JSON_INFO.replace("'", '"').replace('"""', "'"))
@@ -85,7 +105,13 @@ def main():
     primary_source_schema = sys.argv[2]
     print('>>>> arg[1] facing_schema: {} | arg[2] primary_source_schema: {}'.format(facing_schema, primary_source_schema))
 
-    vert_conn = squarkenv.sources[VERTICA_CONNECTION_ID].conn
+    squarkenv = squark.config.environment.Environment()
+    destination_vertica = squarkenv.sources[env_vars["VERTICA_CONNECTION_ID"]]
+    destination_vertica.url = utils.format_vertica_url(
+        destination_vertica.url, trust_store_path=env_vars["VERTICA_TRUSTSTOREPATH"]
+    )
+    vert_conn = destination_vertica.conn
+
     tables = vert_conn.get_tables(schema=primary_source_schema)
     for table in tables:
         table = dict(zip([k.lower() for k in table._fieldnames], table))
