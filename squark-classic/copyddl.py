@@ -683,7 +683,7 @@ if __name__ == "__main__":
                 table[table_name_key],
                 to_conn,
                 to_schema,
-                utils.sanitize(table_name),
+                table_name,
                 squark_metadata,
                 squark_metadata_flag=env_vars["SQUARK_METADATA"],
                 project_id=env_vars["PROJECT_ID"],

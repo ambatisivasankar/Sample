@@ -25,6 +25,6 @@ pytz==2016.4
 six==1.10.0
 tox==2.3.1
 virtualenv==15.0.2
-py4jdbc==0.1.7.0
+py4jdbc==0.1.7.1
 dirigible==0.2.7
 

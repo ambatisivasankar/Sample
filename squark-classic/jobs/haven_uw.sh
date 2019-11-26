@@ -22,6 +22,30 @@ export JSON_INFO="
     },
     'PARTITION_INFO':{
         'tables': {
+            'act_requirement': {
+              'partitionColumn': 'DATE_PART('''DAY''', COALESCE(\\\"createdTime\\\", '''1970-01-01T00:00:00'''::timestamp))',
+              'lowerBound': 1,
+              'upperBound': 31,
+              'numPartitions': 31
+            },
+            'act_pre_requirement': {
+              'partitionColumn': 'DATE_PART('''MONTH''', COALESCE(\\\"createdTime\\\", '''1970-01-01T00:00:00'''::timestamp))',
+              'lowerBound': 1,
+              'upperBound': 12,
+              'numPartitions': 12
+            },
+            'activity': {
+              'partitionColumn': 'DATE_PART('''DAY''', COALESCE(\\\"createdTime\\\", '''1970-01-01T00:00:00'''::timestamp))',
+              'lowerBound': 1,
+              'upperBound': 31,
+              'numPartitions': 31
+            },
+            'address': {
+              'partitionColumn': 'DATE_PART('''DAY''', COALESCE(\\\"createdTime\\\", '''1970-01-01T00:00:00'''::timestamp))',
+              'lowerBound': 1,
+              'upperBound': 31,
+              'numPartitions': 31
+            },
             'analytics_container': {
               'partitionColumn': 'DATE_PART('''MINUTE''', COALESCE(\\\"createdTime\\\", '''1970-01-01T00:00:00'''::timestamp))',
               'lowerBound': 0,
@@ -34,7 +58,37 @@ export JSON_INFO="
               'upperBound': 59,
               'numPartitions': 59
             },
+            'cash_flow': {
+              'partitionColumn': 'MOD(DATE_PART('''SECOND''', COALESCE(\\\"createdTime\\\", '''1970-01-01T00:00:00'''::timestamp))::integer, 5)',
+              'lowerBound': 0,
+              'upperBound': 5,
+              'numPartitions': 5
+            },
+            'contact_physician': {
+              'partitionColumn': 'DATE_PART('''MONTH''', COALESCE(\\\"createdTime\\\", '''1970-01-01T00:00:00'''::timestamp))',
+              'lowerBound': 1,
+              'upperBound': 12,
+              'numPartitions': 12
+            },
+            'conversation': {
+              'partitionColumn': 'MOD(DATE_PART('''SECOND''', COALESCE(\\\"createdTime\\\", '''1970-01-01T00:00:00'''::timestamp))::integer, 5)',
+              'lowerBound': 0,
+              'upperBound': 5,
+              'numPartitions': 5
+            },
             'credit_records': {
+              'partitionColumn': 'MOD(TO_CHAR(\\\"createdTime\\\" , '''MMSS''')::integer, 120)',
+              'lowerBound': 0,
+              'upperBound': 120,
+              'numPartitions': 120
+            },
+            'customer': {
+              'partitionColumn': 'MOD(DATE_PART('''SECOND''', COALESCE(\\\"createdTime\\\", '''1970-01-01T00:00:00'''::timestamp))::integer, 5)',
+              'lowerBound': 0,
+              'upperBound': 5,
+              'numPartitions': 5
+            },
+            'dimension': {
               'partitionColumn': 'DATE_PART('''SECOND''', COALESCE(\\\"createdTime\\\", '''1970-01-01T00:00:00'''::timestamp))',
               'lowerBound': 0,
               'upperBound': 59,
@@ -46,17 +100,47 @@ export JSON_INFO="
               'upperBound': 59,
               'numPartitions': 60
             },
+            'drug': {
+              'partitionColumn': 'DATE_PART('''DAY''', COALESCE(\\\"createdTime\\\", '''1970-01-01T00:00:00'''::timestamp))',
+              'lowerBound': 1,
+              'upperBound': 31,
+              'numPartitions': 31
+            },
             'drug_indication': {
               'partitionColumn': 'DATE_PART('''SECOND''', COALESCE(\\\"createdTime\\\", '''1970-01-01T00:00:00'''::timestamp))',
               'lowerBound': 0,
               'upperBound': 59,
               'numPartitions': 60
             },
+            'drug_rule_link': {
+              'partitionColumn': 'DATE_PART('''MONTH''', COALESCE(\\\"createdTime\\\", '''1970-01-01T00:00:00'''::timestamp))',
+              'lowerBound': 1,
+              'upperBound': 12,
+              'numPartitions': 12
+            },
+            'execution': {
+              'partitionColumn': 'DATE_PART('''MONTH''', COALESCE(\\\"createdTime\\\", '''1970-01-01T00:00:00'''::timestamp))',
+              'lowerBound': 1,
+              'upperBound': 12,
+              'numPartitions': 12
+            },
             'interaction': {
-              'partitionColumn': 'DATE_PART('''MINUTE''', COALESCE(\\\"createdTime\\\", '''1970-01-01T00:00:00'''::timestamp))',
+              'partitionColumn': 'MOD(TO_CHAR(\\\"createdTime\\\" , '''MMSS''')::integer, 460)',
               'lowerBound': 0,
-              'upperBound': 59,
-              'numPartitions': 59
+              'upperBound': 460,
+              'numPartitions': 460
+            },
+            'life_risk': {
+              'partitionColumn': 'DATE_PART('''MONTH''', COALESCE(\\\"createdTime\\\", '''1970-01-01T00:00:00'''::timestamp))',
+              'lowerBound': 1,
+              'upperBound': 12,
+              'numPartitions': 12
+            },
+            'life_risk_attribute': {
+              'partitionColumn': 'DATE_PART('''DAY''', COALESCE(\\\"createdTime\\\", '''1970-01-01T00:00:00'''::timestamp))',
+              'lowerBound': 1,
+              'upperBound': 31,
+              'numPartitions': 31
             },
             'old_interaction': {
               'partitionColumn': 'DATE_PART('''MINUTE''', COALESCE(\\\"createdTime\\\", '''1970-01-01T00:00:00'''::timestamp))',
@@ -64,23 +148,107 @@ export JSON_INFO="
               'upperBound': 59,
               'numPartitions': 59
             },
+            'party': {
+              'partitionColumn': 'MOD(DATE_PART('''SECOND''', COALESCE(\\\"createdTime\\\", '''1970-01-01T00:00:00'''::timestamp))::integer, 5)',
+              'lowerBound': 0,
+              'upperBound': 5,
+              'numPartitions': 5
+            },
             'policy_doc_SKIP': {
               'partitionColumn': 'DATE_PART('''MINUTE''', COALESCE(\\\"createdTime\\\", '''1970-01-01T00:00:00'''::timestamp))',
               'lowerBound': 0,
               'upperBound': 59,
               'numPartitions': 59
             },
+            'pharmacy': {
+              'partitionColumn': 'DATE_PART('''MONTH''', COALESCE(\\\"createdTime\\\", '''1970-01-01T00:00:00'''::timestamp))',
+              'lowerBound': 1,
+              'upperBound': 12,
+              'numPartitions': 12
+            },
+            'phone': {
+              'partitionColumn': 'DATE_PART('''MONTH''', COALESCE(\\\"createdTime\\\", '''1970-01-01T00:00:00'''::timestamp))',
+              'lowerBound': 1,
+              'upperBound': 12,
+              'numPartitions': 12
+            },
+            'physician': {
+              'partitionColumn': 'DATE_PART('''MONTH''', COALESCE(\\\"createdTime\\\", '''1970-01-01T00:00:00'''::timestamp))',
+              'lowerBound': 1,
+              'upperBound': 12,
+              'numPartitions': 12
+            },
+            'prescription': {
+              'partitionColumn': 'DATE_PART('''MONTH''', COALESCE(\\\"createdTime\\\", '''1970-01-01T00:00:00'''::timestamp))',
+              'lowerBound': 1,
+              'upperBound': 12,
+              'numPartitions': 12
+            },
+            'prescription_fill': {
+              'partitionColumn': 'DATE_PART('''DAY''', COALESCE(\\\"createdTime\\\", '''1970-01-01T00:00:00'''::timestamp))',
+              'lowerBound': 1,
+              'upperBound': 31,
+              'numPartitions': 31
+            },
             'raw_data': {
-              'partitionColumn': 'DATE_PART('''SECOND''', COALESCE(\\\"createdTime\\\", '''1970-01-01T00:00:00'''::timestamp))',
+              'partitionColumn': 'MOD(TO_CHAR(\\\"createdTime\\\" , '''MMSS''')::integer, 120)',
               'lowerBound': 0,
-              'upperBound': 59,
-              'numPartitions': 59
+              'upperBound': 120,
+              'numPartitions': 120
+            },
+            'requirement': {
+              'partitionColumn': 'DATE_PART('''DAY''', COALESCE(\\\"createdTime\\\", '''1970-01-01T00:00:00'''::timestamp))',
+              'lowerBound': 1,
+              'upperBound': 31,
+              'numPartitions': 31
+            },
+            'risk_rule': {
+              'partitionColumn': 'DATE_PART('''MONTH''', COALESCE(\\\"createdTime\\\", '''1970-01-01T00:00:00'''::timestamp))',
+              'lowerBound': 1,
+              'upperBound': 12,
+              'numPartitions': 12
+            },
+            'risk_rule_rating': {
+              'partitionColumn': 'DATE_PART('''DAY''', COALESCE(\\\"createdTime\\\", '''1970-01-01T00:00:00'''::timestamp))',
+              'lowerBound': 1,
+              'upperBound': 31,
+              'numPartitions': 31
+            },
+            'risk_classifier_score': {
+              'partitionColumn': 'DATE_PART('''DAY''', COALESCE(\\\"createdTime\\\", '''1970-01-01T00:00:00'''::timestamp))',
+              'lowerBound': 1,
+              'upperBound': 31,
+              'numPartitions': 31
+            },
+            'rx_records': {
+              'partitionColumn': 'DATE_PART('''MONTH''', COALESCE(\\\"createdTime\\\", '''1970-01-01T00:00:00'''::timestamp))',
+              'lowerBound': 1,
+              'upperBound': 12,
+              'numPartitions': 12
+            },
+            'transition': {
+              'partitionColumn': 'DATE_PART('''MONTH''', COALESCE(\\\"createdTime\\\", '''1970-01-01T00:00:00'''::timestamp))',
+              'lowerBound': 1,
+              'upperBound': 12,
+              'numPartitions': 12
+            },
+            'trn_requirement': {
+              'partitionColumn': 'DATE_PART('''DAY''', COALESCE(\\\"createdTime\\\", '''1970-01-01T00:00:00'''::timestamp))',
+              'lowerBound': 1,
+              'upperBound': 31,
+              'numPartitions': 31
             },
             'workflow_history': {
               'partitionColumn': 'DATE_PART('''SECOND''', COALESCE(\\\"createdTime\\\", '''1970-01-01T00:00:00'''::timestamp))',
               'lowerBound': 0,
               'upperBound': 59,
               'numPartitions': 60
+            },
+            'uw_policy_history_attr': {
+              'partitionColumn': 'MOD(DATE_PART('''SECOND''', COALESCE(\\\"createdTime\\\", '''1970-01-01T00:00:00'''::timestamp))::integer, 5)',
+              'lowerBound': 0,
+              'upperBound': 5,
+              'numPartitions': 5
             },
             'uw_rule_result': {
               'partitionColumn': 'DATE_PART('''SECOND''', COALESCE(\\\"createdTime\\\", '''1970-01-01T00:00:00'''::timestamp))',

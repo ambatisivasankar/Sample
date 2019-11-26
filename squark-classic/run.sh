@@ -35,6 +35,7 @@ zip -r -q squark.zip .
 --conf "spark.hadoop.fs.s3a.serverSideEncryptionAlgorithm=AES256" \
 --conf "spark.yarn.appMasterEnv.TZ=${TZ}" \
 --conf "spark.sql.session.timeZone=${TZ_NAME}" \
+--conf "spark.app.name=${PROJECT_ID}-squark-all-tables" \
 --driver-memory "${SPARK_DRIVER_MEMORY:-1G}" \
 --executor-memory "${SPARK_EXECUTOR_MEMORY:-1G}" \
 --driver-class-path "${JARS}" \

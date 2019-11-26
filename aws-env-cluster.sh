@@ -20,7 +20,7 @@ export VERTICA_TRUSTSTOREPATH="${WORKSPACE}/squark-classic/tls-ca-bundle.jks"
 export HADOOP_CONF_DIR="/etc/hadoop/conf"
 
 # JARS
-export JAR_VERSION="0.1.7.0_211"
+export JAR_VERSION="0.1.7.1_211"
 export PY4JDBC_JAR="${WORKSPACE}/squark-classic/py4jdbc-assembly-${JAR_VERSION}.jar"
 export JARS="py4jdbc-assembly-${JAR_VERSION}.jar" # comma separated
 

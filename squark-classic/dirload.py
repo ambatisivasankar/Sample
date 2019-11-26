@@ -191,7 +191,7 @@ def do_s3_copyfrom(
         write_format=write_format,
     )
     tmpl = "copy %s.%s from %s on any node %s direct;"
-    table_name = table_prefix + utils.sanitize(table_name)
+    table_name = table_prefix + table_name
     sql = tmpl % (schema_name, table_name, table_url, write_format)
     # sql = tmpl % (schema_name, table_name, ',\n'.join([os.path.join(S3_FUSE_LOCATION, x) for x in _urls]))
 
