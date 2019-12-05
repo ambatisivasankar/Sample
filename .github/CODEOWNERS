@@ -8,9 +8,3 @@
 
 # SFMC
 *sfmc* @rharnal44
-
-*terdadata_prod_stnd_vw* @swei45
-
-# Three teradata_finhist_{st,qa,prd} jobs and their associated sql and shell scripts
-*teradata_finhist_*     @Andrew-Sheridan
-*AMGT_FIN_TXN_CMN_VW*   @Andrew-Sheridan
