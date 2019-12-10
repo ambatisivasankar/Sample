@@ -4,8 +4,8 @@ UPDATE
 SET
     ACTV_IND = 'N'
 WHERE
-    STRT_DT =:strt_dt
-    AND END_DT=:end_dt
+    STRT_DT = :strt_dt
+    AND END_DT = :end_dt
     AND ACTV_IND = 'Y'
 ;
 
