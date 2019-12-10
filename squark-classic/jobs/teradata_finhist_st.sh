@@ -16,7 +16,6 @@ include_tables_array=(
 include_tables="$(IFS=, ; echo "${include_tables_array[*]}")"
 export INCLUDE_TABLES=$include_tables
 
-
 # Need single quotes for this json object because double quotes will not epand variables
 # $strt_dt and $end_dt are set in Jenkins at execution time
 export JSON_INFO="
