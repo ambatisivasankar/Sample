@@ -22,7 +22,7 @@ export JSON_INFO="
 {
     'SAVE_TABLE_SQL_SUBQUERY':{
         'AGMT_FIN_TXN_CMN_VW': {
-            'sql_query': '(SELECT * FROM ST_A_USIG_STND_VW.AGMT_FIN_TXN_CMN_VW where TRANS_EFFECTIVE_DATE  between cast('''$strt_dt''' as date) -5  AND cast('''$end_dt''' as date) as subquery',
+            'sql_query': '(SELECT * FROM ST_A_USIG_STND_VW.AGMT_FIN_TXN_CMN_VW where TRANS_EFFECTIVE_DATE  between cast('''$strt_dt''' as date) AND cast('''$end_dt''' as date) as subquery',
             'numPartitions': 10,
             'partitionColumn': '(AGREEMENT_ID Mod 10)',
             'lowerBound': 0,
