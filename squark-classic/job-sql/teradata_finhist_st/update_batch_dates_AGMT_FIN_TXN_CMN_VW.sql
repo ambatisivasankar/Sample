@@ -1,6 +1,6 @@
 ---Change this batches indicator from Y to N
 UPDATE
-    squark_staging.AGMT_FIN_TXN_CMN_VW
+    squark_staging.WRK_LD_BTCH_AGMT_FIN_TXN_CMN_VW
 SET
     ACTV_IND = 'N'
 WHERE
