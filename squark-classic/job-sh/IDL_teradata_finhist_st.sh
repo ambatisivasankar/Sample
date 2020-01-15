@@ -14,10 +14,10 @@ for _ in {1..121}
 
   echo "Start date=${strt_dt}"
   echo "End date=${end_dt}"
-  if [ -z "${strt_dt+x}" ]
+  if [ -z "${strt_dt}" ]
     then
       echo "No start date - skipping IDL"
-      exit 1
+      exit 0
     else
       export OTHER_VARIABLES="-e -v schema_name=squark_staging -At -o output_file -v strt_dt='${strt_dt}' -v end_dt='${end_dt}'"
       ./launch_squark_job.sh --dev --parquet --skip-schema ${squark_name}
