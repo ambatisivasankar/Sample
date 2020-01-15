@@ -27,8 +27,8 @@ PARTS=${PARTS:-2}
 
 # Need single quotes for this json object because double quotes will not epand variables
 # $strt_dt and $end_dt are set in Jenkins at execution time
-if [ "${IDL}" -eq 0 ]; then
-  echo "Setting JSON_INFO for incremental load"
+if [ "${IDL}" -eq 1 ]; then
+  echo "Setting JSON_INFO for initial data load"
   export JSON_INFO="
   {
       'SAVE_TABLE_SQL_SUBQUERY':{
@@ -43,12 +43,12 @@ if [ "${IDL}" -eq 0 ]; then
   }
   "
 else
-  echo "Setting JSON_INFO for initial data load"
+  echo "Setting JSON_INFO for incremental load"
 
   # If end date is not set then use current date as end date
   current_date=$(date '+%Y-%m-%d')
   export end_dt=${end_dt:-${current_date}}
-  echo "$end_dt date=${current_date}"
+  echo "$end_dt=${current_date}"
   export JSON_INFO="
   {
       'SAVE_TABLE_SQL_SUBQUERY':{
