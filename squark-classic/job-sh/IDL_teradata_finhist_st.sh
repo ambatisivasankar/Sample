@@ -21,7 +21,7 @@ for _ in {1..121}
     else
       export OTHER_VARIABLES="-e -v schema_name=squark_staging -At -o output_file -v strt_dt='${strt_dt}' -v end_dt='${end_dt}'"
       ./launch_squark_job.sh --"${ENV}" --parquet --skip-schema ${squark_name}
-      ./load_tables.bash "${ENV}" --sql-file=squark-classic/job-sql/${squark_name}/insert_batch_AGMT_FIN_TXN_CMN_VW.sql
+      ./load_tables.bash "${ENV}" --sql-file=squark-classic/job-sql/${squark_name}/insert_IDL_batch_AGMT_FIN_TXN_CMN_VW.sql
       ./load_tables.bash "${ENV}" --sql-file=squark-classic/job-sql/${squark_name}/update_batch_dates_AGMT_FIN_TXN_CMN_VW.sql
   fi
 
