@@ -16,18 +16,50 @@ include_tables_array=(
 include_tables="$(IFS=, ; echo "${include_tables_array[*]}")"
 export INCLUDE_TABLES=$include_tables
 
+# IDL = Initial Date Load 0 = False, 1 = True (set in jenkins, defaults to False if not set)
+IDL=${IDL:-0}
+
+# DELTA_RANGE = Number of Dates to use for Incremetal/Delta query. (set in jenkins, defaults to 7 if not set)
+DELTA_RANGE=${DELTA_RANGE:-7}
+
+# PARTS = Number of partitions to use for Incremantal/Delta query (set in jenkins, defaults to 2 if not set)
+PARTS=${PARTS:-2}
+
 # Need single quotes for this json object because double quotes will not epand variables
 # $strt_dt and $end_dt are set in Jenkins at execution time
-export JSON_INFO="
-{
-    'SAVE_TABLE_SQL_SUBQUERY':{
-        'AGMT_FIN_TXN_CMN_VW': {
-            'sql_query': '(SELECT * FROM ST_A_USIG_STND_VW.AGMT_FIN_TXN_CMN_VW where TRANS_EFFECTIVE_DATE  between cast('''$strt_dt''' as date) AND cast('''$end_dt''' as date)) as subquery',
-            'numPartitions': 10,
-            'partitionColumn': '(AGREEMENT_ID Mod 10)',
-            'lowerBound': 0,
-            'upperBound': 10
-        }
-    }
-}
-"
+if [ "${IDL}" -eq 0 ]; then
+  echo "Setting JSON_INFO for incremental load"
+  export JSON_INFO="
+  {
+      'SAVE_TABLE_SQL_SUBQUERY':{
+          'AGMT_FIN_TXN_CMN_VW': {
+              'sql_query': '(SELECT * FROM ST_A_USIG_STND_VW.AGMT_FIN_TXN_CMN_VW where TRANS_EFFECTIVE_DATE  between cast('''$strt_dt''' as date) AND cast('''$end_dt''' as date)) as subquery',
+              'numPartitions': 10,
+              'partitionColumn': '(AGREEMENT_ID Mod 10)',
+              'lowerBound': 0,
+              'upperBound': 10
+          }
+      }
+  }
+  "
+else
+  echo "Setting JSON_INFO for initial data load"
+
+  # If end date is not set then use current date as end date
+  current_date=$(date '+%Y-%m-%d')
+  export end_dt=${end_dt:-${current_date}}
+  echo "$end_dt date=${current_date}"
+  export JSON_INFO="
+  {
+      'SAVE_TABLE_SQL_SUBQUERY':{
+          'AGMT_FIN_TXN_CMN_VW': {
+              'sql_query': '(SELECT * FROM ST_A_USIG_STND_VW.AGMT_FIN_TXN_CMN_VW where TRANS_DT  between cast('''$end_dt''' as date) - '''$DELTA_RANGE''' AND cast('''$end_dt''' as date)) as subquery',
+              'numPartitions': '''$PARTS''',
+              'partitionColumn': '(AGREEMENT_ID Mod '''$PARTS''')',
+              'lowerBound': 0,
+              'upperBound': '''$PARTS'''
+          }
+      }
+  }
+  "
+fi
