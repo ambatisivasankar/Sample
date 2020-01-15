@@ -1,5 +1,6 @@
 
 # This should go up to the number of records in the table squark_staging.WRK_LD_BTCH_AGMT_FIN_TXN_CMN_VW
+export IDL=1
 for _ in {1..121}
   do
 
