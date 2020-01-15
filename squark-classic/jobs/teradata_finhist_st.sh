@@ -52,7 +52,7 @@ else
   {
       'SAVE_TABLE_SQL_SUBQUERY':{
           'AGMT_FIN_TXN_CMN_VW': {
-              'sql_query': '(SELECT * FROM ST_A_USIG_STND_VW.AGMT_FIN_TXN_CMN_VW where TRANS_DT  between cast('''$end_dt''' as date) - '''$DELTA_RANGE''' AND cast('''$end_dt''' as date)) as subquery',
+              'sql_query': '(SELECT * FROM ST_A_USIG_STND_VW.AGMT_FIN_TXN_CMN_VW where TRANS_DT  between cast('''$end_dt''' as date) - $DELTA_RANGE AND cast('''$end_dt''' as date)) as subquery',
               'numPartitions': $PARTS,
               'partitionColumn': '(AGREEMENT_ID Mod $PARTS)',
               'lowerBound': 0,
