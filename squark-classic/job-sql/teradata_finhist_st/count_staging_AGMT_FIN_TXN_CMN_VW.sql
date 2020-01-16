@@ -4,3 +4,6 @@ SELECT
 FROM
     squark_staging.AGMT_FIN_TXN_CMN_VW
 ;
+
+
+TRUNCATE TABLE squark_staging.AGMT_FIN_TXN_CMN_VW;
