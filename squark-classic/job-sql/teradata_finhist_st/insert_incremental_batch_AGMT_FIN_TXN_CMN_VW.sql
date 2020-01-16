@@ -1,3 +1,10 @@
+--- Count the records, used for debugging
+SELECT
+    COUNT(1)
+FROM
+    squark_staging.AGMT_FIN_TXN_CMN_VW
+;
+
 --- delete data for this date batch from the target table
 --- TRANS_DT is the date column used for INCREMENTAL batches
 DELETE FROM
