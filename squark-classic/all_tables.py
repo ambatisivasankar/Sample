@@ -481,15 +481,14 @@ def _get_generic_row_count_sql_query(table_name: str) -> str:
 def _get_row_count_query(
     db_product_name: str, jdbc_schema: str, table_name: str
 ) -> str:
-    if _database_is_oracle(db_product_name):
-        sql_query = _get_oracle_row_count_sql_query(table_name)
-    elif _database_is_db2(db_product_name):
-        sql_query = _get_db2_row_count_sql_query(jdbc_schema, table_name)
-    elif _database_is_postgresql(db_product_name) and jdbc_schema and jdbc_schema not in ("public", "%"):
-        sql_query = _get_postgresql_row_count_sql_query(jdbc_schema, table_name)
-    else:
-        sql_query = _get_generic_row_count_sql_query(table_name)
-    return sql_query
+    #if _database_is_oracle(db_product_name):
+     #   sql_query = _get_oracle_row_count_sql_query(table_name)
+    #elif _database_is_db2(db_product_name):
+    #     sql_query = _get_db2_row_count_sql_query(jdbc_schema, table_name)
+    # else:
+    #     sql_query = _get_generic_row_count_sql_query(table_name)
+    # return sql_query
+    return _get_db2_row_count_sql_query(jdbc_schema, table_name)
 
 
 def _get_query_results_from_jdbc(
