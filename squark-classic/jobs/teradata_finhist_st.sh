@@ -33,6 +33,9 @@ if [ "${IDL}" -eq 1 ]; then
               'lowerBound': 0,
               'upperBound': 10
           }
+      },
+      'TABLE_MAP':{
+          'AGMT_FIN_TXN_CMN_VW': 'AGMT_FIN_TXN_CMN_VW_st'
       }
   }
   "

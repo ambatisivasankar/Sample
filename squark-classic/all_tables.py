@@ -982,7 +982,7 @@ def save_table(
         
         sql_query = incremental_info['sql_query']
 
-        if {'numPartitions', 'partitionColumn', 'upperBound', 'lowerBound'}.issubset(incremental_info.keys()):
+        if {['numPartitions', 'partitionColumn', 'upperBound', 'lowerBound']}.issubset(incremental_info.keys()):
             print(" All required Partition keys are defined and proceeding to exeucte ")
             df = sqlctx.read.format("jdbc").options(
                 url=mod_url,
@@ -1460,7 +1460,6 @@ def main():
         tables_with_partition_info = new_utils.get_tables_with_partition_info_from_json(
             json_info
         )
-        print("")
         table_map = new_utils.get_table_map(json_info)
         write_format = env_vars["WRITE_FORMAT"]
         for table in tables:
