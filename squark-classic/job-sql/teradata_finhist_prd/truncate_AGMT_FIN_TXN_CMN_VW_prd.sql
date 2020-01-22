@@ -2,5 +2,5 @@
 SELECT
     COUNT(1)
 FROM
-    squark_staging.AGMT_FIN_TXN_CMN_VW
+    squark_staging.AGMT_FIN_TXN_CMN_VW_prd
 ;

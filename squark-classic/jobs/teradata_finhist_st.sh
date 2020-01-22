@@ -61,6 +61,9 @@ else
               'lowerBound': 0,
               'upperBound': $PARTS
           }
+      },
+      'TABLE_MAP':{
+          'AGMT_FIN_TXN_CMN_VW': 'AGMT_FIN_TXN_CMN_VW_st'
       }
   }
   "
