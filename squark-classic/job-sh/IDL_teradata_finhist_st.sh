@@ -1,7 +1,8 @@
 
 # This should go up to the number of records in the table squark_staging.WRK_LD_BTCH_AGMT_FIN_TXN_CMN_VW_st
 export IDL=1
-for _ in {1..121}
+NUM_LOOPS=${NUM_LOOPS:-125}
+for ((i=0;i<=NUM_LOOPS; i++));
   do
 
   export OTHER_VARIABLES="-e -v schema_name=squark_staging -At -o output_file "
