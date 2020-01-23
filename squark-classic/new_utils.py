@@ -347,7 +347,7 @@ def get_table_name_from_map(table_map: Optional[Dict], source_table_name: str) -
         return target_table_name
     except KeyError:
         print(
-            "--- No super table map for job"
+            "--- No super table map for table {}".format(source_table_name)
         )
         return source_table_name
     except Exception as e:
