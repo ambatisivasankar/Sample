@@ -1,7 +1,7 @@
 --- delete data for this date batch from the target table
 --- TRANS_DT is the date column used for INCREMENTAL batches
 DELETE FROM
-    teradata_finhist_st.AGMT_FIN_TXN_CMN_VW
+    teradata_finhist_qa.AGMT_FIN_TXN_CMN_VW
 WHERE
     TRANS_DT IN (
         SELECT
@@ -13,7 +13,7 @@ WHERE
 ;
 
 --- Insert all the data from staging into target
-INSERT INTO teradata_finhist_st.AGMT_FIN_TXN_CMN_VW
+INSERT INTO teradata_finhist_qa.AGMT_FIN_TXN_CMN_VW
 SELECT
     *
 FROM
