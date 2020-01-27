@@ -14,6 +14,7 @@ python35 -m venv virt
 
 echo "Updating pip..."
 "${PYTHON_VENV}"/bin/pip3 install --upgrade pip
+"${PYTHON_VENV}"/bin/pip3 install --upgrade wheel  # py4jdbc install will fail without this
 echo "Installing squark-classic requirements."
 "${PYTHON_VENV}"/bin/pip3 install pytest-runner==2.9 --index-url=https://artifactory.awsmgmt.massmutual.com/artifactory/api/pypi/python-virtual/simple/
 "${PYTHON_VENV}"/bin/pip3 install -r squark-classic/requirements.txt
