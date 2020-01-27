@@ -1,5 +1,5 @@
 # Required
-export PROJECT_ID=teradata_finhist_st
+export PROJECT_ID=teradata_finhist_qa
 export WAREHOUSE_DIR='/_wh/'
 export SQL_TEMPLATE='%s'
 export CONNECTION_ID=teradata_qa
@@ -27,7 +27,7 @@ if [ "${IDL}" -eq 1 ]; then
   {
       'SAVE_TABLE_SQL_SUBQUERY':{
           'AGMT_FIN_TXN_CMN_VW': {
-              'sql_query': '(SELECT * FROM ST_A_USIG_STND_VW.AGMT_FIN_TXN_CMN_VW where TRANS_EFFECTIVE_DATE  between cast('''$strt_dt''' as date) AND cast('''$end_dt''' as date)) as subquery',
+              'sql_query': '(SELECT * FROM QA_USIG_STND_VW.AGMT_FIN_TXN_CMN_VW where TRANS_EFFECTIVE_DATE  between cast('''$strt_dt''' as date) AND cast('''$end_dt''' as date)) as subquery',
               'numPartitions': 10,
               'partitionColumn': '(AGREEMENT_ID Mod 10)',
               'lowerBound': 0,
@@ -55,7 +55,7 @@ else
   {
       'SAVE_TABLE_SQL_SUBQUERY':{
           'AGMT_FIN_TXN_CMN_VW': {
-              'sql_query': '(SELECT * FROM ST_A_USIG_STND_VW.AGMT_FIN_TXN_CMN_VW where TRANS_DT  between cast('''$end_dt''' as date) - $DELTA_RANGE AND cast('''$end_dt''' as date)) as subquery',
+              'sql_query': '(SELECT * FROM QA_USIG_STND_VW.AGMT_FIN_TXN_CMN_VW where TRANS_DT  between cast('''$end_dt''' as date) - $DELTA_RANGE AND cast('''$end_dt''' as date)) as subquery',
               'numPartitions': $PARTS,
               'partitionColumn': '(AGREEMENT_ID Mod $PARTS)',
               'lowerBound': 0,
