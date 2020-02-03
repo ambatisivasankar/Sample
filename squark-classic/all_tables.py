@@ -1353,6 +1353,7 @@ def main():
         jdbc_schema = source_jdbc.default_schema
     except:  # TODO: Make this except statement more targeted
         jdbc_schema = ""
+    print("XXXXXXXXXXXXXXXXXX")
     print("jdbc_schema = {}".format(jdbc_schema))
     # Raise an error if the bucket is invalid
     new_utils.squark_bucket_is_valid(env_vars["SQUARK_BUCKET"])
