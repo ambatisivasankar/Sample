@@ -459,6 +459,7 @@ def _get_db2_row_count_sql_query(jdbc_schema: str, table_name: str) -> str:
     sql_query = template.render(jdbc_schema, table_name=table_name)
     return sql_query
 
+
 def _get_postgresql_row_count_sql_query(jdbc_schema: str, table_name: str) -> str:
     """Get row count sql query for DB2 db.
 
@@ -506,9 +507,8 @@ def _get_row_count_query(
         sql_query = _get_oracle_row_count_sql_query(table_name)
     elif _database_is_db2(db_product_name):
         sql_query = _get_db2_row_count_sql_query(jdbc_schema, table_name)
-    elif _database_is_postgresql(db_product_name):
-        if jdbc_schema not in ("public","%"):
-            sql_query = _get_postgresql_row_count_sql_query(jdbc_schema, table_name)
+    elif _database_is_postgresql(db_product_name) and jdbc_schema and jdbc_schema not in ("public", "%"):
+        sql_query = _get_postgresql_row_count_sql_query(jdbc_schema, table_name)
     else:
         sql_query = _get_generic_row_count_sql_query(table_name)
     return sql_query
@@ -1119,9 +1119,7 @@ def save_table(
                 ),
                 properties=properties,
             )
-        elif _database_is_postgresql(db_name_lower):
-            # per documentation, and logic, this is how we should be doing all queries, but would need to test broadly,
-            # running every squark job through below, either all connections must have schema or only '.' when present
+        elif _database_is_postgresql(db_name_lower) and jdbc_schema and jdbc_schema not in ("public", "%"):
             df = sqlctx.read.jdbc(
                 source_jdbc.url,
                 table='"{jdbc_schema}".{dbtable}'.format(
@@ -1379,7 +1377,6 @@ def main():
         jdbc_schema = source_jdbc.default_schema
     except:  # TODO: Make this except statement more targeted
         jdbc_schema = ""
-    print("XXXXXXXXXXXXXXXXXX")
     print("jdbc_schema = {}".format(jdbc_schema))
     # Raise an error if the bucket is invalid
     new_utils.squark_bucket_is_valid(env_vars["SQUARK_BUCKET"])
