@@ -1122,6 +1122,9 @@ def save_table(
         elif _database_is_postgresql(db_name_lower):
             # per documentation, and logic, this is how we should be doing all queries, but would need to test broadly,
             # running every squark job through below, either all connections must have schema or only '.' when present
+            test1 = '"{jdbc_schema}"."{dbtable}"'.format(
+                    jdbc_schema=jdbc_schema, dbtable=dbtable)
+            print(test1)
             df = sqlctx.read.jdbc(
                 source_jdbc.url,
                 table='"{jdbc_schema}"."{dbtable}"'.format(
