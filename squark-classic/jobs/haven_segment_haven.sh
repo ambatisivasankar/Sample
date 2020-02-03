@@ -20,7 +20,7 @@ export JSON_INFO="
               'lowerBound': 0,
               'upperBound': 59,
               'numPartitions': 59
-            },
+            }
         }
    }
 }
