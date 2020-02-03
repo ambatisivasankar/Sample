@@ -465,9 +465,9 @@ def _get_postgresql_row_count_sql_query(jdbc_schema: str, table_name: str) -> st
     :param table_name: Name of table to get query for
     :return: SQL query
     """
-    raw_template = "(SELECT COUNT(*) as cnt FROM" " {{ jdbc_schema }}.{{ table_name }}) as query"
+    raw_template = '(SELECT COUNT(*) as cnt FROM "{{ jdbc_schema }}"."{{ table_name }}") as query'
     template = Template(raw_template)
-    sql_query = template.render(jdbc_schema, table_name=table_name)
+    sql_query = template.render(jdbc_schema=jdbc_schema, table_name=table_name)
     return sql_query
 
 
