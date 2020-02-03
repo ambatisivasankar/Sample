@@ -414,6 +414,14 @@ def _database_is_db2(db_name: str) -> bool:
     """
     return _database_name_startswith_prefix(db_name, "db2")
 
+def _database_is_postgresql(db_name: str) -> bool:
+    """Database is  if db_name starts with postgresql.
+
+    :param db_name: Database name to check
+    :return: True if postgresql
+    """
+    return _database_name_startswith_prefix(db_name, "postgresql")
+
 
 def _database_is_postgresql(db_name: str) -> bool:
     """Database is  if db_name starts with postgresql.
@@ -450,6 +458,18 @@ def _get_db2_row_count_sql_query(jdbc_schema: str, table_name: str) -> str:
     sql_query = template.render(jdbc_schema, table_name=table_name)
     return sql_query
 
+def _get_postgresql_row_count_sql_query(jdbc_schema: str, table_name: str) -> str:
+    """Get row count sql query for DB2 db.
+
+    :param jdbc_schema: Name of schema where table exists
+    :param table_name: Name of table to get query for
+    :return: SQL query
+    """
+    raw_template = "(SELECT COUNT(*) as cnt FROM" " {{ jdbc_schema }}.{{ table_name }}) as query"
+    template = Template(raw_template)
+    sql_query = template.render(jdbc_schema, table_name=table_name)
+    return sql_query
+
 
 def _get_postgresql_row_count_sql_query(jdbc_schema: str, table_name: str) -> str:
     """Get row count sql query for DB2 db.
@@ -482,9 +502,12 @@ def _get_row_count_query(
     db_product_name: str, jdbc_schema: str, table_name: str
 ) -> str:
     if _database_is_oracle(db_product_name):
-       sql_query = _get_oracle_row_count_sql_query(table_name)
+        sql_query = _get_oracle_row_count_sql_query(table_name)
     elif _database_is_db2(db_product_name):
         sql_query = _get_db2_row_count_sql_query(jdbc_schema, table_name)
+    elif _database_is_postgresql(db_product_name):
+        if jdbc_schema not in ("public","%"):
+            sql_query = _get_postgresql_row_count_sql_query(jdbc_schema, table_name)
     else:
         sql_query = _get_generic_row_count_sql_query(table_name)
     return sql_query
