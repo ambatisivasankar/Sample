@@ -414,13 +414,14 @@ def _database_is_db2(db_name: str) -> bool:
     """
     return _database_name_startswith_prefix(db_name, "db2")
 
+
 def _database_is_postgresql(db_name: str) -> bool:
     """Database is  if db_name starts with postgresql.
 
     :param db_name: Database name to check
     :return: True if postgresql
     """
-    return _database_name_startswith_prefix(db_name, "postgresql")
+    return _database_name_startswith_prefix(db_name, "postgres")
 
 
 def _database_is_postgresql(db_name: str) -> bool:
@@ -1118,10 +1119,12 @@ def save_table(
                 ),
                 properties=properties,
             )
-        elif _database_is_postgresql(db_name_lower) and jdbc_schema and jdbc_schema not in ("public", "%"):
+        elif _database_is_postgresql(db_name_lower):
+            # per documentation, and logic, this is how we should be doing all queries, but would need to test broadly,
+            # running every squark job through below, either all connections must have schema or only '.' when present
             df = sqlctx.read.jdbc(
                 source_jdbc.url,
-                table='"{jdbc_schema}".{dbtable}'.format(
+                table='"{jdbc_schema}"."{dbtable}"'.format(
                     jdbc_schema=jdbc_schema, dbtable=dbtable
                 ),
                 properties=properties,
