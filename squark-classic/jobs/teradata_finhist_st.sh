@@ -19,6 +19,9 @@ export INCLUDE_TABLES=$include_tables
 # IDL = Initial Date Load 0 = False, 1 = True (set in jenkins, defaults to False if not set)
 IDL=${IDL:-0}
 
+# BACKFILL = 0 = False, 1 = True (set in jenkins, defaults to False if not set)
+BACKFILL=${BACKFILL:-0}
+
 # Need single quotes for this json object because double quotes will not epand variables
 # $strt_dt and $end_dt are set in Jenkins at execution time
 if [ "${IDL}" -eq 1 ]; then
@@ -28,6 +31,24 @@ if [ "${IDL}" -eq 1 ]; then
       'SAVE_TABLE_SQL_SUBQUERY':{
           'AGMT_FIN_TXN_CMN_VW': {
               'sql_query': '(SELECT * FROM ST_A_USIG_STND_VW.AGMT_FIN_TXN_CMN_VW where TRANS_EFFECTIVE_DATE  between cast('''$strt_dt''' as date) AND cast('''$end_dt''' as date)) as subquery',
+              'numPartitions': 10,
+              'partitionColumn': '(AGREEMENT_ID Mod 10)',
+              'lowerBound': 0,
+              'upperBound': 10
+          }
+      },
+      'TABLE_MAP':{
+          'AGMT_FIN_TXN_CMN_VW': 'AGMT_FIN_TXN_CMN_VW_st'
+      }
+  }
+  "
+if [ "${BACKFILL}" -eq 1 ]; then
+  echo "Setting JSON_INFO for backfill"
+  export JSON_INFO="
+  {
+      'SAVE_TABLE_SQL_SUBQUERY':{
+          'AGMT_FIN_TXN_CMN_VW': {
+              'sql_query': '(SELECT * FROM ST_A_USIG_STND_VW.AGMT_FIN_TXN_CMN_VW where TRANS_EFFECTIVE_DATE in (${DATES})) as subquery',
               'numPartitions': 10,
               'partitionColumn': '(AGREEMENT_ID Mod 10)',
               'lowerBound': 0,
