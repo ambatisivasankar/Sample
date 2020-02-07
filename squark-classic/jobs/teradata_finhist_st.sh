@@ -42,7 +42,7 @@ if [ "${IDL}" -eq 1 ]; then
       }
   }
   "
-if [ "${BACKFILL}" -eq 1 ]; then
+elif [ "${BACKFILL}" -eq 1 ]; then
   echo "Setting JSON_INFO for backfill"
   export JSON_INFO="
   {
