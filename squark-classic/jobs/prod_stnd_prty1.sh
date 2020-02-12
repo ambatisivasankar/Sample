@@ -6,17 +6,17 @@ export INCLUDE_VIEWS=1
 export INCLUDE_TABLES='PDCR_DEMOGRAPHICS_PHV'
 export CONNECTION_ID=teradata
 
-export SPARK_MAX_EXECUTORS=15
+export SPARK_MAX_EXECUTORS=10
 
 export JSON_INFO="
 {
     'PARTITION_INFO':{
         'tables': {
             'PDCR_DEMOGRAPHICS_PHV': {
-              'partitionColumn': 'COALESCE(PRTY_ID,0)',
-              'lowerBound': 8472126,
-              'upperBound': 57236804,
-              'numPartitions': 100
+              'partitionColumn': 'PRTY_ID mod 10',
+              'lowerBound': 0,
+              'upperBound': 9,
+              'numPartitions': 10
             }
         }
    }
