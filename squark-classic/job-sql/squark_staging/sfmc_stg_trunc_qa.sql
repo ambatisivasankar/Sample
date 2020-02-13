@@ -1,0 +1,4 @@
+
+
+TRUNCATE TABLE squark_staging.FAUX_CVG_ID_HIST_VW;
+

@@ -79,9 +79,8 @@ rm -f ${Table_failure}
 touch $Table_failure
 if [ $set_table_list ]
 then
-    
     TABLE_ARRAY=($INCLUDE_TABLES);
-    for ((i=0; i<${#TABLE_ARRAY[@]}; ++i));  
+    for ((i=0; i<${#TABLE_ARRAY[@]}; ++i));
     do
         sh execute_vsql_file.sh --file-name=$file_path/${TABLE_ARRAY[$i]}_MRG.sql --table-name=${TABLE_ARRAY[$i]} > ${TABLE_ARRAY[$i]}.out
         exec_status=$?
@@ -100,26 +99,28 @@ then
     then 
         cat $Table_failure
         echo "Exiting with Failure exit -1"
-        exit -1
+        exit 1
     else
         echo "Exiting after table loading completion exit 0"
         exit 0
     fi
 elif [ $set_sql_file ]
 then
+    if [ -f $SQL_FILE ]; then
+      echo "File exists."
+    else
+      echo "File does not exist. Exiting"
+      exit 1
+    fi
     sh execute_vsql_file.sh --file-name=$SQL_FILE --table-name=$SQL_FILE  > $SQL_FILE.out
-    cat $SQL_FILE.out
     exec_status=$?
+    cat ${SQL_FILE}.out
     echo $exec_status
     if [ $exec_status -ne 0 ] 
     then 
         echo "Failure in execution $SQL_FILE"
-        exit -1
-    else 
+        exit 1
+    else
         exit 0
     fi
 fi
-
-echo "No input received for sql file or table list exiting with 0" 
-exit 0
-
