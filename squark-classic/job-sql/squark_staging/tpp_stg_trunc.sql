@@ -7,4 +7,3 @@ TRUNCATE TABLE squark_staging.lab_policy;
 TRUNCATE TABLE squark_staging.summary;
 TRUNCATE TABLE squark_staging.app_case;
 TRUNCATE TABLE squark_staging.case_status_histry;
-

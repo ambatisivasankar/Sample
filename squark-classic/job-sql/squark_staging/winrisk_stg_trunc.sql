@@ -5,4 +5,3 @@ TRUNCATE TABLE squark_staging.LAB_STANDARDS;
 TRUNCATE TABLE squark_staging.NAME;
 TRUNCATE TABLE squark_staging.POLICY_EVENTS;
 TRUNCATE TABLE squark_staging.SUMMARY;
-
