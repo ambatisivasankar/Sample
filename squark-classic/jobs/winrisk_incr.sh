@@ -5,24 +5,12 @@ export SQL_TEMPLATE='%s'
 export INCLUDE_VIEWS=1
 export CONNECTION_ID=winrisk
 
-# 2017.08.03 updating winrisk to pull the tables winrisk_placement used to (as opposed to early pull-all-tables)
+
 export INCLUDE_TABLES="LAB_RESULTS,LAB_DEMOGRAPHICS,NAME,POLICY_EVENTS,LAB_STANDARDS,SUMMARY"
-#LAB_STANDARDS is not in the winrisk connection, so moved out for now
 
 echo "start Dt: " $strt_dt
 echo "End Dt: " $end_dt
-#'NAME': {
-#            'sql_query': '(SELECT name.* FROM NAME name INNER JOIN LAB_DEMOGRAPHICS lb_demg ON DATE_PERFORMED BETWEEN cast('''$strt_dt''' as date) AND cast('''$end_dt''' as date) and ((name.NAME_IDNUMBER = ISNULL(lb_demg.ssn,lb_demg.matched_ssn) and NAME_IDNUMBER is not NULL and NOT(NAME_IDNUMBER  like '''000%''' or NAME_IDNUMBER like '''999%''' or NAME_IDNUMBER  in ('''123456789''') )) or  name.NAME_POLNUM = lb_demg.POLICY_NUMBER  or (NAME_FIRSTNAME = app_first_name and NAME_LASTNAME = app_last_name and name_dob = app_dob))) as subquery',
-#            'table_pk': 'NAME_COMPANYCODE,NAME_POLNUM,NAME_SEQNO'
-#        }, 
-#'SUMMARY': {
-#            'sql_query': '(SELECT sum.* FROM SUMMARY SUM inner join NAME name on sum.sum_polnum = name.NAME_POLNUM INNER JOIN LAB_DEMOGRAPHICS lb_demg ON DATE_PERFORMED BETWEEN cast('''$strt_dt''' as date) AND cast('''$end_dt''' as date) and ((name.NAME_IDNUMBER = ISNULL(lb_demg.ssn,lb_demg.matched_ssn) and NAME_IDNUMBER is not NULL and NOT(NAME_IDNUMBER  like '''000%''' or NAME_IDNUMBER like '''999%''' or NAME_IDNUMBER  in ('''123456789''') )) or  name.NAME_POLNUM = lb_demg.POLICY_NUMBER  or (NAME_FIRSTNAME = app_first_name and NAME_LASTNAME = app_last_name and name_dob = app_dob))) as subquery'            
-#        }
-#'POLICY_EVENTS': {
-#            'sql_query': '(SELECT plc_evn.* FROM POLICY_EVENTS plc_evn WHERE plc_evn.date_occured BETWEEN DATEADD(month, -14,cast('''$strt_dt''' as date)) AND cast('''$end_dt''' as date)) as subquery',
-#            'table_pk': 'NAME_COMPANYCODE,NAME_POLNUM,NAME_SEQNO'
-#        },
-#            'sql_query': '(SELECT sum.* FROM SUMMARY SUM ) as subquery'    
+   
 export JSON_INFO="
 {
     'SAVE_TABLE_SQL_SUBQUERY':
@@ -52,3 +40,4 @@ export JSON_INFO="
     }
 }
 "
+
