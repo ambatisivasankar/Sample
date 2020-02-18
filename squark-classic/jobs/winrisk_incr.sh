@@ -1,5 +1,5 @@
 
-export PROJECT_ID=squark_staging
+export PROJECT_ID=UWDM
 export WAREHOUSE_DIR='/_wh/'
 export SQL_TEMPLATE='%s'
 export INCLUDE_VIEWS=1
