@@ -3,8 +3,14 @@ export PROJECT_ID=prod_stnd_prty1
 export WAREHOUSE_DIR='/_wh/'
 export SQL_TEMPLATE='%s'
 export INCLUDE_VIEWS=1
-export INCLUDE_TABLES='PDCR_DEMOGRAPHICS_PHV'
 export CONNECTION_ID=teradata_prod_stnd_prty
+
+INCLUDE_TABLES_ARRAY=
+("PDCR_DEMOGRAPHICS_PHV"
+ "CUST_AGMT_CMN_PHV"
+)
+
+export INCLUDE_TABLES="$(IFS=, ; echo "${INCLUDE_TABLES_ARRAY[*]}")"
 
 export SPARK_MAX_EXECUTORS=10
 
@@ -17,7 +23,13 @@ export JSON_INFO="
               'lowerBound': 0,
               'upperBound': 9,
               'numPartitions': 10
-            }
+            },
+             'CUST_AGMT_CMN_PHV': {
+              'partitionColumn': 'oreplace((prty_id || agreement_id),' ','') mod 10',
+              'lowerBound': 0,
+              'upperBound': 9,
+              'numPartitions': 10
+            } 
         }
    }
 }
