@@ -46,12 +46,6 @@ export JSON_INFO="
               "upperBound": 50,
               "numPartitions": 50
             },
-            "PDCR_DEMOGRAPHICS_PHV": {
-              "partitionColumn": "PRTY_ID MOD 10",
-              "lowerBound": 0,
-              "upperBound": 10,
-              "numPartitions": 10
-            },
             "PRTY": {
               "partitionColumn": "PRTY_ID MOD 50",
               "lowerBound": 0,
@@ -105,6 +99,12 @@ export JSON_INFO="
               'lowerBound': 0,
               'upperBound': 9,
               'numPartitions': 10
+            },
+           "BP_DNP_HIST": {
+              "partitionColumn": "BP_DNP_HIST_SID MOD 10",
+              "lowerBound": 0,
+              "upperBound": 10,
+              "numPartitions": 10
             }
        }
    }
