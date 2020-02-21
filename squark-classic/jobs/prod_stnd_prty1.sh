@@ -40,59 +40,59 @@ export JSON_INFO="
               'upperBound': 9,
               'numPartitions': 10
             },
-             "CUST_DEMOGRAPHICS_PHV": {
-              "partitionColumn": "PRTY_ID MOD 50",
-              "lowerBound": 0,
-              "upperBound": 50,
-              "numPartitions": 50
+             'CUST_DEMOGRAPHICS_PHV': {
+              'partitionColumn': 'PRTY_ID MOD 50',
+              'lowerBound': 0,
+              'upperBound': 50,
+              'numPartitions': 50
             },
-            "PRTY": {
-              "partitionColumn": "PRTY_ID MOD 50",
-              "lowerBound": 0,
-              "upperBound": 50,
-              "numPartitions": 50
+            'PRTY': {
+              'partitionColumn': 'PRTY_ID MOD 50',
+              'lowerBound': 0,
+              'upperBound': 50,
+              'numPartitions': 50
             },
-            "PRTY_AD": {
-              "partitionColumn": "PRTY_ID MOD 50",
-              "lowerBound": 0,
-              "upperBound": 50,
-              "numPartitions": 50
+            'PRTY_AD': {
+              'partitionColumn': 'PRTY_ID MOD 50',
+              'lowerBound': 0,
+              'upperBound': 50,
+              'numPartitions': 50
             },
-            "PRTY_ALT_ID": {
-              "partitionColumn": "PRTY_ID MOD 50",
-              "lowerBound": 0,
-              "upperBound": 50,
-              "numPartitions": 50
+            'PRTY_ALT_ID': {
+              'partitionColumn': 'PRTY_ID MOD 50',
+              'lowerBound': 0,
+              'upperBound': 50,
+              'numPartitions': 50
             },
-            "PRTY_SLLNG_AGMT": {
-              "partitionColumn": "CONTR_ID MOD 50",
-              "lowerBound": 0,
-              "upperBound": 50,
-              "numPartitions": 50
+            'PRTY_SLLNG_AGMT': {
+              'partitionColumn': 'CONTR_ID MOD 50',
+              'lowerBound': 0,
+              'upperBound': 50,
+              'numPartitions': 50
             },
-            "SLLNG_AGMT": {
-              "partitionColumn": "CONTR_ID MOD 50",
-              "lowerBound": 0,
-              "upperBound": 10,
-              "numPartitions": 10
+            'SLLNG_AGMT': {
+              'partitionColumn': 'CONTR_ID MOD 50',
+              'lowerBound': 0,
+              'upperBound': 10,
+              'numPartitions': 10
             },
-            "SLLNG_AGMT_CMN_PHV": {
-              "partitionColumn": "CONTR_ID MOD 10",
-              "lowerBound": 0,
-              "upperBound": 10,
-              "numPartitions": 10
+            'SLLNG_AGMT_CMN_PHV': {
+              'partitionColumn': 'CONTR_ID MOD 10',
+              'lowerBound': 0,
+              'upperBound': 10,
+              'numPartitions': 10
             },
-            "SLLNG_AGMT_DTL": {
-              "partitionColumn": "CONTR_ID MOD 50",
-              "lowerBound": 0,
-              "upperBound": 50,
-              "numPartitions": 50
+            'SLLNG_AGMT_DTL': {
+              'partitionColumn': 'CONTR_ID MOD 50',
+              'lowerBound': 0,
+              'upperBound': 50,
+              'numPartitions': 50
             },
-            "SLLNG_AGMT_SM_SPLITS": {
-              "partitionColumn": "CONTR_ID MOD 10",
-              "lowerBound": 0,
-              "upperBound": 10,
-              "numPartitions": 10 
+            'SLLNG_AGMT_SM_SPLITS': {
+              'partitionColumn': 'CONTR_ID MOD 10',
+              'lowerBound': 0,
+              'upperBound': 10,
+              'numPartitions': 10 
            },
            'DTCHD_OFC': {
               'partitionColumn': 'AGY_PRTY_ID mod 10',
@@ -100,11 +100,11 @@ export JSON_INFO="
               'upperBound': 9,
               'numPartitions': 10
             },
-           "BP_DNP_HIST": {
-              "partitionColumn": "BP_DNP_HIST_SID MOD 10",
-              "lowerBound": 0,
-              "upperBound": 10,
-              "numPartitions": 10
+           'BP_DNP_HIST': {
+              'partitionColumn': 'BP_DNP_HIST_SID MOD 10',
+              'lowerBound': 0,
+              'upperBound': 10,
+              'numPartitions': 10
             }
        }
    }
