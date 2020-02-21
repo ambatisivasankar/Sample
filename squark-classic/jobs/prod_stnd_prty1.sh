@@ -24,7 +24,7 @@ INCLUDE_TABLES_ARRAY=(
 export INCLUDE_TABLES="$(IFS=, ; echo "${INCLUDE_TABLES_ARRAY[*]}")"
 export SPARK_MAX_EXECUTORS=10
 
-export JSON_INFO="
+export JSON_INFO='
 {
     "PARTITION_INFO":{
         "tables": {
@@ -109,4 +109,4 @@ export JSON_INFO="
        }
    }
 }
-"
+'
