@@ -11,7 +11,6 @@ INCLUDE_TABLES_ARRAY=(
   "CUST_DEMOGRAPHICS_PHV"
   "PDCR_DEMOGRAPHICS_PHV"
   "PRTY"
-  "PRTY_AD"
   "PRTY_ALT_ID"
   "PRTY_SLLNG_AGMT"
   "SLLNG_AGMT"
@@ -47,12 +46,6 @@ export JSON_INFO='
               "numPartitions": 50
             },
             "PRTY": {
-              "partitionColumn": "PRTY_ID MOD 50",
-              "lowerBound": 0,
-              "upperBound": 50,
-              "numPartitions": 50
-            },
-            "PRTY_AD": {
               "partitionColumn": "PRTY_ID MOD 50",
               "lowerBound": 0,
               "upperBound": 50,
