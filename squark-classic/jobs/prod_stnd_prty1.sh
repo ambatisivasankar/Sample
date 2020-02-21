@@ -35,7 +35,7 @@ export JSON_INFO="
               "numPartitions": 10
             },
              "CUST_AGMT_CMN_PHV": {
-              "partitionColumn": "oreplace((prty_id || agreement_id),' ','') mod 10",
+              "partitionColumn": "prty_id mod 10",
               "lowerBound": 0,
               "upperBound": 9,
               "numPartitions": 10
