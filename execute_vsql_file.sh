@@ -30,14 +30,12 @@ done
 if [ $set_file_name -ne 1 ]
 then
     echo "File Name not passed"
-    exit -1
+    exit 1
 fi
 
 
 echo $FILE_NAME
 export TABLE_OUT=${TABLE_NAME}.sql.out
-echo "Executing VSQL for " $FILE_NAME   
+echo "Executing VSQL for " $FILE_NAME
 cat $FILE_NAME
-vsql -m require -e -f $FILE_NAME -o $TABLE_OUT -h $AWS_VERTICA_HOST -p $AWS_VERTICA_PORT -U $AWS_VERTICA_USER -w $AWS_VERTICA_PASSWORD -d $VERTICA_DATABASE -v STG_SCHEMA=${STG_SCHEMA} -v TGT_SCHEMA=${TGT_SCHEMA} -v SOURCE_SCHEMA=${SOURCE_SCHEMA} ${OTHER_VARIABLES}
-cat $TABLE_OUT
-
+vsql -m require -e -f $FILE_NAME -h $AWS_VERTICA_HOST -p $AWS_VERTICA_PORT -U $AWS_VERTICA_USER -w $AWS_VERTICA_PASSWORD -d $VERTICA_DATABASE -v ON_ERROR_STOP=1 -v STG_SCHEMA=${STG_SCHEMA} -v TGT_SCHEMA=${TGT_SCHEMA} -v SOURCE_SCHEMA=${SOURCE_SCHEMA} ${OTHER_VARIABLES}

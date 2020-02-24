@@ -82,8 +82,8 @@ then
     TABLE_ARRAY=($INCLUDE_TABLES);
     for ((i=0; i<${#TABLE_ARRAY[@]}; ++i));
     do
-        sh execute_vsql_file.sh --file-name=$file_path/${TABLE_ARRAY[$i]}_MRG.sql --table-name=${TABLE_ARRAY[$i]} > ${TABLE_ARRAY[$i]}.out
-        exec_status=$?
+            sh execute_vsql_file.sh --file-name=$file_path/${TABLE_ARRAY[$i]}_MRG.sql --table-name=${TABLE_ARRAY[$i]} > ${TABLE_ARRAY[$i]}.out
+            exec_status=$?
         echo $exec_status
         if [ $exec_status -ne 0 ]
         then 
@@ -97,7 +97,7 @@ then
     echo "Table Failure" $fail_count
     if [ $fail_count -ne 0 ]
     then 
-        cat $Table_failure
+            cat $Table_failure
         echo "Exiting with Failure exit -1"
         exit 1
     else

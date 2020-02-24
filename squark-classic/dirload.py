@@ -50,6 +50,7 @@ ENV_VARS_TO_LOAD_WITH_DEFAULTS = [
     ("HDFS_USER", None),
     ("SQUARK_DELETED_TABLE_SUFFIX", "_ADVANA_DELETED"),
     ("WRITE_FORMAT", "orc"),
+    ("JSON_INFO", None),
 ]
 
 # vars which
@@ -89,8 +90,9 @@ def get_s3_urls(
     squark_deleted_table_suffix,
     exclude_tables,
     write_format,
+    table_map,
 ):
-
+    inverted_table_map = new_utils.get_inverted_dict(table_map)
     session = boto3.Session(
         aws_access_key_id=aws_access_key_id,
         aws_secret_access_key=aws_secret_access_key,
@@ -118,7 +120,7 @@ def get_s3_urls(
     urls = defaultdict(list)
     for spark_file in all_spark_files:
         tablename = spark_file.replace(prefix, "").strip("/").split("/")[0]
-
+        unmapped_table_name = new_utils.get_table_name_from_map(inverted_table_map, tablename)
         if include_tables is not None:
 
             include_tables_variants = [
@@ -126,19 +128,19 @@ def get_s3_urls(
             ]
             include_tables_all = include_tables + include_tables_variants
 
-            if tablename not in include_tables_all:
+            if unmapped_table_name not in include_tables_all:
                 print(
                     "*******SKIPPING NOT INCLUDED TABLE: {tablename!r}".format(
-                        tablename=tablename
+                        tablename=unmapped_table_name
                     )
                 )
                 continue
 
         if exclude_tables is not None:
-            if tablename in exclude_tables:
+            if unmapped_table_name in exclude_tables:
                 print(
                     "*******SKIPPING EXCLUDE_TABLES TABLE: {tablename!r}".format(
-                        tablename=tablename
+                        tablename=unmapped_table_name
                     )
                 )
                 continue
@@ -321,6 +323,9 @@ def main():
         )
         include_tables = new_utils.split_strip_str(env_vars["INCLUDE_TABLES"])
         exclude_tables = new_utils.split_strip_str(env_vars["EXCLUDE_TABLES"])
+        json_info = new_utils.parse_json(env_vars["JSON_INFO"])
+        table_map = new_utils.get_table_map(json_info)
+
         aws_urls = get_s3_urls(
             project_id=env_vars["PROJECT_ID"],
             aws_access_key_id=aws_access_key_id,
@@ -331,6 +336,7 @@ def main():
             squark_deleted_table_suffix=env_vars["SQUARK_DELETED_TABLE_SUFFIX"],
             exclude_tables=exclude_tables,
             write_format=env_vars["WRITE_FORMAT"],
+            table_map=table_map,
         )
         total_table_count = len(aws_urls.keys())
         print(

@@ -313,3 +313,49 @@ def get_super_projection_settings_for_table(
             )
         )
         return super_projection
+
+
+def get_table_map(info: Optional[Dict]) -> Optional[Dict]:
+    """Get table map for job.
+
+    :param info: 'JSON_INFO' dict
+    :return: Table map dict {source_name: target_name, ...
+    """
+    if info is None:
+        return None
+    try:
+        table_map = info["TABLE_MAP"]  # type: Dict[str, str]
+        return table_map
+    except KeyError:
+        print(
+            "--- No table map for job"
+        )
+        return None
+
+
+def get_table_name_from_map(table_map: Optional[Dict], source_table_name: str) -> str:
+    """Get table map for job.
+
+    :param table_map: 'tables_with_super_projection_settings' dict
+    :param source_table_name: Name of table in source
+    :return: Table map dict {source_name: target_name, ...
+    """
+    if table_map is None:
+        return source_table_name
+    try:
+        target_table_name = table_map[source_table_name]  # type: str
+        return target_table_name
+    except KeyError:
+        print(
+            "--- No super table map for table {}".format(source_table_name)
+        )
+        return source_table_name
+    except Exception as e:
+        print(str(e))
+        return source_table_name
+
+
+def get_inverted_dict(source_dict: Optional[Dict]) -> Optional[Dict]:
+    if source_dict is None:
+        return None
+    return {v: k for k, v in source_dict.items()}

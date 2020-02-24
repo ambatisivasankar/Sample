@@ -415,6 +415,15 @@ def _database_is_db2(db_name: str) -> bool:
     return _database_name_startswith_prefix(db_name, "db2")
 
 
+def _database_is_postgresql(db_name: str) -> bool:
+    """Database is  if db_name starts with postgresql.
+
+    :param db_name: Database name to check
+    :return: True if postgresql
+    """
+    return _database_name_startswith_prefix(db_name, "postgres")
+
+
 def _get_oracle_row_count_sql_query(table_name: str) -> str:
     """Get row count sql query for Oracle db.
 
@@ -442,6 +451,19 @@ def _get_db2_row_count_sql_query(jdbc_schema: str, table_name: str) -> str:
     return sql_query
 
 
+def _get_postgresql_row_count_sql_query(jdbc_schema: str, table_name: str) -> str:
+    """Get row count sql query for DB2 db.
+
+    :param jdbc_schema: Name of schema where table exists
+    :param table_name: Name of table to get query for
+    :return: SQL query
+    """
+    raw_template = '(SELECT COUNT(*) as cnt FROM "{{ jdbc_schema }}"."{{ table_name }}") as query'
+    template = Template(raw_template)
+    sql_query = template.render(jdbc_schema=jdbc_schema, table_name=table_name)
+    return sql_query
+
+
 def _get_generic_row_count_sql_query(table_name: str) -> str:
     """Get row count sql query for generic db.
 
@@ -463,6 +485,8 @@ def _get_row_count_query(
         sql_query = _get_oracle_row_count_sql_query(table_name)
     elif _database_is_db2(db_product_name):
         sql_query = _get_db2_row_count_sql_query(jdbc_schema, table_name)
+    elif _database_is_postgresql(db_product_name) and jdbc_schema and jdbc_schema not in ("public", "%"):
+        sql_query = _get_postgresql_row_count_sql_query(jdbc_schema, table_name)
     else:
         sql_query = _get_generic_row_count_sql_query(table_name)
     return sql_query
@@ -867,8 +891,9 @@ def save_table(
     sql_query: Optional[str] = None,
     partition_info: Optional[Dict] = None,
     incremental_info: Optional[Dict] = None,
+    table_name_mapped: Optional[str] = None,
 ):
-
+    table_name_mapped = table_name_mapped or table_name
     dbtable = env_vars["SQL_TEMPLATE"] % table_name
     is_incremental = False
 
@@ -931,27 +956,27 @@ def save_table(
             mod_url = source_jdbc.url + ",MAYBENULL=ON"
         else :
             mod_url = source_jdbc.url
-        print("Modified URL",mod_url)
+        print("Modified URL", mod_url)
         
-        sql_query =incremental_info['sql_query']
+        sql_query = incremental_info['sql_query']
 
-        if set(['numPartitions', 'partitionColumn','upperBound','lowerBound']).issubset(incremental_info.keys()):
+        if {'numPartitions', 'partitionColumn', 'upperBound', 'lowerBound'}.issubset(incremental_info.keys()):
             print(" All required Partition keys are defined and proceeding to exeucte ")
             df = sqlctx.read.format("jdbc").options(
                 url=mod_url,
                 dbtable=sql_query,
                 user=source_jdbc.user,
                 password=source_jdbc.password,
-                partitionColumn = incremental_info['partitionColumn'],
-                lowerBound = incremental_info['lowerBound'],
-                upperBound = incremental_info['upperBound'],
-                numPartitions = incremental_info['numPartitions'],
+                partitionColumn=incremental_info['partitionColumn'],
+                lowerBound=incremental_info['lowerBound'],
+                upperBound=incremental_info['upperBound'],
+                numPartitions=incremental_info['numPartitions'],
                 ).load()
-        else :                
+        else:
             print("Proceeding to execute the sql query without setting 'numpartitions', 'partitionColumn','upperBound','lowerBound' ")
             df = sqlctx.read.jdbc(mod_url, sql_query, properties=properties)       
         
-        print('--- Executing subquery: %r' % (sql_query), flush=True)
+        print('--- Executing subquery: %r' % sql_query, flush=True)
                
     elif partition_info is not None:
         partition_column = partition_info["partitionColumn"]
@@ -993,7 +1018,7 @@ def save_table(
             max_last_updated_time = utils.get_haven_max_last_updated_time(
                 vertica_conn,
                 schema_name=base_schema_name,
-                table_name=table_name,
+                table_name=table_name_mapped,
                 column_name=last_updated_column_name,
             )
             print(
@@ -1026,7 +1051,7 @@ def save_table(
             vert_pk_sql_query = "(SELECT {pkid_column_name} FROM {schema_name}.{table_name}) as subquery".format(
                 pkid_column_name=pkid_column_name,
                 schema_name=base_schema_name,
-                table_name=table_name,
+                table_name=table_name_mapped,
             )
             vert_properties = dict(
                 user=destination_vertica.user, password=destination_vertica.password
@@ -1039,6 +1064,8 @@ def save_table(
             )
             # print('### DEBUG: df_vertica.count(): {}'.format(df_vertica.count()))
 
+        if _database_is_postgresql(db_name_lower) and jdbc_schema and jdbc_schema not in ("public", "%"):
+            dbtable = '"{jdbc_schema}".{dbtable}'.format(jdbc_schema=jdbc_schema, dbtable=dbtable)
         lazy_read = sqlctx.read.format("jdbc").options(
             url=source_jdbc.url,
             dbtable=dbtable,
@@ -1070,6 +1097,14 @@ def save_table(
                 ),
                 properties=properties,
             )
+        elif _database_is_postgresql(db_name_lower) and jdbc_schema and jdbc_schema not in ("public", "%"):
+            df = sqlctx.read.jdbc(
+                source_jdbc.url,
+                table='"{jdbc_schema}".{dbtable}'.format(
+                    jdbc_schema=jdbc_schema, dbtable=dbtable
+                ),
+                properties=properties,
+            )
         else:
             df = sqlctx.read.jdbc(source_jdbc.url, table=dbtable, properties=properties)
 
@@ -1078,7 +1113,7 @@ def save_table(
             dbtable=dbtable
         )
     )
-    df_schema_def = df.printSchema()        
+    df.printSchema()
     print(
         "--- Sanitizing columns for {dbtable!r}: {df_schema_names!r}".format(
             dbtable=dbtable, df_schema_names=df.schema.names
@@ -1159,7 +1194,7 @@ def save_table(
                 SQUARK_BUCKET=env_vars["SQUARK_BUCKET"],
                 SQUARK_TYPE=env_vars["SQUARK_TYPE"],
                 PROJECT_ID=env_vars["PROJECT_ID"],
-                TABLE_NAME=table_name,
+                TABLE_NAME=table_name_mapped,
                 WRITE_FORMAT=write_format,
             )
         )
@@ -1203,7 +1238,7 @@ def save_table(
 
             # print('### DEBUG: df_deleted.count(): {}'.format(df_deleted.count()))
             table_name_deleted = "{table}{deleted_table_suffix}".format(
-                table=table_name,
+                table=table_name_mapped,
                 deleted_table_suffix=env_vars["SQUARK_DELETED_TABLE_SUFFIX"],
             )
             s2d = time.time()
@@ -1320,7 +1355,7 @@ def main():
         jdbc_schema = source_jdbc.default_schema
     except:  # TODO: Make this except statement more targeted
         jdbc_schema = ""
-
+    print("jdbc_schema = {}".format(jdbc_schema))
     # Raise an error if the bucket is invalid
     new_utils.squark_bucket_is_valid(env_vars["SQUARK_BUCKET"])
     print_env_vars(env_vars, source_jdbc, destination_vertica, jdbc_schema)
@@ -1403,11 +1438,13 @@ def main():
         tables_with_partition_info = new_utils.get_tables_with_partition_info_from_json(
             json_info
         )
+        print("")
+        table_map = new_utils.get_table_map(json_info)
         write_format = env_vars["WRITE_FORMAT"]
         for table in tables:
 
             s1 = time.time()
-
+            table_name_target = new_utils.get_table_name_from_map(table_map, table[table_name_key])
             if env_vars["INCLUDE_TABLES"] is not None:
                 if table[table_name_key] not in include_tables:
                     print(
@@ -1473,6 +1510,7 @@ def main():
                         sql_query,
                         partition_info,
                         incremental_info,
+                        table_name_target,
                     )
                 except Exception as exc:
                     print(exc)
@@ -1511,6 +1549,7 @@ def main():
                             sql_query,
                             partition_info,
                             incremental_info,
+                            table_name_target,
                         )
                         retry_bool = False
                     except squark.exceptions.SaveToS3Error as e:
@@ -1537,14 +1576,14 @@ def main():
                     print("ERROR! Number of retries exceeded!! Exiting...")
                     raise
 
-            processed_tables.append(table[table_name_key])
+            processed_tables.append(table_name_target)
             table_time = time.time() - s1
             print(
                 " ------- Total Time for Table {table}: {table_time:0.3f} seconds".format(
                     table=table, table_time=table_time
                 )
             )
-            table_timing.append([table[table_name_key], table_time])
+            table_timing.append([table_name_target, table_time])
 
     except Exception as e:
         error_message = str(e)
