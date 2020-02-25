@@ -1,5 +1,5 @@
-export PROJECT_ID=prod_stnd_prty1
-# primary purpose of schema is to refresh select schemas on a daily basis
+export PROJECT_ID=prod_stnd_prty
+# primary purpose of schema is to load the data to squark_staging and finally to prod_stnd_prty in Vertica. 
 export WAREHOUSE_DIR="/_wh/"
 export SQL_TEMPLATE="%s"
 export INCLUDE_VIEWS=1
