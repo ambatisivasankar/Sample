@@ -424,15 +424,6 @@ def _database_is_postgresql(db_name: str) -> bool:
     return _database_name_startswith_prefix(db_name, "postgres")
 
 
-def _database_is_postgresql(db_name: str) -> bool:
-    """Database is  if db_name starts with postgresql.
-
-    :param db_name: Database name to check
-    :return: True if postgresql
-    """
-    return _database_name_startswith_prefix(db_name, "postgres")
-
-
 def _get_oracle_row_count_sql_query(table_name: str) -> str:
     """Get row count sql query for Oracle db.
 
@@ -457,19 +448,6 @@ def _get_db2_row_count_sql_query(jdbc_schema: str, table_name: str) -> str:
     )
     template = Template(raw_template)
     sql_query = template.render(jdbc_schema, table_name=table_name)
-    return sql_query
-
-
-def _get_postgresql_row_count_sql_query(jdbc_schema: str, table_name: str) -> str:
-    """Get row count sql query for DB2 db.
-
-    :param jdbc_schema: Name of schema where table exists
-    :param table_name: Name of table to get query for
-    :return: SQL query
-    """
-    raw_template = '(SELECT COUNT(*) as cnt FROM "{{ jdbc_schema }}"."{{ table_name }}") as query'
-    template = Template(raw_template)
-    sql_query = template.render(jdbc_schema=jdbc_schema, table_name=table_name)
     return sql_query
 
 
