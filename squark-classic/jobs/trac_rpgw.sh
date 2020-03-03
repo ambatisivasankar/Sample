@@ -16,6 +16,7 @@ INCLUDE_TABLES_ARRAY=(
   "DIM_CONSENT_CUST"
   "DIM_EMPLOYEE"
   "DIM_ICU"
+  "DIM_INVESTMENT_VEHICLE"
   "DIM_PARTICIPANT"
   "DIM_PARTICIPANT_ACCOUNT"
   "DIM_PLAN"
@@ -45,6 +46,12 @@ export JSON_INFO='
             },
             "DIM_EMPLOYEE": {
               "partitionColumn": "ACTV_RCRD_IND = """Y""" AND MOD(EMPLY_KEY,20)",
+              "lowerBound": 0,
+              "upperBound": 20,
+              "numPartitions": 20
+            },
+            "DIM_INVESTMENT_VEHICLE": {
+              "partitionColumn": "MOD(INVSTMNT_VHCL_KEY, 20)",
               "lowerBound": 0,
               "upperBound": 20,
               "numPartitions": 20
