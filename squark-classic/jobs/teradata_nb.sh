@@ -77,12 +77,6 @@ export JSON_INFO="
               'upperBound': 25,
               'numPartitions': 25
             },
-            'NB_BINGO_DTL_VW': {
-              'partitionColumn': 'MRG_AGENCY_SRC_SYS_PRTY_ID MOD 25',
-              'lowerBound': 0,
-              'upperBound': 25,
-              'numPartitions': 25
-            },
             'NB_BLDED_SUBMIT_APPL_DTL_VW': {
               'partitionColumn': 'MRG_AGENCY_SRC_SYS_PRTY_ID MOD 5',
               'lowerBound': 0,
