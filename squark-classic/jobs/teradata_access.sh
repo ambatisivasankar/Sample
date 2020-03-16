@@ -7,7 +7,6 @@ export SPARK_MAX_EXECUTORS=5
 
 include_tables_array=(
   "AFT_WHLSLR_HIER_VW"
-  "CUST_DMGR_DATA_VW"
   "SALES_HIERARCHY_VW"
 )
 
@@ -19,17 +18,11 @@ export JSON_INFO="
 {
     'PARTITION_INFO':{
         'tables': {
-            'CUST_DMGR_DATA_VW': {
-              'partitionColumn': 'PRTY_ID MOD 50',
-              'lowerBound': 0,
-              'upperBound': 50,
-              'numPartitions': 50
-            },
             'SALES_HIERARCHY_VW': {
-              'partitionColumn': 'AGY_PRTY_ID MOD 50',
+              'partitionColumn': 'AGY_PRTY_ID MOD 5',
               'lowerBound': 0,
-              'upperBound': 50,
-              'numPartitions': 50
+              'upperBound': 5,
+              'numPartitions': 5
             }
         }
    }
