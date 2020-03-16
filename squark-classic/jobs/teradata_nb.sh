@@ -5,6 +5,7 @@ export INCLUDE_VIEWS=1
 export CONNECTION_ID=teradata_nb
 
 export SPARK_MAX_EXECUTORS=5
+export MAYBENULL=1
 
 # Required for NB_BINGO_DTL_VW
 export MAYBENULL=1
