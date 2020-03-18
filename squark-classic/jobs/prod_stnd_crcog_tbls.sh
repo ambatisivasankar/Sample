@@ -48,7 +48,7 @@ export JSON_INFO='
               "numPartitions": 10
             },
             "AGY_RENT_ADJ_VW": {
-              "partitionColumn": "AGY_BPID MOD 10",
+              "partitionColumn": "AGY_BP_ID MOD 10",
               "lowerBound": 0,
               "upperBound": 10,
               "numPartitions": 10
