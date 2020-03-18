@@ -54,7 +54,7 @@ export JSON_INFO='
               "numPartitions": 10
             },
             "SEC_COMP_SUM_VW": {
-              "partitionColumn": "TRLGY_LEDG_ID MOD 10",
+              "partitionColumn": "FIRM_BPID MOD 10",
               "lowerBound": 0,
               "upperBound": 10,
               "numPartitions": 10
