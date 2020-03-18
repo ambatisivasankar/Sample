@@ -1,5 +1,5 @@
 export PROJECT_ID=prod_stnd_crcog_tbls
-# primary purpose of schema is to load the data to squark_staging and finally to prod_stnd_crcog_tbls in Vertica. 
+# primary purpose of schema is to load the data to squark_staging and finally to prod_stnd_prty in Vertica. 
 export WAREHOUSE_DIR="/_wh/"
 export SQL_TEMPLATE="%s"
 export INCLUDE_VIEWS=1
@@ -36,7 +36,7 @@ export JSON_INFO='
               "numPartitions": 10
             },
              "RCOG_DI_BONUS_VW": {
-              "partitionColumn": "AGT_BP_ID MOD 10",
+              "partitionColumn": "AGT_BPID MOD 10",
               "lowerBound": 0,
               "upperBound": 10,
               "numPartitions": 10
@@ -48,13 +48,13 @@ export JSON_INFO='
               "numPartitions": 10
             },
             "AGY_RENT_ADJ_VW": {
-              "partitionColumn": "AGY_BP_ID MOD 10",
+              "partitionColumn": "AGY_BPID MOD 10",
               "lowerBound": 0,
               "upperBound": 10,
               "numPartitions": 10
             },
             "SEC_COMP_SUM_VW": {
-              "partitionColumn": "FIRM_BPID MOD 10",
+              "partitionColumn": "TRLGY_LEDG_ID MOD 10",
               "lowerBound": 0,
               "upperBound": 10,
               "numPartitions": 10
