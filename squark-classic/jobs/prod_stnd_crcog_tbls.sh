@@ -1,5 +1,5 @@
 export PROJECT_ID=prod_stnd_crcog_tbls
-# primary purpose of schema is to load the data to squark_staging and finally to prod_stnd_prty in Vertica. 
+# primary purpose of schema is to load the data to squark_staging and finally to prod_stnd_crcog_tbls in Vertica. 
 export WAREHOUSE_DIR="/_wh/"
 export SQL_TEMPLATE="%s"
 export INCLUDE_VIEWS=1
