@@ -1,0 +1,61 @@
+truncate table prod_stnd_crcog_tbls.SM_VALIDATION ;
+
+INSERT
+INTO
+    prod_stnd_crcog_tbls.SM_VALIDATION
+    (
+        BATCH_CYCLE_DT,
+        BP_ID,
+        UNIT_NR,
+        REL_STRT_DT,
+        REL_END_DT,
+        SM_VAL_ROLE_TYP,
+        SRC_SM_VAL_ROLE_TYP,
+        AGY_NR,
+        AGY_BP_ID,
+        CAP_VLDTN_DT,
+        PAYROLL_NR_SINCE_DDS,
+        DDS_AMT,
+        PRST_IND,
+        CURR_CAP_AMT,
+        SM_PLAN_GRNDFTHR_CD,
+        ALT_VLDTN_IND,
+        CAP_YR1_AMT,
+        CAP_YR2_AMT,
+        CAP_LIAB_AMT,
+        SRC_SYS_ID,
+        CHG_TYP,
+        RUN_ID,
+        UPDT_RUN_ID,
+        TRANS_DT,
+        SRC_DEL_IND,
+        CURR_IND
+    )
+    select BATCH_CYCLE_DT,
+        BP_ID,
+        UNIT_NR,
+        REL_STRT_DT,
+        REL_END_DT,
+        SM_VAL_ROLE_TYP,
+        SRC_SM_VAL_ROLE_TYP,
+        AGY_NR,
+        AGY_BP_ID,
+        CAP_VLDTN_DT,
+        PAYROLL_NR_SINCE_DDS,
+        DDS_AMT,
+        PRST_IND,
+        CURR_CAP_AMT,
+        SM_PLAN_GRNDFTHR_CD,
+        ALT_VLDTN_IND,
+        CAP_YR1_AMT,
+        CAP_YR2_AMT,
+        CAP_LIAB_AMT,
+        SRC_SYS_ID,
+        CHG_TYP,
+        RUN_ID,
+        UPDT_RUN_ID,
+        TRANS_DT,
+        SRC_DEL_IND,
+        CURR_IND from squark_staging.SM_VALIDATION_VW ;
+
+commit ;

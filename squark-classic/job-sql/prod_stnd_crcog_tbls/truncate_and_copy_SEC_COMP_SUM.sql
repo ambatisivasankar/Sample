@@ -1,0 +1,61 @@
+truncate table prod_stnd_crcog_tbls.SEC_COMP_SUM  ;
+
+INSERT
+INTO
+    prod_stnd_crcog_tbls.SEC_COMP_SUM
+    (
+        COMM_CLOS_DT,
+        TRLGY_LEDG_ID,
+        SEC_COMP_TYP_CD,
+        SRC_SEC_COMP_TYP_CD,
+        FIRM_ID,
+        FIRM_BPID,
+        FIRM_PRTY_ID,
+        PRMRY_PAY_ENTY_BPID,
+        PRMRY_PAY_ENTY_PRTY_ID,
+        SRC_PRMRY_PAY_ENTY_GOVT_ID,
+        SCNDRY_PAY_ENTY_BPID,
+        SCNDRY_PAY_ENTY_PRTY_ID,
+        SRC_SCNDRY_PAY_ENTY_GOVT_ID,
+        SRC_ACCT_TXN_CDE,
+        SEC_COMP_TOT_PAYABLE_AMT,
+        SRC_CAS_IND,
+        UNIT_NR,
+        UNIT_BPID,
+        FINRA_IND,
+        SRC_FINRA_IND,
+        COMP_CALC_MDL_CD,
+        SRC_SYS_ID,
+        RUN_ID,
+        UPDT_RUN_ID,
+        TRANS_DT,
+        CURR_IND
+    )
+    select COMM_CLOS_DT,
+        TRLGY_LEDG_ID,
+        SEC_COMP_TYP_CD,
+        SRC_SEC_COMP_TYP_CD,
+        FIRM_ID,
+        FIRM_BPID,
+        FIRM_PRTY_ID,
+        PRMRY_PAY_ENTY_BPID,
+        PRMRY_PAY_ENTY_PRTY_ID,
+        SRC_PRMRY_PAY_ENTY_GOVT_ID,
+        SCNDRY_PAY_ENTY_BPID,
+        SCNDRY_PAY_ENTY_PRTY_ID,
+        SRC_SCNDRY_PAY_ENTY_GOVT_ID,
+        SRC_ACCT_TXN_CDE,
+        SEC_COMP_TOT_PAYABLE_AMT,
+        SRC_CAS_IND,
+        UNIT_NR,
+        UNIT_BPID,
+        FINRA_IND,
+        SRC_FINRA_IND,
+        COMP_CALC_MDL_CD,
+        SRC_SYS_ID,
+        RUN_ID,
+        UPDT_RUN_ID,
+        TRANS_DT,
+        CURR_IND from squark_staging.SEC_COMP_SUM_VW;
+
+commit ;
