@@ -31,9 +31,9 @@ export JSON_INFO="
             'upperBound': 13
         }
     },
-      'TABLE_MAP':{
-          'CAL_VW': 'teradata_siera_cal_vw',
-          'SLS_RPTG_PREM_HIST_VW': 'teradata_siera_sls_rptg_prem_hist_vw'
-      }
+    'TABLE_MAP':{
+        'CAL_VW': 'teradata_siera_cal_vw',
+        'SLS_RPTG_PREM_HIST_VW': 'teradata_siera_sls_rptg_prem_hist_vw'
+    }
 }
 "

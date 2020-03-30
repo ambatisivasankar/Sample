@@ -1,0 +1,1 @@
+TRUNCATE TABLE squark_staging.teradata_siera_sls_rptg_prem_hist_vw;
