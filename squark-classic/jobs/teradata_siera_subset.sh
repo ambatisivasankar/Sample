@@ -8,9 +8,6 @@ export SQL_TEMPLATE='%s'
 export INCLUDE_VIEWS=1
 export SKIP_SOURCE_ROW_COUNT=0
 export SPARK_MAX_EXECUTORS=6
-# export SPARK_EXECUTOR_MEMORY="4G"
-echo "Start dt: " $strt_dt
-echo "End Dt: " $end_dt
 
 include_tables_array=(
   "SLS_RPTG_PREM_HIST_VW"
