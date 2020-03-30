@@ -28,7 +28,7 @@ export JSON_INFO="
             'upperBound': 13
         },
         'CAL_VW': {
-            'sql_query': '(SELECT * FROM PROD_USIG_CRCOG_DM_RPTG_VW.CAL_VW) as subquery',
+            'sql_query': '(SELECT * FROM PROD_USIG_CRCOG_DM_RPTG_VW.CAL_VW) as subquery'
         }
     }
 }
