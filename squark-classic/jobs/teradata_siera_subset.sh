@@ -23,7 +23,7 @@ export JSON_INFO="
         'SLS_RPTG_PREM_HIST_VW': {
             'sql_query': '(SELECT * FROM PROD_USIG_CRCOG_DM_RPTG_VW.SLS_RPTG_PREM_HIST_VW) as subquery',
             'numPartitions': 13,
-            'partitionColummn': 'COALESCE(EXTRACT(MONTH FROM CYCLE_DT), 13)',
+            'partitionColumn': 'COALESCE(EXTRACT(MONTH FROM CYCLE_DT), 13)',
             'lowerBound': 0,
             'upperBound': 13
         },
