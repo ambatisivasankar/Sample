@@ -55,6 +55,7 @@ ENV_VARS_TO_LOAD_AS_BOOL = [
     "USE_CLUSTER_EMR",
     "WIDE_COLUMNS_MD5",
     "CONVERT_TIMESTAMPS_TO_AMERICA_NEW_YORK",
+    "MAYBENULL"
 ]
 
 ENV_VARS_TO_LOAD_WITH_DEFAULTS = [
@@ -896,6 +897,7 @@ def save_table(
     table_name_mapped = table_name_mapped or table_name
     dbtable = env_vars["SQL_TEMPLATE"] % table_name
     is_incremental = False
+    source_jdbc.url = source_jdbc.url + ",MAYBENULL=ON" if env_vars["MAYBENULL"] else source_jdbc.url
 
     print("********* EXECUTE SQL: {dbtable!r}".format(dbtable=dbtable))
     properties = dict(user=source_jdbc.user, password=source_jdbc.password)
