@@ -9,9 +9,6 @@ export SPARK_MAX_EXECUTORS=5
 # Required for NB_BINGO_DTL_VW
 export MAYBENULL=1
 
-# Required for NB_BINGO_DTL_VW
-export MAYBENULL=1
-
 include_tables_array=(
   "DI_NB_RPT_VW"
   "INSURED_VW"
