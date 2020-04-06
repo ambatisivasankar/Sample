@@ -1,7 +1,7 @@
 export PROJECT_ID=prod_stnd_crcog_tbls
 # primary purpose of schema is to load the data to squark_staging and finally to prod_stnd_crcog_tbls in Vertica. 
-export WAREHOUSE_DIR="/_wh/"
-export SQL_TEMPLATE="%s"
+export WAREHOUSE_DIR='/_wh/'
+export SQL_TEMPLATE='%s'
 export INCLUDE_VIEWS=1
 export CONNECTION_ID=prod_stnd_crcog_vw
 
@@ -14,64 +14,102 @@ INCLUDE_TABLES_ARRAY=(
   "SEC_COMP_SUM_VW"
   "SEC_COMP_ADJ_VW"
   "RCOG_QUAL_YR_VW"
+  "MMLIA_AGMT_PREM_VW"
+  "MSI_AGMT_PREM_VW"
+  "RSNG_LDR_VW"
+  "SEC_COMP_DTL_VW"
 )
 
 export INCLUDE_TABLES="$(IFS=, ; echo "${INCLUDE_TABLES_ARRAY[*]}")"
 export SPARK_MAX_EXECUTORS=10
 
-export JSON_INFO='
+export JSON_INFO="
 {
-    "PARTITION_INFO":{
-        "tables": {
-            "ADVSR_CNTR_VW": {
-              "partitionColumn": "PDCR_BPID mod 10",
-              "lowerBound": 0,
-              "upperBound": 9,
-              "numPartitions": 10
+    'SAVE_TABLE_SQL_SUBQUERY':{
+            'ADVSR_CNTR_VW': {
+              'sql_query': '(select PDCR_BPID, DST_BPID, DST_REL_STRT_DT, DST_REL_END_DT, DST_BUS_STRT_DT,DST_BUS_END_DT, CNTR_B_ID, DST_LEVEL_PARSED, SLLNG_AGMT_DTL_FR_DT,PDCR_SLLNG_AGMT_RLE_CD, L0_PARENT_BPID, L0_PRNT_SLLNG_AGMT_RLE,L0_REL_STRT_DT, L0_REL_END_DT, L0_BUS_STRT_DT, L0_BUS_END_DT,L0_STD_CONTR_TYP_DESC,L0_STD_CONTR_TYP_CD, L1_PARENT_BPID, L1_PRNT_SLLNG_AGMT_RLE,L1_REL_STRT_DT, L1_REL_END_DT, L1_BUS_STRT_DT, L1_BUS_END_DT,L1_STD_CONTR_TYP_DESC, L1_STD_CONTR_TYP_CD, L2_PARENT_BPID, L2_PRNT_SLLNG_AGMT_RLE,L2_REL_STRT_DT, L2_REL_END_DT, L2_BUS_STRT_DT, L2_BUS_END_DT,L2_STD_CONTR_TYP_DESC, L2_STD_CONTR_TYP_CD, L3_PARENT_BPID, L3_PRNT_SLLNG_AGMT_RLE,L3_REL_STRT_DT, L3_REL_END_DT, L3_BUS_STRT_DT, L3_BUS_END_DT,L3_STD_CONTR_TYP_DESC, L3_STD_CONTR_TYP_CD, SRC_SYS_ID, RUN_ID,UPDT_RUN_ID, TRANS_DT from prod_stnd_crcog_vw.ADVSR_CNTR_VW) AS subquery' , 
+              'partitionColumn': 'PDCR_BPID mod 10',
+              'lowerBound': 0,
+              'upperBound': 9,
+              'numPartitions': 10
             },
-             "SM_VALIDATION_VW": {
-              "partitionColumn": "BP_ID mod 10",
-              "lowerBound": 0,
-              "upperBound": 9,
-              "numPartitions": 10
+             'SM_VALIDATION_VW': {
+              'sql_query': '(select BATCH_CYCLE_DT,BP_ID,UNIT_NR,REL_STRT_DT,REL_END_DT,SM_VAL_ROLE_TYP,SRC_SM_VAL_ROLE_TYP,AGY_NR,AGY_BP_ID,CAP_VLDTN_DT,PAYROLL_NR_SINCE_DDS,DDS_AMT,PRST_IND,CURR_CAP_AMT,SM_PLAN_GRNDFTHR_CD,ALT_VLDTN_IND,CAP_YR1_AMT,CAP_YR2_AMT,CAP_LIAB_AMT,SRC_SYS_ID,CHG_TYP,RUN_ID,UPDT_RUN_ID,TRANS_DT,SRC_DEL_IND,CURR_IND from prod_stnd_crcog_vw.SM_VALIDATION_VW) as subquery', 
+             'partitionColumn': 'BP_ID mod 10',
+              'lowerBound': 0,
+              'upperBound': 9,
+              'numPartitions': 10
             },
-             "RCOG_DI_BONUS_VW": {
-              "partitionColumn": "AGT_BP_ID MOD 10",
-              "lowerBound": 0,
-              "upperBound": 10,
-              "numPartitions": 10
+             'RCOG_DI_BONUS_VW': {
+              'sql_query': '(select CARR_ADMIN_SYS_CD,HLDG_KEY_PFX,HLDG_KEY,HLDG_KEY_SFX,TRANS_EFF_DT,AGMT_ID,AGY_NBR,AGY_BP_ID,AGY_PRTY_ID,AGT_BP_ID,AGT_PRTY_ID,SRC_TRANS_TYP,BULLETIN_DT,CYCLE_DT,SECURE_DT,SRC_CNTR_ID,SRC_CNTR_TYP,AGT_PREM_SPLIT_FYC_PCT,AGT_PREM_SPLIT_RNWL_PCT,CBO_CDE,SRC_CBO_CDE,SRC_INSD_NM,SRC_CVG_NM,SRC_CVG_PLN_CDE,PDCR_ANNL_PREM_AMT,GRADED_PREM_IND,SRC_GRADED_PREM_IND,TOT_DI_PROD_CREDIT_AMT,SRC_SYS_ID,CHG_TYP,RUN_ID,UPDT_RUN_ID,TRANS_DT,SRC_DEL_IND,CURR_IND from prod_stnd_crcog_vw.RCOG_DI_BONUS_VW) as subquery', 
+              'partitionColumn': 'AGT_BP_ID MOD 10',
+              'lowerBound': 0,
+              'upperBound': 10,
+              'numPartitions': 10
             },
-            "UNIT_VW": {
-              "partitionColumn": "UNIT_ID MOD 10",
-              "lowerBound": 0,
-              "upperBound": 10,
-              "numPartitions": 10
+            'UNIT_VW': {
+              'sql_query': '(select UNIT_ID,AGY_BPID,AGY_PRTY_ID,UNIT_BPID,UNIT_NBR,UNIT_NM,UNIT_FRM_DT,UNIT_TO_DT,UNIT_OPEN_DT,UNIT_CLOSE_DT,UNIT_ACTV_IND,UNIT_MGR_BPID,UNIT_MGR_PRTY_ID,UNIT_MGR_NM,UNIT_MGR_TTL,UNIT_MGR_TYP,UNIT_MGR_STRT_DT,UNIT_MGR_STP_DT,SM_SPLT_PCT,SM_SPLT_STRT_DT,SM_SPLT_END_DT,UNIT_MGR_ACTV_IND,MA_BPID,MA_PRTY_ID,MA_NM,MA_STRT_DT,MA_END_DT,ADVSR_MA_STRT_DT,ADVSR_MA_END_DT,MA_UNIT_ACTV_IND,ADVSR_BPID,ADVSR_PRTY_ID,ADVSR_NM,ADVSR_UNIT_STRT_DT,ADVSR_UNIT_STP_DT,ADVSR_UNIT_ACTV_IND,SRC_SYS_ID,RUN_ID,UPDT_RUN_ID,TRANS_DT,SRC_DEL_IND,CURR_IND,UNIT_TYP,AGY_NR from prod_stnd_crcog_vw.UNIT_VW) as subquery',  
+              'partitionColumn': 'UNIT_ID MOD 10',
+              'lowerBound': 0,
+              'upperBound': 10,
+              'numPartitions': 10
             },
-            "AGY_RENT_ADJ_VW": {
-              "partitionColumn": "AGY_BP_ID MOD 10",
-              "lowerBound": 0,
-              "upperBound": 10,
-              "numPartitions": 10
+            'AGY_RENT_ADJ_VW': {
+              'sql_query': '(select AGY_NR,AGY_BP_ID,CHG_TYP,RUN_ID,UPDT_RUN_ID,TRANS_DT,SRC_DEL_IND,CURR_IND,AGY_ADJ_RENT_AMT,AGY_RENT_YR,AGY_RENT_MO,AGY_LEASE_ID from prod_stnd_crcog_vw.AGY_RENT_ADJ_VW) as subquery',  
+              'partitionColumn': 'AGY_BP_ID MOD 10',
+              'lowerBound': 0,
+              'upperBound': 10,
+              'numPartitions': 10
             },
-            "SEC_COMP_SUM_VW": {
-              "partitionColumn": "FIRM_BPID MOD 10",
-              "lowerBound": 0,
-              "upperBound": 10,
-              "numPartitions": 10
+            'SEC_COMP_SUM_VW': {
+              'sql_query': '(select COMM_CLOS_DT,TRLGY_LEDG_ID,SEC_COMP_TYP_CD,SRC_SEC_COMP_TYP_CD,FIRM_ID,FIRM_BPID,FIRM_PRTY_ID,PRMRY_PAY_ENTY_BPID,PRMRY_PAY_ENTY_PRTY_ID,SRC_PRMRY_PAY_ENTY_GOVT_ID,SCNDRY_PAY_ENTY_BPID,SCNDRY_PAY_ENTY_PRTY_ID,SRC_SCNDRY_PAY_ENTY_GOVT_ID,SRC_ACCT_TXN_CDE,SEC_COMP_TOT_PAYABLE_AMT,SRC_CAS_IND,UNIT_NR,UNIT_BPID,FINRA_IND,SRC_FINRA_IND,COMP_CALC_MDL_CD,SRC_SYS_ID,RUN_ID,UPDT_RUN_ID,TRANS_DT,CURR_IND from prod_stnd_crcog_vw.SEC_COMP_SUM_VW) as subquery',  
+              'partitionColumn': 'FIRM_BPID MOD 10',
+              'lowerBound': 0,
+              'upperBound': 10,
+              'numPartitions': 10
             },
-            "SEC_COMP_ADJ_VW": {
-              "partitionColumn": "PRTY_ID MOD 10",
-              "lowerBound": 0,
-              "upperBound": 10,
-              "numPartitions": 10
+            'SEC_COMP_ADJ_VW': {
+              'sql_query': '(select PRTY_ID,BP_ID,AGY_ID,AGY_NR,SECONDARY_BPID,SEC_COMP_CAT_TYPE_CD,SEC_COMP_TYP_CD,SRC_SEC_COMP_TYP_CD,PAY_SYS_CYCLE_DT,PAY_SYS_ACK_DT,TRILOGY_ID,SEC_COMP_ADJ_DT,SEC_COMP_ADJ_AMT,SEC_COM_ADJ_RSN_DESC,PROD_TYP_CD,DTCHD_OFC_ID,CO_CD,PAY_SYS_ACK_IND,COMP_CALC_MDL_CD,NASD_CD,UNIT_BP_ID,UNIT_NR,SRC_HLDG_KEY,AGREEMENT_ID,CARR_ADMIN_SYS_CD,HLDG_KEY,HLDG_KEY_PFX,HLDG_KEY_SFX,SRC_SYS_ID,RUN_ID,UPDT_RUN_ID,TRANS_DT,SRC_DEL_IND,CURR_IND from prod_stnd_crcog_vw.SEC_COMP_ADJ_VW) as subquery',
+              'partitionColumn': 'PRTY_ID MOD 10',
+              'lowerBound': 0,
+              'upperBound': 10,
+              'numPartitions': 10
             },
-            "RCOG_QUAL_YR_VW": {
-              "partitionColumn": "BP_ID MOD 10",
-              "lowerBound": 0,
-              "upperBound": 10,
-              "numPartitions": 10
+            'RCOG_QUAL_YR_VW': {
+              'sql_query': '(select BP_ID, RECOG_QUAL_AS_OF_DT, RCOG_AWD_ID, TOT_YR_QUAL_CNT,LAST_QUAL_YR, SRC_SYS_ID, RUN_ID, UPDT_RUN_ID, TRANS_DT, SRC_DEL_IND,CURR_IND from prod_stnd_crcog_vw.RCOG_QUAL_YR_VW) as subquery', 
+              'partitionColumn': 'BP_ID MOD 10',
+              'lowerBound': 0,
+              'upperBound': 10,
+              'numPartitions': 10
+            },
+            'MMLIA_AGMT_PREM_VW': {
+              'sql_query': '(select AGMT_ID,CARR_ADMIN_SYS_CD,HLDG_KEY_PFX,HLDG_KEY,HLDG_KEY_SFX,SRC_POL_NUM,AGY_PRTY_ID,AGY_BPID,AGY_ID,AGT_PRTY_ID,AGT_BPID,ADMIN_TRANSACTION_DT,FY_RNWL_PREM_CD,SRC_FY_RNWL_PREM_CD,FY_PREM_AMT,RY_PREM_AMT,POL_SEC_DT,POL_SUBMIT_DT,POL_ISS_DT,CTRT_ST,RES_ST,CARRIER_COMPANY_NM,INSD_FULL_NM,SRC_VEND_PROD_ID,CARRIER_COMPANY_ID,TAX_QUAL_CD,SRC_TAX_QUAL_CD,DOL_REGULATED_IND,FACE_AMT,EXCS_BSIS_CD,AGT_CONTR_CD,SRC_AGT_CONTR_CD,SRC_SYS_ID,RUN_ID,TRANS_DT,PROD_ID,SRC_POL_TYP,SRC_PROD_DESC,RVRSL_IND,ADJ_IND,SRC_ADJ_IND,AGMT_STUS_CD,SRC_AGMT_STUS_CD,SRC_RVRSL_IND,ADR_LN1_TEXT,CITY,ZIPCODE,CYCLE_DT,GDC_TOTAL,MNO_RCOG_CDE,LGCY_MET_IND,MNO_PAYABLE_AMT,MNO_OLD_NEW_IND,LOB_CDE,PREM_TXN_ID,AGT_PREM_SPLIT_PCT from prod_stnd_crcog_vw.MMLIA_AGMT_PREM_VW where trans_dt between CAST('''$strt_dt''' AS DATE)  AND CAST('''$end_dt''' AS DATE)) as subquery', 
+              'partitionColumn': 'AGMT_ID MOD 10',
+              'lowerBound': 0,
+              'upperBound': 10,
+              'numPartitions': 10
+            },
+            'MSI_AGMT_PREM_VW': {
+              'sql_query': '(select AGMT_ID,MSI_AGMT_PREM_ID,CARR_ADMIN_SYS_CD,HLDG_KEY_PFX,HLDG_KEY,HLDG_KEY_SFX,SRC_CARR_ADMIN_SYS_CD,SRC_POL_NUM,SRC_POL_NUM_SFX,PROD_ID,SRC_PROD_ID,SRC_PROD_DESC,SRC_ADMIN_PROD_CD,AGY_PRTY_ID,AGY_BPID,AGY_ID,AGT_PRTY_ID,AGT_BPID,ADMIN_TRANSACTION_DT,ACCT_POOL_CD,SRC_PD_DT,SRC_AGT_ID,SRC_AGT_SSN,ADJ_IND,SRC_AGT_FULL_NM,SRC_AGT_EMPE_NR,SRC_CNTRCT_NM,SRC_AGT_APPT_DT,SRC_AGT_TRM_DT,SRC_ENT_LOB_CD,FY_RNWL_PREM_CD,SRC_TRAN_TYP_CD,SRC_TRAN_DESC,FY_PREM_AMT,RY_PREM_AMT,INSD_FULL_NM,PYMT_MTHD_CD,SRC_POL_PY_MODE_CD,CR_WK_STRT_DT,RVRSL_IND,SRC_RVRSL_IND,SRC_SYS_ID,RUN_ID,UPDT_RUN_ID,TRANS_DT,LOB_CDE,PREM_TXN_ID from PROD_STND_CRCOG_VW.MSI_AGMT_PREM_VW where trans_dt between CAST('''$strt_dt''' AS DATE)  AND CAST('''$end_dt''' AS DATE)) as subquery', 
+              'partitionColumn': 'MSI_AGMT_PREM_ID MOD 10',
+              'lowerBound': 0,
+              'upperBound': 10,
+              'numPartitions': 10
+            },
+            'RSNG_LDR_VW': {
+              'sql_query': '(SELECT AGT_PRTY_ID,AGT_BP_ID,AGCY_BPID,AGCY_NR,AGCY_PRTY_ID,UNIT_NR,UNIT_BP_ID,SMBD_MGR_BP_ID,GA_BP_ID,AS_OF_DT,RSNG_LDR_FREQ_TYP,CYCLE_DT,AGT_DUR_CLS_TYP,RSNG_LDR_STRT_YR_MO,RSNG_LDR_END_YR_MO,RSNG_LDR_CALC_STRT_YR_MO,AAA_WCC_AMT,RSNG_LDR_LIVES_CNT,ALR_ELR_LAPSE_PCT,RSNG_LDR_REQ_LVL_CD,POT_RSNG_LDR_IND,RSNG_LDR_QUAL_AAA_WCC_AMT,RSNG_LDR_QUAL_LIVES_CNT,SRC_SYS_ID,RUN_ID,UPDT_RUN_ID,TRANS_DT,SRC_DEL_IND,CURR_IND from PROD_STND_CRCOG_VW.RSNG_LDR_VW where cycle_dt between CAST('''$strt_dt''' AS DATE)  AND CAST('''$end_dt''' AS DATE)) as subquery', 
+              'partitionColumn': 'AGT_PRTY_ID MOD 10',
+              'lowerBound': 0,
+              'upperBound': 10,
+              'numPartitions': 10
+            },
+            'SEC_COMP_DTL_VW': {
+              'sql_query': '(SELECT COMM_CLOS_DT,SRC_CORG_IDENT,TRLGY_LEDG_ID,SRC_TXN_ID,SEC_COMP_TYP_CD,SRC_SEC_COMP_TYP_CD,INHRT_RCRT_CD,SRC_INHRT_RCRT_CD,SEC_COMP_TXN_PAYABLE_AMT,REM_RATE,PAY_SYS_ACK_DT,SRC_SYS_ID,RUN_ID,UPDT_RUN_ID,TRANS_DT,CURR_IND from PROD_STND_CRCOG_VW.SEC_COMP_DTL_VW where COMM_CLOS_DT between CAST('''$strt_dt''' AS DATE)  AND CAST('''$end_dt''' AS DATE)) as subquery', 
+              'partitionColumn': 'SRC_SYS_ID MOD 10',
+              'lowerBound': 0,
+              'upperBound': 10,
+              'numPartitions': 10
             }
      }
    }
-}
-'
+"
