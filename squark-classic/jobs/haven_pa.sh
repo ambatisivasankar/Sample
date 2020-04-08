@@ -8,7 +8,7 @@ export SQUARK_METADATA=1
 # 2019.04.15, batch_log choking on one .orc part file for batch_log, HavenLife gave permission to skip the table
 #  each time load-to-vertica failed on part-00019 with "Failed to parse the footer" error, row count only went up by 5
 #  rows vs. previous no-problems load, implies it may be only one+ of the new rows causing the issue?
-export EXCLUDE_TABLES="batch_log"
+export EXCLUDE_TABLES="batch_log,policy_doc"
 # 2018.10.01, batch_log is tiny but message column very long, with curr dataset "SECONDS/createdTime" isn't good but best available
 export JSON_INFO="
 {
@@ -30,4 +30,3 @@ export JSON_INFO="
    }
 }
 "
-

@@ -325,6 +325,7 @@ def get_table_map(info: Optional[Dict]) -> Optional[Dict]:
         return None
     try:
         table_map = info["TABLE_MAP"]  # type: Dict[str, str]
+        print("--- Table map: {}".format(table_map))
         return table_map
     except KeyError:
         print(

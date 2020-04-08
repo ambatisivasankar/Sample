@@ -964,7 +964,8 @@ def save_table(
 
         if {'numPartitions', 'partitionColumn', 'upperBound', 'lowerBound'}.issubset(incremental_info.keys()):
             print(" All required Partition keys are defined and proceeding to exeucte ")
-            df = sqlctx.read.format("jdbc").options(
+
+            lazy_read = sqlctx.read.format("jdbc").options(
                 url=mod_url,
                 dbtable=sql_query,
                 user=source_jdbc.user,
@@ -973,7 +974,15 @@ def save_table(
                 lowerBound=incremental_info['lowerBound'],
                 upperBound=incremental_info['upperBound'],
                 numPartitions=incremental_info['numPartitions'],
-                ).load()
+                )
+
+            if "driver" in properties:
+                print("Adding driver to lazy_read")
+                # if no source_row_count, driver_name hasn't been set and need to do so on this connection
+                lazy_read = lazy_read.option("driver", properties["driver"])
+
+            df = lazy_read.load()
+
         else:
             print("Proceeding to execute the sql query without setting 'numpartitions', 'partitionColumn','upperBound','lowerBound' ")
             df = sqlctx.read.jdbc(mod_url, sql_query, properties=properties)       
