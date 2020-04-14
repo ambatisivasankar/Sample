@@ -20,6 +20,7 @@ include_tables_array=(
   "AGMT_LOAN_CMN_VW"
   "AGMT_UWRT_CMN_VW"
   "AGMT_VAL_CMN_VW"
+  "AGMT_SRVC_VW"
   "AGMT_WARNING_INFO_CMN_VW"
   "BENE_DATA_CMN_VW"
   "BP_CREDENTIAL_VW"
@@ -71,6 +72,11 @@ export JSON_INFO='
             },
             "AGMT_LOAN_CMN_VW": {
                 "projection_name": "AGMT_LOAN_CMN_VW_SQUARK",
+                "order_by_columns": "AGREEMENT_ID",
+                "segment_by_columns": "AGREEMENT_ID"
+            },
+            "AGMT_SRVC_VW": {
+                "projection_name": "AGMT_SRVC_VW_SQUARK",
                 "order_by_columns": "AGREEMENT_ID",
                 "segment_by_columns": "AGREEMENT_ID"
             },
@@ -174,6 +180,12 @@ export JSON_INFO='
               "lowerBound": 0,
               "upperBound": 10,
               "numPartitions": 10
+            },
+            "AGMT_SRVC_VW": {
+              "partitionColumn": "AGREEMENT_ID MOD 50",
+              "lowerBound": 0,
+              "upperBound": 50,
+              "numPartitions": 50
             },
             "AGMT_UWRT_CMN_VW": {
               "partitionColumn": "AGREEMENT_ID MOD 10",
